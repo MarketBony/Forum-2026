@@ -1,0 +1,939 @@
+<title>Le Grand Bal des Points</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;1,500&family=Petit+Formal+Script&family=Hanken+Grotesk:wght@400;500;600;700&display=swap">
+
+<style>
+/* ============================================================
+   Le Grand Bal des Points — maquette cliquable
+   Charte reprise à l'identique de la LP "Le Grand Bal des
+   Fournisseurs" (variables, dégradés, guirlande, vichy).
+   Univers volontairement mono-thème : une guinguette de nuit.
+   ============================================================ */
+:root{
+  --nuit:#281634; --nuit-2:#1A0E22; --vert:#4B1E50; --vert-clair:#6B3470;
+  --or:#C5963C; --or-clair:#E6C77E; --or-fonce:#9A6C26;
+  --terracotta:#D15B30; --terracotta-clair:#E68152;
+  --creme:#F1E7D2; --creme-2:#FAF4E7; --encre:#221823;
+  --vert-ok:#5FA86A; --rouge:#C4462F;
+  --grad-or:linear-gradient(176deg,#EFD79A 0%,#E6C77E 18%,#C5963C 52%,#9A6C26 100%);
+  --grad-or-h:linear-gradient(90deg,#9A6C26,#E6C77E 50%,#9A6C26);
+  --serif:"Playfair Display",Georgia,serif;
+  --script:"Petit Formal Script",cursive;
+  --sans:"Hanken Grotesk",system-ui,sans-serif;
+  --r:4px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  background:var(--nuit-2); color:var(--creme);
+  font-family:var(--sans); font-size:16px; line-height:1.6;
+  overflow-x:hidden;
+}
+[hidden]{display:none !important}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+input,select{font:inherit}
+:focus-visible{outline:3px solid var(--or-clair); outline-offset:2px}
+
+/* ---------- décor de page ---------- */
+.page-bg{position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none}
+.bg-grad{position:absolute; inset:-45%; mix-blend-mode:screen; will-change:transform,opacity}
+.g1{background:radial-gradient(40% 34% at 50% 24%, rgba(247,86,50,.38), transparent 68%); animation:flo1 14s ease-in-out infinite alternate}
+.g2{background:radial-gradient(44% 40% at 74% 76%, rgba(176,40,110,.34), transparent 68%); animation:flo2 17s ease-in-out infinite alternate}
+.g3{background:radial-gradient(40% 38% at 18% 70%, rgba(143,18,171,.34), transparent 70%); animation:flo3 15s ease-in-out infinite alternate}
+@keyframes flo1{0%{transform:translate(-22%,-15%) scale(1)}100%{transform:translate(26%,18%) scale(1.5)}}
+@keyframes flo2{0%{transform:translate(18%,12%) scale(1.05)}100%{transform:translate(-24%,-18%) scale(1.55)}}
+@keyframes flo3{0%{transform:translate(14%,-13%) scale(1)}100%{transform:translate(-20%,22%) scale(1.45)}}
+.vichy{position:absolute; inset:0; opacity:.04; mix-blend-mode:screen;
+  background-image:
+    repeating-linear-gradient(0deg,#E68152 0 14px,transparent 14px 28px),
+    repeating-linear-gradient(90deg,#E68152 0 14px,transparent 14px 28px);
+  background-size:28px 28px}
+
+/* ---------- guirlande (reprise de la LP, fil en Bézier) ---------- */
+.garland{position:relative; z-index:2; width:100%; height:104px; overflow:visible}
+.wire{position:absolute; inset:0; width:100%; height:104px; display:block; overflow:visible}
+.cord{fill:none; stroke:var(--or); stroke-width:1.5; opacity:.5; vector-effect:non-scaling-stroke}
+.bulbs{position:absolute; inset:0; pointer-events:none}
+.bulb{position:absolute; transform:translateX(-50%); width:var(--size); height:var(--size); border-radius:50%;
+  background:radial-gradient(circle at 38% 32%, var(--c1) 0%, var(--c2) 55%, #8A5F22 100%);
+  box-shadow:0 0 calc(var(--glow) + 3px) rgba(247,86,50,.16), 0 0 var(--glow) var(--c2);
+  transform-origin:50% calc(-1 * var(--drop))}
+.bulb::before{content:""; position:absolute; left:50%; bottom:100%; width:1.4px; height:var(--drop);
+  background:linear-gradient(var(--or-clair),var(--or-fonce)); opacity:.6; transform:translateX(-50%)}
+@media (prefers-reduced-motion:no-preference){
+  .bulb{animation:tw var(--bt,3s) ease-in-out infinite, sway var(--sw,6s) ease-in-out infinite; animation-delay:var(--bd,0s), var(--bd,0s)}
+}
+@keyframes tw{0%,100%{opacity:1}50%{opacity:var(--floor,.55)}}
+@keyframes sway{0%,100%{transform:translateX(-50%) rotate(3deg)}50%{transform:translateX(-50%) rotate(-3deg)}}
+
+/* ---------- charpente ---------- */
+.shell{position:relative; z-index:1; max-width:1180px; margin:0 auto; padding:0 24px 80px}
+.masthead{text-align:center; padding:4px 0 34px}
+.crest{display:block; width:44px; height:auto; margin:0 auto 14px; fill:var(--creme-2); filter:drop-shadow(0 0 12px rgba(230,199,126,.45))}
+.kick{font-weight:600; letter-spacing:.4em; text-transform:uppercase; font-size:11px; opacity:.68; padding-left:.4em}
+.eyebrow{display:flex; align-items:center; justify-content:center; gap:15px; font-weight:600; letter-spacing:.5em; text-transform:uppercase; font-size:12px; color:var(--or-clair); padding-left:.5em; margin:18px 0 6px}
+.eyebrow::before,.eyebrow::after{content:""; width:42px; height:1px; background:var(--grad-or-h)}
+.scripted{font-family:var(--script); font-size:clamp(24px,5.2vw,34px); line-height:.95; color:var(--or-clair); margin:0 0 -2px}
+.worded{font-family:var(--serif); font-weight:700; text-transform:uppercase; letter-spacing:.05em;
+  font-size:clamp(26px,6.6vw,46px); line-height:1.04; padding-left:.05em;
+  background:var(--grad-or); background-size:220% auto; -webkit-background-clip:text; background-clip:text; color:transparent;
+  animation:shimmer 8s ease-in-out infinite alternate; text-wrap:balance}
+@keyframes shimmer{to{background-position:100% 0}}
+.deck{font-family:var(--serif); font-style:italic; font-size:clamp(15px,2.4vw,18px); max-width:56ch; margin:18px auto 0; opacity:.9; text-wrap:balance}
+.meta{display:flex; gap:14px; align-items:center; justify-content:center; flex-wrap:wrap;
+  font-weight:600; letter-spacing:.18em; text-transform:uppercase; font-size:11px; color:var(--or-clair); margin-top:18px}
+.meta .dot{width:4px; height:4px; border-radius:50%; background:var(--or)}
+
+/* ---------- onglets profils (enseignes) ---------- */
+.rail{display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin:0 0 30px}
+.tab{position:relative; padding:11px 20px 12px; border:1.5px solid rgba(197,150,60,.42);
+  font-weight:600; font-size:14px; letter-spacing:.03em; color:var(--creme);
+  transition:transform .18s, box-shadow .25s, border-color .2s, background .2s; overflow:hidden}
+.tab .num{font-family:var(--serif); font-size:12px; color:var(--or-clair); margin-right:8px; opacity:.8}
+.tab:hover{transform:translateY(-2px); border-color:var(--or-clair); box-shadow:0 8px 22px rgba(197,150,60,.24)}
+.tab[aria-selected="true"]{background:var(--grad-or); color:var(--nuit-2); border-color:var(--or); box-shadow:0 6px 20px rgba(197,150,60,.32)}
+.tab[aria-selected="true"] .num{color:rgba(26,14,34,.6)}
+
+/* ---------- scène : téléphone + notes ---------- */
+.stage{display:grid; grid-template-columns:390px minmax(0,1fr); gap:44px; align-items:start}
+@media (max-width:900px){.stage{grid-template-columns:minmax(0,1fr); gap:34px; justify-items:center}}
+
+.device{width:390px; max-width:100%; border:9px solid #0D0710; border-radius:38px;
+  box-shadow:0 0 0 1.5px rgba(197,150,60,.32), 0 34px 70px -18px rgba(0,0,0,.85);
+  overflow:hidden; position:sticky; top:24px}
+@media (max-width:900px){.device{position:static}}
+.viewport{position:relative; height:748px; background:var(--nuit-2); overflow:hidden; display:flex; flex-direction:column}
+
+/* décor interne : uniquement l'écran participant (voir notes) */
+.scr-decor{position:absolute; inset:0; z-index:0; pointer-events:none; overflow:hidden}
+.scr-decor .bg-grad{inset:-40%}
+.spark{position:absolute; border-radius:50%;
+  background:radial-gradient(circle at 38% 32%, #FFF7E0 0%, var(--or-clair) 50%, var(--or-fonce) 100%);
+  filter:drop-shadow(0 0 5px rgba(232,163,61,.7))}
+@media (prefers-reduced-motion:no-preference){
+  .spark{animation:blink var(--bd,4.5s) ease-in-out infinite; animation-delay:var(--bdl,0s)}
+}
+@keyframes blink{0%,100%{opacity:.9; transform:scale(1)}50%{opacity:.14; transform:scale(.72)}}
+
+.statusbar{position:relative; z-index:2; display:flex; justify-content:space-between; align-items:center;
+  padding:12px 22px 4px; font-size:12px; font-weight:600; letter-spacing:.06em; opacity:.6; flex:0 0 auto}
+.screen{position:relative; z-index:1; flex:1 1 auto; overflow-y:auto; overflow-x:hidden; padding:10px 20px 26px;
+  scrollbar-width:thin; scrollbar-color:rgba(197,150,60,.45) transparent}
+.screen::-webkit-scrollbar{width:6px}
+.screen::-webkit-scrollbar-thumb{background:rgba(197,150,60,.45)}
+
+/* ---------- composants d'app ---------- */
+.appbar{display:flex; align-items:center; gap:12px; padding:6px 0 16px}
+.appbar .bcrest{width:22px; height:auto; fill:var(--creme-2); opacity:.85; flex:0 0 auto}
+.appbar .who{font-size:11px; font-weight:600; letter-spacing:.22em; text-transform:uppercase; color:var(--or-clair); opacity:.9}
+.appbar .back{margin-left:auto; font-size:13px; color:var(--or-clair); border-bottom:1px solid rgba(230,199,126,.4)}
+
+.h-script{font-family:var(--script); font-size:30px; color:var(--or-clair); line-height:1.1; margin-bottom:2px}
+.h-serif{font-family:var(--serif); font-weight:700; font-size:23px; color:var(--creme-2); line-height:1.2; text-wrap:balance}
+.sub{font-size:13.5px; opacity:.72; margin-top:6px}
+.rule{height:1px; background:var(--grad-or-h); opacity:.5; margin:20px 0}
+.lbl{font-weight:600; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--or-clair); margin-bottom:8px}
+
+.card{background:rgba(40,22,52,.66); border:1px solid rgba(197,150,60,.3); padding:16px; position:relative; backdrop-filter:blur(2px)}
+.card::before{content:""; position:absolute; inset:4px; border:1px solid var(--or); opacity:.16; pointer-events:none}
+
+/* le solde : l'élément principal (§7) */
+.wallet{text-align:center; padding:24px 16px 22px; margin-top:6px}
+.wallet .gname{font-family:var(--serif); font-size:21px; font-weight:500; color:var(--creme-2); line-height:1.25}
+.wallet .gcity{font-size:12px; letter-spacing:.16em; text-transform:uppercase; opacity:.6; margin-top:4px}
+.wallet .amount{font-family:var(--serif); font-weight:700; font-size:82px; line-height:1; margin:14px 0 2px;
+  background:var(--grad-or); background-size:220% auto; -webkit-background-clip:text; background-clip:text; color:transparent;
+  font-variant-numeric:tabular-nums}
+.wallet .unit{font-size:12px; font-weight:600; letter-spacing:.32em; text-transform:uppercase; color:var(--or-clair); padding-left:.32em}
+.wallet .refresh{margin-top:14px; font-size:12px; opacity:.55}
+
+.btn{display:block; width:100%; min-height:56px; padding:15px 18px; border:none; cursor:pointer;
+  background:var(--grad-or); background-size:220% auto; color:var(--nuit-2);
+  font-family:var(--serif); font-weight:700; font-size:17px; letter-spacing:.03em; text-transform:uppercase;
+  position:relative; overflow:hidden; transition:transform .14s, box-shadow .26s, filter .2s}
+.btn:hover:not(:disabled){transform:translateY(-2px); filter:brightness(1.06); box-shadow:0 12px 30px rgba(197,150,60,.4)}
+.btn:active:not(:disabled){transform:translateY(0)}
+.btn:disabled{opacity:.45; cursor:progress; transform:none}
+.btn.ghost{background:transparent; border:1.5px solid rgba(197,150,60,.45); color:var(--creme);
+  font-family:var(--sans); font-weight:600; font-size:15px; text-transform:none; letter-spacing:0}
+.btn.ghost:hover{border-color:var(--or-clair); box-shadow:0 8px 22px rgba(197,150,60,.22)}
+.btn.small{min-height:44px; font-size:14px; padding:11px 14px}
+
+.search{width:100%; min-height:54px; padding:15px 16px; font-size:16px; color:var(--creme);
+  background:var(--nuit); border:1.5px solid rgba(197,150,60,.4); border-radius:0; -webkit-appearance:none; appearance:none}
+.search::placeholder{color:rgba(241,231,210,.38)}
+.search:focus{outline:none; border-color:var(--or-clair); box-shadow:0 0 0 3px rgba(230,199,126,.18)}
+
+.results{display:flex; flex-direction:column; gap:8px; margin-top:12px}
+.hit{display:flex; align-items:center; gap:12px; width:100%; text-align:left; min-height:60px; padding:11px 14px;
+  border:1.5px solid rgba(197,150,60,.28); background:rgba(40,22,52,.5); transition:border-color .18s, transform .14s, background .18s}
+.hit:hover{border-color:var(--or-clair); transform:translateX(2px); background:rgba(40,22,52,.8)}
+.hit .hn{font-weight:600; font-size:15.5px; color:var(--creme-2); line-height:1.25}
+.hit .hc{font-size:12px; letter-spacing:.1em; text-transform:uppercase; opacity:.55; margin-top:2px}
+.hit .hb{margin-left:auto; text-align:right; flex:0 0 auto}
+.hit .hb b{font-family:var(--serif); font-size:22px; color:var(--or-clair); font-variant-numeric:tabular-nums}
+.hit .hb span{display:block; font-size:9.5px; letter-spacing:.18em; text-transform:uppercase; opacity:.5}
+.empty{padding:22px 4px; font-size:14px; opacity:.6; text-align:center; font-style:italic; font-family:var(--serif)}
+
+/* barème animateur : gros boutons (§15) */
+.scores{display:flex; flex-direction:column; gap:10px; margin-top:14px}
+.score{display:flex; align-items:center; gap:14px; width:100%; min-height:64px; padding:14px 18px;
+  border:1.5px solid rgba(197,150,60,.4); background:rgba(40,22,52,.55);
+  transition:transform .14s, box-shadow .24s, border-color .18s}
+.score:hover:not(:disabled){transform:translateY(-2px); border-color:var(--or-clair); box-shadow:0 10px 26px rgba(197,150,60,.24)}
+.score:disabled{opacity:.5; cursor:progress; transform:none}
+.score .sk{font-family:var(--serif); font-weight:700; font-size:19px; text-transform:uppercase; letter-spacing:.04em}
+.score .sp{margin-left:auto; font-family:var(--serif); font-weight:700; font-size:26px; font-variant-numeric:tabular-nums}
+.score.win{border-color:rgba(95,168,106,.6)} .score.win .sp{color:#8FD09A}
+.score.mid .sp{color:var(--or-clair)}
+.score.zero{border-color:rgba(241,231,210,.22)} .score.zero .sp{opacity:.5}
+
+.chips{display:flex; flex-wrap:wrap; gap:8px; margin-top:12px}
+.chip{padding:12px 16px; min-height:48px; border:1.5px solid rgba(197,150,60,.4); font-weight:600; font-size:15px;
+  transition:transform .14s, border-color .18s, background .18s}
+.chip:hover{transform:translateY(-2px); border-color:var(--or-clair)}
+.chip[aria-pressed="true"]{background:var(--grad-or); color:var(--nuit-2); border-color:var(--or)}
+
+.ledger{display:flex; flex-direction:column; margin-top:6px}
+.mv{display:flex; align-items:baseline; gap:12px; padding:11px 2px; border-bottom:1px solid rgba(197,150,60,.14); font-size:14px}
+.mv:last-child{border-bottom:none}
+.mv .mt{flex:0 0 38px; font-size:11px; opacity:.45; font-variant-numeric:tabular-nums}
+.mv .ml{flex:1 1 auto; line-height:1.35}
+.mv .ml small{display:block; font-size:11px; letter-spacing:.1em; text-transform:uppercase; opacity:.45; margin-top:1px}
+.mv .md{flex:0 0 auto; font-family:var(--serif); font-weight:700; font-size:17px; font-variant-numeric:tabular-nums}
+.mv .md.plus{color:#8FD09A} .mv .md.minus{color:var(--terracotta-clair)}
+
+/* grille des 100 cases (§11) */
+.gridwrap{margin-top:14px}
+.grid100{display:grid; grid-template-columns:repeat(10,1fr); gap:4px}
+.cell{aspect-ratio:1; display:flex; align-items:center; justify-content:center;
+  font-size:11px; font-weight:600; font-variant-numeric:tabular-nums;
+  border:1px solid rgba(197,150,60,.38); background:rgba(40,22,52,.55); color:var(--creme);
+  transition:transform .12s, background .18s, border-color .18s}
+.cell:hover:not(:disabled){transform:scale(1.14); background:var(--or-clair); color:var(--nuit-2); border-color:var(--or-clair); z-index:2}
+.cell:disabled{opacity:.28; background:rgba(241,231,210,.06); border-color:rgba(241,231,210,.14); cursor:not-allowed}
+.gridlegend{display:flex; gap:16px; flex-wrap:wrap; font-size:11.5px; opacity:.62; margin-top:12px; letter-spacing:.04em}
+.gridlegend i{display:inline-block; width:10px; height:10px; margin-right:5px; vertical-align:-1px; border:1px solid rgba(197,150,60,.38)}
+.gridlegend i.gone{opacity:.28; background:rgba(241,231,210,.06); border-color:rgba(241,231,210,.14)}
+
+.reveal{text-align:center; padding:30px 14px}
+.reveal .rk{font-family:var(--script); font-size:44px; line-height:1; color:var(--or-clair)}
+.reveal .rl{font-family:var(--serif); font-weight:700; font-size:26px; text-transform:uppercase; letter-spacing:.05em; margin-top:6px;
+  background:var(--grad-or); -webkit-background-clip:text; background-clip:text; color:transparent}
+.reveal.lose .rl{background:none; color:var(--creme); opacity:.75}
+.reveal .rlot{margin-top:20px; padding:16px; border:1px solid var(--or); font-family:var(--serif); font-size:18px; color:var(--creme-2)}
+.reveal .rcase{font-size:11px; letter-spacing:.2em; text-transform:uppercase; opacity:.5; margin-top:16px}
+
+/* tableau de bord Bony */
+.kpis{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:6px}
+.kpi{padding:13px 14px; border:1px solid rgba(197,150,60,.28); background:rgba(40,22,52,.5)}
+.kpi .kv{font-family:var(--serif); font-weight:700; font-size:27px; color:var(--or-clair); font-variant-numeric:tabular-nums; line-height:1.1}
+.kpi .kl{font-size:10px; letter-spacing:.14em; text-transform:uppercase; opacity:.6; margin-top:3px; line-height:1.4}
+.kpi.warn{border-color:rgba(209,91,48,.55)} .kpi.warn .kv{color:var(--terracotta-clair)}
+.meter{height:6px; background:rgba(241,231,210,.1); margin-top:9px; overflow:hidden}
+.meter span{display:block; height:100%; background:var(--grad-or-h)}
+
+/* toast de confirmation (§16) */
+.toast{position:absolute; left:14px; right:14px; bottom:16px; z-index:5;
+  border:1px solid var(--or); background:rgba(26,14,34,.96); padding:14px 16px;
+  box-shadow:0 -8px 40px rgba(0,0,0,.6); transform:translateY(140%); transition:transform .34s cubic-bezier(.2,.9,.25,1)}
+.toast.on{transform:translateY(0)}
+.toast .tt{font-family:var(--serif); font-weight:700; font-size:17px; color:#8FD09A}
+.toast .tt.neg{color:var(--terracotta-clair)}
+.toast .tb{font-size:13px; opacity:.8; margin-top:3px}
+.toast .tb b{color:var(--or-clair); font-family:var(--serif); font-size:16px; font-variant-numeric:tabular-nums}
+.toast.warn{border-color:var(--terracotta)} .toast.warn .tt{color:var(--terracotta-clair)}
+
+/* offline / état réseau */
+.netline{display:flex; align-items:center; gap:8px; font-size:11.5px; letter-spacing:.08em; text-transform:uppercase;
+  padding:8px 12px; border:1px solid rgba(209,91,48,.5); background:rgba(209,91,48,.12); color:var(--terracotta-clair); margin-bottom:14px}
+.netline i{width:7px; height:7px; border-radius:50%; background:var(--terracotta-clair); flex:0 0 auto}
+
+/* ---------- panneau de notes ---------- */
+.notes{padding-top:6px}
+.notes h2{font-family:var(--script); font-weight:400; font-size:32px; color:var(--or-clair); line-height:1.1}
+.notes .nsub{font-size:13.5px; opacity:.7; margin-top:4px; margin-bottom:22px}
+.try{border:1px solid rgba(209,91,48,.5); background:rgba(209,91,48,.1); padding:14px 16px; margin-bottom:24px}
+.try > b{display:block; font-family:var(--serif); font-size:15px; color:var(--terracotta-clair); margin-bottom:4px; letter-spacing:.02em}
+.try p{font-size:14px; opacity:.86}
+.try p b{display:inline; font-family:inherit; font-size:inherit; font-weight:600; color:var(--or-clair); margin:0}
+.nlist{display:flex; flex-direction:column; gap:0}
+.n{display:grid; grid-template-columns:74px minmax(0,1fr); gap:16px; padding:15px 0; border-top:1px solid rgba(197,150,60,.18)}
+.n:last-child{border-bottom:1px solid rgba(197,150,60,.18)}
+.n .ref{font-family:var(--serif); font-weight:700; font-size:12px; letter-spacing:.1em; text-transform:uppercase; color:var(--or-clair); opacity:.85; padding-top:2px}
+.n .ref small{display:block; font-family:var(--sans); font-weight:400; font-size:10px; letter-spacing:.14em; opacity:.5; margin-top:2px}
+.n .body{font-size:14.5px; line-height:1.62}
+.n .body strong{color:var(--creme-2); font-weight:600}
+.n .body code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12.5px; color:var(--or-clair);
+  background:rgba(197,150,60,.12); padding:1px 5px}
+.footnote{margin-top:34px; padding-top:20px; border-top:1px solid rgba(197,150,60,.28); font-size:13px; opacity:.7; line-height:1.8}
+.footnote b{color:var(--or-clair); opacity:1; font-weight:600}
+
+@media (prefers-reduced-motion:reduce){
+  .bg-grad,.spark,.worded,.wallet .amount,.bulb{animation:none !important}
+  .toast{transition:none}
+}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="bonyB" viewBox="0 0 62.09 63.05">
+    <path d="M57.36,24.68c-.41-.47-.85-.93-1.32-1.37.45-1.28.77-2.59.95-3.9.73-5.19-.63-10.07-3.84-13.76-3.16-3.64-7.73-5.64-12.86-5.64h-17.54l-4.05,22.05h23.55c3.27,0,6.34.86,8.89,2.49-3.14,5.81-9.41,9.71-15.66,9.71H5.25L0,63.05h36.5c12.26,0,23.64-9.97,25.36-22.22.86-6.09-.74-11.83-4.5-16.16h0ZM57.91,40.27c-1.46,10.36-11.06,18.78-21.4,18.78H4.81l3.76-20.81h26.92c7.41,0,14.74-4.34,18.74-11.08.04.04.08.09.11.13,2.99,3.44,4.25,8.04,3.56,12.98h0ZM53.04,18.85c-.09.64-.22,1.28-.39,1.92-3.04-1.78-6.62-2.71-10.39-2.71h-18.65l2.42-14.06h14.26c3.96,0,7.45,1.52,9.84,4.27,2.43,2.8,3.46,6.56,2.9,10.58h0Z"/>
+  </symbol>
+</svg>
+
+<div class="page-bg" aria-hidden="true">
+  <div class="bg-grad g1"></div>
+  <div class="bg-grad g2"></div>
+  <div class="bg-grad g3"></div>
+  <div class="vichy"></div>
+</div>
+
+<div class="garland" aria-hidden="true">
+  <svg class="wire" viewBox="0 0 1000 104" preserveAspectRatio="none"><path class="cord" d=""/></svg>
+  <div class="bulbs"></div>
+</div>
+
+<div class="shell">
+
+  <header class="masthead">
+    <svg class="crest" viewBox="0 0 62.09 63.05" aria-hidden="true"><use href="#bonyB"/></svg>
+    <p class="kick">Forum Pièces Bony · Édition 2026</p>
+    <div class="eyebrow">Maquette</div>
+    <div class="scripted">Le Grand Bal des</div>
+    <h1 class="worded">Points</h1>
+    <p class="deck">Le portefeuille virtuel du Forum : les jetons de carton deviennent des points, et la soirée garde son rythme.</p>
+    <div class="meta"><span>Jeudi 17 septembre 2026</span><span class="dot"></span><span>Grande Halle d'Auvergne</span></div>
+  </header>
+
+  <div class="rail" role="tablist" aria-label="Profils de l'application">
+    <button class="tab" role="tab" data-profil="participant" aria-selected="true"><span class="num">I</span>Garage</button>
+    <button class="tab" role="tab" data-profil="animateur" aria-selected="false"><span class="num">II</span>Animateur</button>
+    <button class="tab" role="tab" data-profil="fournisseur" aria-selected="false"><span class="num">III</span>Fournisseur</button>
+    <button class="tab" role="tab" data-profil="bony" aria-selected="false"><span class="num">IV</span>Bony</button>
+  </div>
+
+  <div class="stage">
+    <div class="device">
+      <div class="viewport">
+        <div class="scr-decor" id="decor" aria-hidden="true"></div>
+        <div class="statusbar"><span id="clock">15:12</span><span id="netlabel">Wi-Fi Halle · 4G</span></div>
+        <div class="screen" id="screen"></div>
+        <div class="toast" id="toast" role="status" aria-live="polite"></div>
+      </div>
+    </div>
+
+    <div class="notes" id="notes"></div>
+  </div>
+
+  <p class="footnote">
+    <b>Ce qui n'est pas figé.</b> Les barèmes de jeux, la valeur d'une participation à la grille et le barème
+    d'achat fournisseur sont ici des exemples : ils seront tous réglables depuis l'espace Bony, sans intervention
+    technique. <b>Ce qui l'est.</b> La règle du solde calculé à partir du journal, l'unicité des cases, la protection
+    contre le double crédit et la traçabilité de chaque écriture — ce sont les fondations, elles ne se négocient pas.
+  </p>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* =========================================================
+   1. Guirlande — fil en courbes de Bézier + ampoules
+      (algorithme repris de la LP Grand Bal)
+   ========================================================= */
+(function(){
+  var wire=document.querySelector('.cord'), holder=document.querySelector('.bulbs');
+  if(!wire||!holder) return;
+  var sup=[{x:0,y:12},{x:185,y:8},{x:415,y:15},{x:610,y:7},{x:805,y:14},{x:1000,y:10}];
+  var dip=[50,43,54,46,49], d='M '+sup[0].x+' '+sup[0].y, segs=[];
+  for(var i=0;i<sup.length-1;i++){
+    var a=sup[i],b=sup[i+1],cx=(a.x+b.x)/2,cy=Math.max(a.y,b.y)+dip[i];
+    segs.push({a:a,b:b,cx:cx,cy:cy});
+    d+=' Q '+cx+' '+cy+' '+b.x+' '+b.y;
+  }
+  wire.setAttribute('d',d);
+  function qpt(s,t){var u=1-t;return{x:u*u*s.a.x+2*u*t*s.cx+t*t*s.b.x, y:u*u*s.a.y+2*u*t*s.cy+t*t*s.b.y};}
+  var tints=[['#FFF3D6','#F0C36A'],['#FFE9B0','#E0A23C'],['#FFD9A0','#D98A33'],['#FFFFFF','#F1E7D2'],['#FFE0C0','#E6824A'],['#FFEFC4','#E9B24A']];
+  var spots=[[0.30,0.62],[0.28,0.55,0.80],[0.40,0.70],[0.33,0.60,0.85],[0.45,0.72]];
+  var sizes=[13,16,12,15,14,17,13,16,12,15,14,13], drops=[10,22,6,18,28,12,24,8,16,30,14,20];
+  var glows=[6,11,5,9,13,7,11,6,8,14,7,9], floors=[.5,.66,.4,.55,.7,.45,.6,.5,.58,.42,.62,.5];
+  var durs=[3.0,4.2,2.6,3.6,4.8,3.2,4.0,2.8,3.4,4.6,3.0,3.8], k=0, html='';
+  for(var s=0;s<spots.length;s++){
+    for(var j=0;j<spots[s].length;j++){
+      var p=qpt(segs[s],spots[s][j]), t=tints[k%6];
+      html+='<span class="bulb" style="left:'+(p.x/1000*100).toFixed(2)+'%;top:'+(p.y+drops[k%12]).toFixed(1)+'px;'
+        +'--size:'+sizes[k%12]+'px;--drop:'+drops[k%12]+'px;--glow:'+glows[k%12]+'px;'
+        +'--c1:'+t[0]+';--c2:'+t[1]+';--floor:'+floors[k%12]+';--bt:'+durs[k%12]+'s;--sw:'+(durs[k%12]+2.2).toFixed(1)+'s;'
+        +'--bd:'+((k*0.37)%3).toFixed(2)+'s"></span>';
+      k++;
+    }
+  }
+  holder.innerHTML=html;
+})();
+
+/* =========================================================
+   2. Données de démonstration
+      Le solde n'est JAMAIS stocké : il est toujours recalculé
+      depuis le journal. C'est la règle du §14, démontrée ici.
+   ========================================================= */
+var GARAGES=[
+  {id:1,  nom:"Garage Dupont",         ville:"Clermont-Ferrand"},
+  {id:2,  nom:"Garage Dupuy",          ville:"Cournon-d'Auvergne"},
+  {id:3,  nom:"Carrosserie Marchand",  ville:"Riom"},
+  {id:4,  nom:"Auto Services Chabrier",ville:"Issoire"},
+  {id:5,  nom:"Garage du Velay",       ville:"Le Puy-en-Velay"},
+  {id:6,  nom:"Méca Thiers",           ville:"Thiers"},
+  {id:7,  nom:"Garage Vidal",          ville:"Aurillac"},
+  {id:8,  nom:"Point Auto Vichy",      ville:"Vichy"},
+  {id:9,  nom:"Garage Fournier",       ville:"Montluçon"},
+  {id:10, nom:"SARL Auto Brioude",     ville:"Brioude"},
+  {id:11, nom:"Garage Delorme",        ville:"Moulins"},
+  {id:12, nom:"Ambert Pneus & Méca",   ville:"Ambert"}
+];
+
+var JEUX=[
+  {id:'basket', nom:"Lancer de basket", cout:2, bareme:[
+    {k:"Panier",       pts:10, tone:'win'},
+    {k:"Sur l'anneau", pts:5,  tone:'mid'},
+    {k:"À côté",       pts:0,  tone:'zero'}]},
+  {id:'petanque', nom:"Pétanque", cout:2, bareme:[
+    {k:"Carreau",   pts:15, tone:'win'},
+    {k:"Le point",  pts:8,  tone:'mid'},
+    {k:"Manqué",    pts:0,  tone:'zero'}]},
+  {id:'flechettes', nom:"Fléchettes", cout:3, bareme:[
+    {k:"Bull",      pts:20, tone:'win'},
+    {k:"Zone 2",    pts:10, tone:'mid'},
+    {k:"Zone 3",    pts:5,  tone:'mid'},
+    {k:"Hors cible",pts:0,  tone:'zero'}]},
+  {id:'chamboule', nom:"Chamboule-tout", cout:2, bareme:[
+    {k:"Tout tombe", pts:12, tone:'win'},
+    {k:"Moitié",     pts:6,  tone:'mid'},
+    {k:"Rien",       pts:0,  tone:'zero'}]}
+];
+
+var STANDS=["Filtres Auvergne","Équip'Pro Diagnostic","Freinage Massif","Lubrifiants Volcan","Pneus Chaîne des Puys"];
+
+var LOTS={7:"Coffret à outils 120 pièces",13:"Enceinte nomade",22:"Bon d'achat 100 €",
+  31:"Nettoyeur haute pression",38:"Panier gourmand d'Auvergne",44:"Bon d'achat 50 €",
+  57:"Caméra de recul sans fil",63:"Coffret de douilles",71:"Bon d'achat 100 €",
+  79:"Casque Bluetooth",86:"Ballon officiel ASM",92:"Bon d'achat 50 €",99:"Week-end pour deux en Auvergne"};
+
+var PRE_TAKEN=[3,7,11,18,22,26,29,34,40,45,49,52,58,61,66,70,74,77,83,88,91,95,97];
+var COUT_GRILLE=20;
+var MON_GARAGE=1;
+
+var store={ ledger:[], grid:[], seq:0, minutes:912 /* 15:12 */ };
+
+for(var n=1;n<=100;n++){
+  store.grid.push({n:n, taken:PRE_TAKEN.indexOf(n)>-1, win:!!LOTS[n], lot:LOTS[n]||null, mine:false});
+}
+
+function hhmm(m){ var h=Math.floor(m/60)%24, mn=m%60; return (h<10?'0':'')+h+':'+(mn<10?'0':'')+mn; }
+function tick(){ store.minutes+=3; document.getElementById('clock').textContent=hhmm(store.minutes); }
+
+function write(garageId,label,source,delta){
+  store.seq++;
+  store.ledger.push({id:store.seq, g:garageId, label:label, source:source, delta:delta, t:hhmm(store.minutes)});
+  tick();
+  return store.seq;
+}
+function solde(garageId){
+  return store.ledger.reduce(function(s,m){ return m.g===garageId ? s+m.delta : s; },0);
+}
+function garage(id){ for(var i=0;i<GARAGES.length;i++) if(GARAGES[i].id===id) return GARAGES[i]; return null; }
+function historique(garageId){
+  return store.ledger.filter(function(m){return m.g===garageId;}).slice().reverse();
+}
+
+/* journal d'ouverture — le solde de Garage Dupont (47) en découle */
+(function seed(){
+  var open=[
+    [1,"Bienvenue au Forum","Inscription",10],
+    [1,"Lancer de basket · participation","Animation",-2],
+    [1,"Lancer de basket · panier","Animation",10],
+    [1,"Achat — Filtres Auvergne","Fournisseur",20],
+    [1,"Pétanque · participation","Animation",-2],
+    [1,"Pétanque · carreau","Animation",15],
+    [1,"Grille des lots · participation","Récompense",-20],
+    [1,"Achat — Équip'Pro Diagnostic","Fournisseur",16],
+    [2,"Bienvenue au Forum","Inscription",10],[2,"Fléchettes · zone 2","Animation",7],[2,"Fléchettes · participation","Animation",-3],[2,"Achat — Freinage Massif","Fournisseur",-2],
+    [3,"Bienvenue au Forum","Inscription",10],[3,"Achat — Lubrifiants Volcan","Fournisseur",50],[3,"Chamboule-tout · tout tombe","Animation",12],[3,"Chamboule-tout · participation","Animation",-2],[3,"Grille des lots · participation","Récompense",-20],[3,"Achat — Pneus Chaîne des Puys","Fournisseur",18],
+    [4,"Bienvenue au Forum","Inscription",10],[4,"Grille des lots · participation","Récompense",-20],[4,"Achat — Filtres Auvergne","Fournisseur",10],
+    [5,"Bienvenue au Forum","Inscription",10],[5,"Achat — Freinage Massif","Fournisseur",25],
+    [6,"Bienvenue au Forum","Inscription",10],[6,"Pétanque · le point","Animation",8],[6,"Pétanque · participation","Animation",-2],[6,"Achat — Équip'Pro Diagnostic","Fournisseur",8],
+    [7,"Bienvenue au Forum","Inscription",10],[7,"Achat — Lubrifiants Volcan","Fournisseur",30],[7,"Fléchettes · bull","Animation",20],[7,"Fléchettes · participation","Animation",-3],[7,"Grille des lots · participation","Récompense",-20],[7,"Achat — Filtres Auvergne","Fournisseur",14],
+    [8,"Bienvenue au Forum","Inscription",10],[8,"Lancer de basket · sur l'anneau","Animation",5],[8,"Lancer de basket · participation","Animation",-2],[8,"Achat — Pneus Chaîne des Puys","Fournisseur",6],
+    [9,"Bienvenue au Forum","Inscription",10],[9,"Chamboule-tout · participation","Animation",-2],
+    [10,"Bienvenue au Forum","Inscription",10],[10,"Achat — Freinage Massif","Fournisseur",35],[10,"Grille des lots · participation","Récompense",-20],[10,"Pétanque · carreau","Animation",15],[10,"Pétanque · participation","Animation",-2],[10,"Achat — Filtres Auvergne","Fournisseur",3],
+    [11,"Bienvenue au Forum","Inscription",10],[11,"Achat — Lubrifiants Volcan","Fournisseur",40],[11,"Fléchettes · zone 3","Animation",5],[11,"Fléchettes · participation","Animation",-3],[11,"Achat — Équip'Pro Diagnostic","Fournisseur",8],
+    [12,"Bienvenue au Forum","Inscription",10],[12,"Achat — Pneus Chaîne des Puys","Fournisseur",7],[12,"Chamboule-tout · participation","Animation",-2]
+  ];
+  var t=822; /* 13:42 : le forum ouvre */
+  open.forEach(function(r){
+    store.seq++;
+    store.ledger.push({id:store.seq,g:r[0],label:r[1],source:r[2],delta:r[3],t:hhmm(t)});
+    t+=Math.max(1,(store.seq*7)%9);
+  });
+})();
+
+/* =========================================================
+   3. État de navigation
+   ========================================================= */
+var ui={
+  profil:'participant',
+  p:{vue:'espace', caseTiree:null},
+  a:{vue:'jeux', jeu:null, cible:null, q:'', enCours:false, offline:false},
+  f:{vue:'recherche', cible:null, q:'', valeur:20, enCours:false},
+  b:{vue:'dashboard'}
+};
+
+var elScreen=document.getElementById('screen');
+var elNotes=document.getElementById('notes');
+var elDecor=document.getElementById('decor');
+var elToast=document.getElementById('toast');
+var toastTimer=null;
+
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function toast(titre,corps,tone){
+  elToast.className='toast on'+(tone==='warn'?' warn':'');
+  elToast.innerHTML='<div class="tt'+(tone==='neg'?' neg':'')+'">'+titre+'</div>'+(corps?'<div class="tb">'+corps+'</div>':'');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(function(){ elToast.className='toast'; },3800);
+}
+
+/* décor riche uniquement sur l'écran participant (autonomie batterie) */
+var SPARKS=[[6,9,9,4.2,0],[16,6,6,5.1,1.2],[27,13,5,3.6,.6],[38,8,8,4.8,2.1],[49,12,6,3.9,.4],
+  [61,7,10,5.4,1.7],[72,14,5,4.0,2.6],[84,9,7,5.3,.9],[93,13,6,4.6,1.4],
+  [9,52,7,4.4,1.1],[31,58,5,5.6,.3],[54,63,6,3.8,2.0],[77,55,8,5.0,.7],[90,68,5,4.3,1.9],
+  [14,86,6,4.9,.2],[44,91,5,3.9,2.3],[68,88,7,5.5,1.3],[88,93,6,4.1,.8]];
+function decor(riche){
+  if(!riche){ elDecor.innerHTML=''; return; }
+  var h='<div class="bg-grad g1"></div><div class="bg-grad g2"></div><div class="bg-grad g3"></div><div class="vichy"></div>';
+  SPARKS.forEach(function(s){
+    h+='<span class="spark" style="left:'+s[0]+'%;top:'+s[1]+'%;width:'+s[2]+'px;height:'+s[2]+'px;--bd:'+s[3]+'s;--bdl:'+s[4]+'s"></span>';
+  });
+  elDecor.innerHTML=h;
+}
+
+function appbar(qui,retour){
+  return '<div class="appbar">'
+    +'<svg class="bcrest" viewBox="0 0 62.09 63.05" aria-hidden="true"><use href="#bonyB"/></svg>'
+    +'<span class="who">'+qui+'</span>'
+    +(retour?'<button class="back" data-act="'+retour+'">Retour</button>':'')
+    +'</div>';
+}
+
+function hits(liste,act){
+  if(!liste.length) return '<p class="empty">Aucun garage ne correspond.<br>Vérifiez l\'orthographe ou demandez à l\'accueil.</p>';
+  return '<div class="results">'+liste.map(function(g){
+    return '<button class="hit" data-act="'+act+'" data-id="'+g.id+'">'
+      +'<span><span class="hn">'+esc(g.nom)+'</span><span class="hc">'+esc(g.ville)+'</span></span>'
+      +'<span class="hb"><b>'+solde(g.id)+'</b><span>points</span></span></button>';
+  }).join('')+'</div>';
+}
+function cherche(q){
+  var t=q.trim().toLowerCase();
+  if(!t) return GARAGES.slice(0,4);
+  return GARAGES.filter(function(g){
+    return (g.nom+' '+g.ville).toLowerCase().indexOf(t)>-1;
+  });
+}
+function mouvements(list,max){
+  return '<div class="ledger">'+list.slice(0,max||99).map(function(m){
+    var cls=m.delta>0?'plus':(m.delta<0?'minus':'');
+    return '<div class="mv"><span class="mt">'+m.t+'</span>'
+      +'<span class="ml">'+esc(m.label)+'<small>'+esc(m.source)+'</small></span>'
+      +'<span class="md '+cls+'">'+(m.delta>0?'+':'')+m.delta+'</span></div>';
+  }).join('')+'</div>';
+}
+
+/* =========================================================
+   4. Écrans — Garage
+   ========================================================= */
+function vueParticipant(){
+  var g=garage(MON_GARAGE), s=solde(MON_GARAGE);
+
+  if(ui.p.vue==='inscription'){
+    return appbar('Forum Pièces 2026')
+      +'<div class="h-script">Bienvenue au</div><h2 class="h-serif">Grand Bal des Fournisseurs</h2>'
+      +'<p class="sub">Retrouvez votre garage dans la liste des invités. C\'est la seule chose à faire.</p>'
+      +'<div class="rule"></div>'
+      +'<p class="lbl">Votre garage</p>'
+      +'<input class="search" id="q-inscription" type="text" placeholder="Tapez les premières lettres…" value="'+esc(ui.a.q)+'" autocomplete="off">'
+      +hits(cherche(ui.a.q),'choisir-mon-garage')
+      +'<p class="sub" style="margin-top:18px">Aucun mot de passe, aucun formulaire. Votre téléphone se souvient de vous jusqu\'à la fin de la soirée.</p>';
+  }
+
+  if(ui.p.vue==='grille'){
+    var restantes=store.grid.filter(function(c){return !c.taken;}).length;
+    var peut=s>=COUT_GRILLE;
+    return appbar('Garage Dupont','p-espace')
+      +'<div class="h-script">La grille</div><h2 class="h-serif">des 100 cases</h2>'
+      +'<p class="sub">Une case au hasard, un lot peut-être. Chaque case ne se joue qu\'une fois.</p>'
+      +'<div class="card" style="margin-top:16px;display:flex;gap:14px;align-items:center">'
+        +'<div><div class="lbl" style="margin:0 0 2px">Participation</div><b style="font-family:var(--serif);font-size:24px;color:var(--or-clair)">'+COUT_GRILLE+' pts</b></div>'
+        +'<div style="margin-left:auto;text-align:right"><div class="lbl" style="margin:0 0 2px">Votre solde</div><b style="font-family:var(--serif);font-size:24px;color:'+(peut?'#8FD09A':'var(--terracotta-clair)')+'">'+s+' pts</b></div>'
+      +'</div>'
+      +(peut?'':'<div class="netline" style="margin-top:14px"><i></i>Il vous manque '+(COUT_GRILLE-s)+' points — jouez ou achetez</div>')
+      +'<div class="gridwrap"><div class="grid100">'
+      +store.grid.map(function(c){
+        return '<button class="cell" data-act="jouer-case" data-n="'+c.n+'"'+((c.taken||!peut)?' disabled':'')+' aria-label="Case '+c.n+(c.taken?' déjà jouée':'')+'">'+c.n+'</button>';
+      }).join('')
+      +'</div><div class="gridlegend"><span><i></i>'+restantes+' libres</span><span><i class="gone"></i>'+(100-restantes)+' jouées</span></div></div>';
+  }
+
+  if(ui.p.vue==='resultat'){
+    var c=ui.p.caseTiree;
+    return appbar('Garage Dupont','p-espace')
+      +'<div class="reveal'+(c.win?'':' lose')+'">'
+        +'<div class="rk">'+(c.win?'Bravo,':'Cette fois,')+'</div>'
+        +'<div class="rl">'+(c.win?'c\'est gagné !':'c\'est raté')+'</div>'
+        +(c.win
+          ? '<div class="rlot">'+esc(c.lot)+'<div style="font-size:11px;letter-spacing:.18em;text-transform:uppercase;opacity:.6;margin-top:10px;font-family:var(--sans)">À retirer au comptoir Bony</div></div>'
+          : '<p class="sub" style="max-width:26ch;margin:18px auto 0">Il reste des cases, et la soirée est longue.</p>')
+        +'<div class="rcase">Case n°'+c.n+' · '+COUT_GRILLE+' points</div>'
+      +'</div>'
+      +'<button class="btn ghost" data-act="p-grille">Retenter ma chance</button>'
+      +'<button class="btn ghost" data-act="p-espace" style="margin-top:10px">Revenir à mon solde</button>';
+  }
+
+  /* espace principal */
+  return appbar('Mon espace')
+    +'<div class="card wallet">'
+      +'<div class="gname">'+esc(g.nom)+'</div>'
+      +'<div class="gcity">'+esc(g.ville)+'</div>'
+      +'<div class="amount">'+s+'</div>'
+      +'<div class="unit">points</div>'
+      +'<div class="refresh">Mis à jour à l\'instant · tirez pour rafraîchir</div>'
+    +'</div>'
+    +'<button class="btn" data-act="p-grille" style="margin-top:16px">Tenter un lot · '+COUT_GRILLE+' pts</button>'
+    +'<div class="rule"></div>'
+    +'<p class="lbl">Mes opérations</p>'
+    +mouvements(historique(MON_GARAGE),12)
+    +'<div class="rule"></div>'
+    +'<button class="btn ghost small" data-act="p-inscription">Revoir l\'écran d\'arrivée (scan du QR code)</button>';
+}
+
+/* =========================================================
+   5. Écrans — Animateur
+   ========================================================= */
+function vueAnimateur(){
+  if(ui.a.vue==='jeux'){
+    return appbar('Animateur')
+      +'<div class="h-script">Quelle</div><h2 class="h-serif">animation tenez-vous ?</h2>'
+      +'<p class="sub">Un seul choix en début de service. L\'application s\'en souvient ensuite.</p>'
+      +'<div class="results" style="margin-top:18px">'
+      +JEUX.map(function(j){
+        return '<button class="hit" data-act="choisir-jeu" data-id="'+j.id+'">'
+          +'<span><span class="hn">'+esc(j.nom)+'</span><span class="hc">Participation '+j.cout+' pts · '+j.bareme.length+' résultats</span></span>'
+          +'<span class="hb"><b>'+j.bareme[0].pts+'</b><span>max</span></span></button>';
+      }).join('')+'</div>';
+  }
+
+  var jeu=ui.a.jeu;
+
+  if(ui.a.vue==='recherche'){
+    return appbar(jeu.nom,'a-jeux')
+      +(ui.a.offline?'<div class="netline"><i></i>Hors ligne — 2 opérations en attente d\'envoi</div>':'')
+      +'<h2 class="h-serif">Qui joue ?</h2>'
+      +'<input class="search" id="q-animateur" type="text" placeholder="Nom du garage…" value="'+esc(ui.a.q)+'" autocomplete="off" style="margin-top:14px">'
+      +hits(cherche(ui.a.q),'cibler-anim')
+      +'<button class="btn ghost small" data-act="toggle-offline" style="margin-top:20px">'
+        +(ui.a.offline?'Simuler le retour du réseau':'Simuler une coupure réseau')+'</button>';
+  }
+
+  if(ui.a.vue==='fiche'){
+    var g=garage(ui.a.cible), s=solde(ui.a.cible), assez=s>=jeu.cout;
+    return appbar(jeu.nom,'a-recherche')
+      +'<div class="card" style="text-align:center;padding:20px 16px">'
+        +'<div style="font-family:var(--serif);font-size:22px;color:var(--creme-2)">'+esc(g.nom)+'</div>'
+        +'<div class="gcity">'+esc(g.ville)+'</div>'
+        +'<div style="font-family:var(--serif);font-weight:700;font-size:52px;color:var(--or-clair);margin-top:10px;font-variant-numeric:tabular-nums">'+s+'</div>'
+        +'<div class="unit">points au compteur</div>'
+      +'</div>'
+      +(assez
+        ? '<button class="btn" data-act="lancer-partie" style="margin-top:16px">Lancer la partie · −'+jeu.cout+' pts</button>'
+        : '<div class="netline" style="margin-top:16px"><i></i>Solde insuffisant — participation à '+jeu.cout+' pts</div>')
+      +'<p class="sub" style="margin-top:14px">La participation est débitée au lancement. Le résultat se saisit juste après.</p>';
+  }
+
+  if(ui.a.vue==='resultat'){
+    var g2=garage(ui.a.cible);
+    return appbar(jeu.nom,'a-recherche')
+      +'<h2 class="h-serif">'+esc(g2.nom)+'</h2>'
+      +'<p class="sub">Partie lancée · participation débitée. Sélectionnez le résultat.</p>'
+      +'<div class="scores">'
+      +jeu.bareme.map(function(b,i){
+        return '<button class="score '+b.tone+'" data-act="saisir-score" data-i="'+i+'"'+(ui.a.enCours?' disabled':'')+'>'
+          +'<span class="sk">'+esc(b.k)+'</span>'
+          +'<span class="sp">'+(b.pts>0?'+':'')+b.pts+'</span></button>';
+      }).join('')+'</div>'
+      +'<p class="sub" style="margin-top:16px">Un seul appui suffit. Un double appui ne crédite jamais deux fois.</p>';
+  }
+}
+
+/* =========================================================
+   6. Écrans — Fournisseur
+   ========================================================= */
+var PALIERS=[5,10,20,50];
+function vueFournisseur(){
+  if(ui.f.vue==='recherche'){
+    return appbar("Stand Filtres Auvergne")
+      +'<div class="h-script">Une vente</div><h2 class="h-serif">vient d\'être conclue ?</h2>'
+      +'<p class="sub">Retrouvez le garage, attribuez les points de l\'opération.</p>'
+      +'<input class="search" id="q-fournisseur" type="text" placeholder="Nom du garage…" value="'+esc(ui.f.q)+'" autocomplete="off" style="margin-top:16px">'
+      +hits(cherche(ui.f.q),'cibler-four');
+  }
+  var g=garage(ui.f.cible), s=solde(ui.f.cible);
+  return appbar("Stand Filtres Auvergne",'f-recherche')
+    +'<div class="card" style="display:flex;align-items:center;gap:12px">'
+      +'<div><div style="font-family:var(--serif);font-size:19px;color:var(--creme-2)">'+esc(g.nom)+'</div>'
+      +'<div class="gcity">'+esc(g.ville)+'</div></div>'
+      +'<div style="margin-left:auto;text-align:right"><b style="font-family:var(--serif);font-size:26px;color:var(--or-clair)">'+s+'</b>'
+      +'<div style="font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;opacity:.5">points</div></div>'
+    +'</div>'
+    +'<div class="rule"></div>'
+    +'<p class="lbl">Points de l\'opération</p>'
+    +'<div class="chips">'
+    +PALIERS.map(function(p){
+      return '<button class="chip" data-act="palier" data-p="'+p+'" aria-pressed="'+(ui.f.valeur===p)+'">+'+p+' pts</button>';
+    }).join('')+'</div>'
+    +'<p class="sub" style="margin-top:12px">Barème du stand · plafond de 50 points par opération.</p>'
+    +'<button class="btn" data-act="attribuer"'+(ui.f.enCours?' disabled':'')+' style="margin-top:18px">Attribuer +'+ui.f.valeur+' points</button>'
+    +'<p class="sub" style="margin-top:12px">L\'écriture est signée au nom du stand. Bony peut la retrouver à tout moment.</p>';
+}
+
+/* =========================================================
+   7. Écran — Bony
+   ========================================================= */
+function vueBony(){
+  var actifs=GARAGES.filter(function(g){return historique(g.id).length>0;}).length;
+  var circulation=GARAGES.reduce(function(s,g){return s+solde(g.id);},0);
+  var emis=store.ledger.reduce(function(s,m){return m.delta>0?s+m.delta:s;},0);
+  var jouees=store.grid.filter(function(c){return c.taken;}).length;
+  var gagnes=store.grid.filter(function(c){return c.taken&&c.win;}).length;
+  var partiesPossibles=Math.floor(circulation/COUT_GRILLE);
+  var tension=partiesPossibles>(100-jouees);
+
+  var recent=store.ledger.slice().reverse().slice(0,9).map(function(m){
+    var g=garage(m.g);
+    return {t:m.t,label:g.nom+' · '+m.label,source:m.source,delta:m.delta};
+  });
+
+  return appbar('Supervision Bony')
+    +'<div class="h-script">Le Forum</div><h2 class="h-serif">en un coup d\'œil</h2>'
+    +'<div class="kpis">'
+      +'<div class="kpi"><div class="kv">'+actifs+' / 87</div><div class="kl">Garages actifs sur invités</div></div>'
+      +'<div class="kpi"><div class="kv">'+circulation+'</div><div class="kl">Points en circulation</div></div>'
+      +'<div class="kpi"><div class="kv">'+emis+'</div><div class="kl">Points émis depuis 13h42</div></div>'
+      +'<div class="kpi"><div class="kv">'+gagnes+'</div><div class="kl">Lots gagnés à remettre</div></div>'
+    +'</div>'
+    +'<div class="kpi'+(tension?' warn':'')+'" style="margin-top:8px">'
+      +'<div class="kv">'+jouees+' / 100</div>'
+      +'<div class="kl">Cases jouées · '+partiesPossibles+' parties encore finançables avec les points en circulation</div>'
+      +'<div class="meter"><span style="width:'+jouees+'%"></span></div>'
+    +'</div>'
+    +(tension?'<div class="netline" style="margin-top:12px"><i></i>Plus de points que de cases — resserrer les barèmes</div>':'')
+    +'<div class="rule"></div>'
+    +'<p class="lbl">Journal en direct</p>'
+    +mouvements(recent,9)
+    +'<div class="rule"></div>'
+    +'<p class="lbl">Corriger une erreur</p>'
+    +'<p class="sub" style="margin-bottom:12px">Toute correction crée une écriture visible, jamais une modification silencieuse.</p>'
+    +'<div class="chips">'
+      +'<button class="chip" data-act="corriger" data-d="5">Créditer +5 à Dupont</button>'
+      +'<button class="chip" data-act="corriger" data-d="-5">Débiter −5 à Dupont</button>'
+    +'</div>';
+}
+
+/* =========================================================
+   8. Notes de validation
+   ========================================================= */
+var NOTES={
+  participant:{
+    titre:"Ce que voit le garage",
+    sous:"Deux écrans, un chiffre. Le participant n'a rien à apprendre.",
+    essai:{t:"À essayer",p:"Ouvrez l'onglet <b>Animateur</b>, créditez Garage Dupont, puis revenez ici : le solde et l'historique ont bougé. Les deux écrans lisent le même journal — c'est toute la mécanique."},
+    items:[
+      ["§6","Inscription","Les 87 garages invités sont chargés à l'avance. Le participant tape trois lettres, reconnaît son garage, c'est fini. <strong>Aucun mot de passe, aucun formulaire.</strong> Le téléphone garde un jeton valable la soirée. Le bouton en bas de l'espace rejoue l'écran d'arrivée."],
+      ["§7","Le solde","Un seul élément domine l'écran, en chiffres or de 82 pixels, lisible debout dans le bruit et à bout de bras. Tout le reste est secondaire."],
+      ["§14","Historique","Chaque ligne est une écriture du journal, horodatée et rattachée à sa source (animation, fournisseur, récompense). <strong>Le solde n'est jamais stocké : il est la somme du journal.</strong> Un garage qui conteste son solde obtient la réponse en trois secondes."],
+      ["§11","Grille des lots","100 cases, 20 points la participation. Une case cliquée est verrouillée en base par une contrainte d'unicité : deux garages qui tapent la même case à la même seconde, le premier l'obtient, le second voit la case grisée. Le compteur de cases restantes est visible en permanence — c'est un moteur d'urgence."],
+      ["Technique","Rafraîchissement","Le participant <strong>ne garde pas de connexion temps réel</strong> : l'écran se recharge toutes les 20 s quand l'onglet est visible, plus un tirer-pour-rafraîchir. C'est ce qui permet de rester sous le plafond de 200 connexions simultanées de Supabase, même à 400 participants."]
+    ]
+  },
+  animateur:{
+    titre:"Ce que fait l'animateur",
+    sous:"Trois appuis, cinq secondes, la file avance.",
+    essai:{t:"À essayer",p:"Choisissez un jeu, cherchez <b>Dupont</b>, lancez la partie et <b>tapez deux fois très vite</b> sur un résultat. Un seul crédit est enregistré : c'est la protection anti-double-clic du §16, démontrée."},
+    items:[
+      ["§8","Le geste","Recherche → fiche du garage avec son solde → lancement → résultat. L'animateur ne saisit jamais un nombre de points : il choisit une phrase du jeu (<em>Carreau</em>, <em>Sur l'anneau</em>), et le barème fait le reste. Impossible de se tromper de montant."],
+      ["§9","Barèmes par jeu","Quatre animations, chacune avec son coût de participation et ses résultats. Tout est réglable depuis l'espace Bony : ajouter un jeu la veille de l'événement ne demande aucun développement."],
+      ["§15","Boutons","56 pixels de haut minimum, 64 pour les résultats. Une main, debout, avec du bruit autour et parfois un gant. Les zones de frappe ne se touchent jamais."],
+      ["§16","Fiabilité","Chaque opération part avec une clé d'idempotence unique générée par le téléphone. Le serveur refuse la deuxième écriture portant la même clé. Double appui, réseau qui rame, bouton retapé : <strong>un seul mouvement de points</strong>. La confirmation affiche systématiquement le nouveau solde."],
+      ["Terrain","Mode hors ligne","Le bouton en bas de la recherche simule une coupure. Les opérations partent dans une file locale et se synchronisent au retour du réseau, dans l'ordre, sans doublon. <strong>C'est l'assurance la plus importante du projet</strong> : 400 smartphones dans une halle, le réseau lâchera à un moment."],
+      ["Batterie","Décor allégé","Comparez les fonds : l'écran garage a les dégradés animés, les loupiottes et les braises. Les écrans animateur et fournisseur ont un fond fixe. Cinq heures de service sur un téléphone d'animateur, ça se paie en batterie et en chauffe."]
+    ]
+  },
+  fournisseur:{
+    titre:"Ce que fait le fournisseur",
+    sous:"L'écran le plus court de l'application — c'est voulu.",
+    essai:{t:"À essayer",p:"Attribuez 50 points à un garage, puis passez sur l'onglet <b>Bony</b> : l'opération apparaît en tête du journal en direct, signée du nom du stand."},
+    items:[
+      ["§10","Attribution","Le fournisseur cherche le garage et tape un palier. Pas de saisie libre au clavier : des montants prédéfinis, plus rapides et sans faute de frappe. Le barème réel achat → points reste à définir avec vous, il sera configurable jusqu'à la veille."],
+      ["Garde-fou","Plafond","Un plafond par opération (50 points ici) et un cumul maximum par stand sur la soirée. <strong>C'est le point de contrôle le plus important du dispositif :</strong> sans plafond, un fournisseur généreux vide la grille des lots en trente minutes et casse l'économie du jeu."],
+      ["§12","Traçabilité","L'écriture porte le nom du stand et l'identité de l'appareil. Si un garage conteste, ou si un stand distribue trop, Bony le voit dans le journal en direct."],
+      ["Accès","Connexion des stands","Un code à quatre chiffres par stand, saisi une fois à l'ouverture du forum. Pas de compte, pas de mot de passe à retenir, et un stand ne peut pas agir au nom d'un autre."]
+    ]
+  },
+  bony:{
+    titre:"Ce que supervise Bony",
+    sous:"Un seul écran doit suffire pour intervenir en pleine soirée.",
+    essai:{t:"À essayer",p:"Créditez généreusement plusieurs garages depuis les onglets <b>Animateur</b> et <b>Fournisseur</b>, puis revenez : quand les points en circulation dépassent les cases restantes, l'écran passe en alerte."},
+    items:[
+      ["§12","Supervision","Garages actifs sur invités, points en circulation, points émis, lots à remettre, cases jouées. Cinq chiffres qui répondent à la seule question qui compte pendant l'événement : est-ce que ça tourne comme prévu ?"],
+      ["§18","L'indicateur clé","<strong>Points en circulation ÷ 20 = nombre de parties encore finançables.</strong> Si ce nombre dépasse les cases restantes, la grille va être épuisée avant la fin de la soirée et les derniers garages repartiront frustrés. S'il est très inférieur, les points ne circulent pas assez et les stands ne travaillent pas. Cet écran rend l'économie du jeu pilotable en direct, barème par barème."],
+      ["§12","Correction","Bony peut créditer ou débiter n'importe quel garage. <strong>Une correction n'écrase jamais rien :</strong> elle ajoute une écriture visible dans l'historique du garage. Le journal reste la vérité, y compris sur les erreurs."],
+      ["§11","Remise des lots","Le cahier des charges s'arrêtait au « gagné ». Un lot gagné entre ici dans une file <em>à remettre</em>, avec un code de retrait présenté au comptoir. En fin de soirée vous savez exactement quels lots sont partis et lesquels restent en réserve."],
+      ["Repli","Le plan B","Un export imprimable de la liste des garages avec leur solde, à générer avant l'ouverture des portes. Si tout tombe — réseau, hébergeur, téléphone —, la soirée continue au papier. Cet écran doit pouvoir imprimer."]
+    ]
+  }
+};
+
+function renderNotes(){
+  var n=NOTES[ui.profil];
+  elNotes.innerHTML='<h2>'+n.titre+'</h2><p class="nsub">'+n.sous+'</p>'
+    +'<div class="try"><b>'+n.essai.t+'</b><p>'+n.essai.p+'</p></div>'
+    +'<div class="nlist">'+n.items.map(function(it){
+      return '<div class="n"><div class="ref">'+it[0]+'<small>'+it[1]+'</small></div><div class="body">'+it[2]+'</div></div>';
+    }).join('')+'</div>';
+}
+
+/* =========================================================
+   9. Rendu + actions
+   ========================================================= */
+function render(keepScroll){
+  var y=keepScroll?elScreen.scrollTop:0;
+  decor(ui.profil==='participant');
+  if(ui.profil==='participant') elScreen.innerHTML=vueParticipant();
+  else if(ui.profil==='animateur') elScreen.innerHTML=vueAnimateur();
+  else if(ui.profil==='fournisseur') elScreen.innerHTML=vueFournisseur();
+  else elScreen.innerHTML=vueBony();
+  elScreen.scrollTop=y;
+  renderNotes();
+}
+
+/* recherche : on garde le focus et le curseur */
+elScreen.addEventListener('input',function(e){
+  var t=e.target;
+  if(t.id==='q-animateur'||t.id==='q-inscription'){ ui.a.q=t.value; }
+  else if(t.id==='q-fournisseur'){ ui.f.q=t.value; }
+  else return;
+  var id=t.id, pos=t.selectionStart;
+  render(true);
+  var again=document.getElementById(id);
+  if(again){ again.focus(); try{ again.setSelectionRange(pos,pos); }catch(err){} }
+});
+
+elScreen.addEventListener('click',function(e){
+  var b=e.target.closest('[data-act]');
+  if(!b) return;
+  var act=b.getAttribute('data-act');
+
+  /* --- garage --- */
+  if(act==='p-espace'){ ui.p.vue='espace'; return render(); }
+  if(act==='p-inscription'){ ui.p.vue='inscription'; ui.a.q=''; return render(); }
+  if(act==='p-grille'){ ui.p.vue='grille'; return render(); }
+  if(act==='choisir-mon-garage'){
+    ui.p.vue='espace'; ui.a.q='';
+    toast('Bienvenue !','Garage Dupont · <b>'+solde(MON_GARAGE)+'</b> points à votre compteur');
+    return render();
+  }
+  if(act==='jouer-case'){
+    var n=+b.getAttribute('data-n'), c=store.grid[n-1];
+    if(c.taken) return;
+    if(solde(MON_GARAGE)<COUT_GRILLE) return;
+    c.taken=true; c.mine=true;
+    write(MON_GARAGE,'Grille des lots · case n°'+n,'Récompense',-COUT_GRILLE);
+    ui.p.caseTiree=c; ui.p.vue='resultat';
+    render();
+    if(c.win) toast('Lot gagné !',esc(c.lot)+' — à retirer au comptoir Bony');
+    else toast('Case n°'+n+' jouée','−'+COUT_GRILLE+' points · nouveau solde <b>'+solde(MON_GARAGE)+'</b>','warn');
+    return;
+  }
+
+  /* --- animateur --- */
+  if(act==='a-jeux'){ ui.a.vue='jeux'; ui.a.jeu=null; return render(); }
+  if(act==='a-recherche'){ ui.a.vue='recherche'; ui.a.cible=null; return render(); }
+  if(act==='choisir-jeu'){
+    var jid=b.getAttribute('data-id');
+    ui.a.jeu=JEUX.filter(function(j){return j.id===jid;})[0];
+    ui.a.vue='recherche'; ui.a.q='';
+    return render();
+  }
+  if(act==='cibler-anim'){ ui.a.cible=+b.getAttribute('data-id'); ui.a.vue='fiche'; return render(); }
+  if(act==='toggle-offline'){ ui.a.offline=!ui.a.offline;
+    document.getElementById('netlabel').textContent=ui.a.offline?'Hors ligne':'Wi-Fi Halle · 4G';
+    return render();
+  }
+  if(act==='lancer-partie'){
+    var g=garage(ui.a.cible);
+    write(ui.a.cible,ui.a.jeu.nom+' · participation','Animation',-ui.a.jeu.cout);
+    ui.a.vue='resultat'; render();
+    toast('Partie lancée','−'+ui.a.jeu.cout+' pts · '+esc(g.nom)+' · solde <b>'+solde(ui.a.cible)+'</b>','neg');
+    return;
+  }
+  if(act==='saisir-score'){
+    if(ui.a.enCours) return;                    /* garde d'idempotence */
+    ui.a.enCours=true; render(true);
+    var bar=ui.a.jeu.bareme[+b.getAttribute('data-i')];
+    var gid=ui.a.cible, gg=garage(gid);
+    setTimeout(function(){
+      write(gid,ui.a.jeu.nom+' · '+bar.k.toLowerCase(),'Animation',bar.pts);
+      ui.a.enCours=false; ui.a.vue='recherche'; ui.a.q=''; render();
+      if(bar.pts>0) toast('+'+bar.pts+' points ajoutés',esc(gg.nom)+' · nouveau solde <b>'+solde(gid)+'</b>');
+      else toast('Résultat enregistré',esc(gg.nom)+' · '+bar.k+' · solde <b>'+solde(gid)+'</b>','warn');
+    },520);
+    return;
+  }
+
+  /* --- fournisseur --- */
+  if(act==='f-recherche'){ ui.f.vue='recherche'; ui.f.cible=null; return render(); }
+  if(act==='cibler-four'){ ui.f.cible=+b.getAttribute('data-id'); ui.f.vue='attribution'; return render(); }
+  if(act==='palier'){ ui.f.valeur=+b.getAttribute('data-p'); return render(true); }
+  if(act==='attribuer'){
+    if(ui.f.enCours) return;                    /* garde d'idempotence */
+    ui.f.enCours=true; render(true);
+    var fid=ui.f.cible, fg=garage(fid), val=ui.f.valeur;
+    setTimeout(function(){
+      write(fid,'Achat — Filtres Auvergne','Fournisseur',val);
+      ui.f.enCours=false; ui.f.vue='recherche'; ui.f.q=''; render();
+      toast('+'+val+' points ajoutés',esc(fg.nom)+' · nouveau solde <b>'+solde(fid)+'</b>');
+    },520);
+    return;
+  }
+
+  /* --- bony --- */
+  if(act==='corriger'){
+    var d=+b.getAttribute('data-d');
+    write(MON_GARAGE,'Correction manuelle · équipe Bony','Administration',d);
+    render(true);
+    toast((d>0?'+':'')+d+' points','Garage Dupont · nouveau solde <b>'+solde(MON_GARAGE)+'</b>',d>0?null:'warn');
+    return;
+  }
+});
+
+document.querySelectorAll('.tab').forEach(function(t){
+  t.addEventListener('click',function(){
+    document.querySelectorAll('.tab').forEach(function(o){ o.setAttribute('aria-selected','false'); });
+    t.setAttribute('aria-selected','true');
+    ui.profil=t.getAttribute('data-profil');
+    elToast.className='toast';
+    render();
+  });
+});
+
+render();
+})();
+</script>

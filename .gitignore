@@ -1,0 +1,10 @@
+# Secrets — ne doit JAMAIS partir vers GitHub / Cloudflare Pages
+.env
+.env.*
+!.env.example
+
+# Divers
+node_modules/
+dist/
+.DS_Store
+Thumbs.db

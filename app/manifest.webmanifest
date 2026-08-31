@@ -1,0 +1,15 @@
+{
+  "name": "Le Grand Bal des Points — Forum Pièces Bony 2026",
+  "short_name": "Grand Bal",
+  "description": "Portefeuille de points du Forum Pièces Bony, édition 2026.",
+  "lang": "fr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1A0E22",
+  "theme_color": "#1A0E22",
+  "icons": [
+    { "src": "./icone.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

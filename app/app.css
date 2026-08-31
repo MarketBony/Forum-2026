@@ -1,0 +1,276 @@
+/* =====================================================================
+   Le Grand Bal des Points — feuille de style
+   Charte reprise de la page d'invitation du Grand Bal des Fournisseurs.
+   Univers volontairement unique : une guinguette de nuit. Pas de thème
+   clair — l'application vit dans une halle, le soir.
+   ===================================================================== */
+:root {
+  --nuit:#281634; --nuit-2:#1A0E22; --vert:#4B1E50; --vert-clair:#6B3470;
+  --or:#C5963C; --or-clair:#E6C77E; --or-fonce:#9A6C26;
+  --terracotta:#D15B30; --terracotta-clair:#E68152;
+  --creme:#F1E7D2; --creme-2:#FAF4E7;
+  --vert-ok:#5FA86A; --vert-ok-clair:#8FD09A;
+  --grad-or:linear-gradient(176deg,#EFD79A 0%,#E6C77E 18%,#C5963C 52%,#9A6C26 100%);
+  --grad-or-h:linear-gradient(90deg,#9A6C26,#E6C77E 50%,#9A6C26);
+  --serif:"Playfair Display",Georgia,serif;
+  --script:"Petit Formal Script",cursive;
+  --sans:"Hanken Grotesk",system-ui,-apple-system,sans-serif;
+  --marge:20px;
+  --tap:56px;             /* hauteur de frappe minimale (§15) */
+}
+
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent }
+html, body { height:100% }
+body {
+  background:var(--nuit-2); color:var(--creme);
+  font-family:var(--sans); font-size:16px; line-height:1.6;
+  overscroll-behavior-y:contain;
+  -webkit-font-smoothing:antialiased;
+}
+[hidden] { display:none !important }
+button { font:inherit; color:inherit; background:none; border:none; cursor:pointer; text-align:inherit }
+input { font:inherit }
+:focus-visible { outline:3px solid var(--or-clair); outline-offset:2px }
+
+/* ---------- charpente plein écran ---------- */
+#app {
+  position:relative; z-index:1;
+  display:flex; flex-direction:column;
+  min-height:100dvh;
+  padding:env(safe-area-inset-top) env(safe-area-inset-right)
+          env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+.ecran {
+  flex:1 1 auto; display:flex; flex-direction:column;
+  padding:6px var(--marge) 28px;
+  max-width:520px; width:100%; margin:0 auto;
+}
+
+/* ---------- décor : uniquement les écrans garage ----------
+   Les écrans animateur et fournisseur tournent cinq heures d'affilée :
+   pas de dégradés animés, pas de loupiottes. Batterie et chauffe. */
+#decor { position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none; display:none }
+body.decore #decor { display:block }
+.halo { position:absolute; inset:-45%; mix-blend-mode:screen; will-change:transform }
+.h1 { background:radial-gradient(40% 34% at 50% 24%, rgba(247,86,50,.42), transparent 68%); animation:flo1 16s ease-in-out infinite alternate }
+.h2 { background:radial-gradient(44% 40% at 74% 76%, rgba(176,40,110,.38), transparent 68%); animation:flo2 19s ease-in-out infinite alternate }
+.h3 { background:radial-gradient(40% 38% at 18% 70%, rgba(143,18,171,.38), transparent 70%); animation:flo3 17s ease-in-out infinite alternate }
+@keyframes flo1 { 0%{transform:translate(-22%,-15%) scale(1)} 100%{transform:translate(26%,18%) scale(1.5)} }
+@keyframes flo2 { 0%{transform:translate(18%,12%) scale(1.05)} 100%{transform:translate(-24%,-18%) scale(1.55)} }
+@keyframes flo3 { 0%{transform:translate(14%,-13%) scale(1)} 100%{transform:translate(-20%,22%) scale(1.45)} }
+.vichy {
+  position:absolute; inset:0; opacity:.022; mix-blend-mode:screen;
+  background-image:
+    repeating-linear-gradient(0deg,#E68152 0 14px,transparent 14px 28px),
+    repeating-linear-gradient(90deg,#E68152 0 14px,transparent 14px 28px);
+  background-size:28px 28px;
+}
+.loupiotte {
+  position:absolute; border-radius:50%;
+  background:radial-gradient(circle at 38% 32%, #FFF7E0 0%, var(--or-clair) 50%, var(--or-fonce) 100%);
+  filter:drop-shadow(0 0 5px rgba(232,163,61,.7));
+  animation:clignote var(--d,4.5s) ease-in-out infinite; animation-delay:var(--r,0s);
+}
+@keyframes clignote { 0%,100%{opacity:.9; transform:scale(1)} 50%{opacity:.14; transform:scale(.72)} }
+
+/* ---------- guirlande ---------- */
+.guirlande { position:relative; width:100%; height:74px; flex:0 0 auto; overflow:visible; pointer-events:none }
+.guirlande svg { position:absolute; inset:0; width:100%; height:74px; display:block; overflow:visible }
+.fil { fill:none; stroke:var(--or); stroke-width:1.4; opacity:.5; vector-effect:non-scaling-stroke }
+.ampoules { position:absolute; inset:0 }
+.ampoule {
+  position:absolute; transform:translateX(-50%);
+  width:var(--t); height:var(--t); border-radius:50%;
+  background:radial-gradient(circle at 38% 32%, var(--c1) 0%, var(--c2) 55%, #8A5F22 100%);
+  box-shadow:0 0 calc(var(--g) + 3px) rgba(247,86,50,.16), 0 0 var(--g) var(--c2);
+  transform-origin:50% calc(-1 * var(--p));
+}
+.ampoule::before {
+  content:""; position:absolute; left:50%; bottom:100%; width:1.3px; height:var(--p);
+  background:linear-gradient(var(--or-clair),var(--or-fonce)); opacity:.6; transform:translateX(-50%);
+}
+@media (prefers-reduced-motion:no-preference) {
+  .ampoule { animation:scintille var(--dt,3s) ease-in-out infinite, balance var(--ds,6s) ease-in-out infinite;
+             animation-delay:var(--dl,0s), var(--dl,0s) }
+}
+@keyframes scintille { 0%,100%{opacity:1} 50%{opacity:var(--f,.55)} }
+@keyframes balance { 0%,100%{transform:translateX(-50%) rotate(3deg)} 50%{transform:translateX(-50%) rotate(-3deg)} }
+
+/* ---------- barre supérieure ---------- */
+.barre { display:flex; align-items:center; gap:11px; padding:10px 0 14px; flex:0 0 auto }
+.barre .blason { width:22px; height:auto; fill:var(--creme-2); opacity:.9; flex:0 0 auto }
+.barre .qui { font-size:11px; font-weight:600; letter-spacing:.2em; text-transform:uppercase; color:var(--or-clair); line-height:1.3 }
+.barre .actions { margin-left:auto; display:flex; gap:14px; align-items:center }
+.lien { font-size:13.5px; color:var(--or-clair); border-bottom:1px solid rgba(230,199,126,.4); padding-bottom:1px }
+
+/* ---------- typographie ---------- */
+.script { font-family:var(--script); font-size:30px; line-height:1.08; color:var(--or-clair) }
+.titre  { font-family:var(--serif); font-weight:700; font-size:23px; line-height:1.22; color:var(--creme-2); text-wrap:balance }
+.sous   { font-size:14px; opacity:.74; margin-top:6px }
+.trait  { height:1px; background:var(--grad-or-h); opacity:.5; margin:20px 0; flex:0 0 auto }
+.etiq   { font-size:11px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:var(--or-clair); margin-bottom:9px }
+
+/* ---------- cartes ---------- */
+.carte {
+  position:relative; background:rgba(40,22,52,.68); border:1px solid rgba(197,150,60,.3);
+  padding:16px; backdrop-filter:blur(2px);
+}
+.carte::before { content:""; position:absolute; inset:4px; border:1px solid var(--or); opacity:.16; pointer-events:none }
+
+/* ---------- le solde : l'élément principal (§7) ---------- */
+.solde { text-align:center; padding:26px 16px 22px; margin-top:4px }
+.solde .gnom { font-family:var(--serif); font-size:21px; font-weight:500; color:var(--creme-2); line-height:1.25 }
+.solde .gville { font-size:11.5px; letter-spacing:.16em; text-transform:uppercase; opacity:.6; margin-top:4px }
+.solde .chiffre {
+  font-family:var(--serif); font-weight:700; font-size:clamp(64px,22vw,92px); line-height:1; margin:14px 0 2px;
+  background:var(--grad-or); background-size:220% auto;
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+  font-variant-numeric:tabular-nums;
+}
+.solde .unite { font-size:12px; font-weight:600; letter-spacing:.3em; text-transform:uppercase; color:var(--or-clair); padding-left:.3em }
+.solde .maj { margin-top:13px; font-size:12px; opacity:.5 }
+
+/* ---------- boutons ---------- */
+.bouton {
+  display:flex; align-items:center; justify-content:center; gap:10px;
+  width:100%; min-height:var(--tap); padding:15px 18px;
+  background:var(--grad-or); background-size:220% auto; color:var(--nuit-2);
+  font-family:var(--serif); font-weight:700; font-size:17px; letter-spacing:.03em; text-transform:uppercase;
+  transition:transform .13s, filter .2s, box-shadow .25s;
+}
+.bouton:active:not(:disabled) { transform:scale(.985); filter:brightness(1.05) }
+.bouton:disabled { opacity:.45; cursor:progress }
+.bouton.creux {
+  background:transparent; border:1.5px solid rgba(197,150,60,.45); color:var(--creme);
+  font-family:var(--sans); font-weight:600; font-size:15px; text-transform:none; letter-spacing:0;
+}
+.bouton.petit { min-height:46px; font-size:14.5px; padding:11px 14px }
+.pile { display:flex; flex-direction:column; gap:10px; margin-top:16px }
+
+/* ---------- recherche ---------- */
+.champ {
+  width:100%; min-height:54px; padding:15px 16px; font-size:16px; color:var(--creme);
+  background:var(--nuit); border:1.5px solid rgba(197,150,60,.4); border-radius:0;
+  -webkit-appearance:none; appearance:none;
+}
+.champ::placeholder { color:rgba(241,231,210,.38) }
+.champ:focus { outline:none; border-color:var(--or-clair); box-shadow:0 0 0 3px rgba(230,199,126,.18) }
+
+.resultats { display:flex; flex-direction:column; gap:8px; margin-top:12px }
+.trouve {
+  display:flex; align-items:center; gap:12px; width:100%; min-height:62px; padding:11px 14px;
+  border:1.5px solid rgba(197,150,60,.28); background:rgba(40,22,52,.5);
+  transition:border-color .16s, background .16s, transform .12s;
+}
+.trouve:active { transform:scale(.99); border-color:var(--or-clair); background:rgba(40,22,52,.85) }
+.trouve .tn { font-weight:600; font-size:15.5px; color:var(--creme-2); line-height:1.25 }
+.trouve .tv { font-size:11.5px; letter-spacing:.1em; text-transform:uppercase; opacity:.55; margin-top:2px }
+.trouve .ts { margin-left:auto; text-align:right; flex:0 0 auto }
+.trouve .ts b { font-family:var(--serif); font-size:22px; color:var(--or-clair); font-variant-numeric:tabular-nums }
+.trouve .ts span { display:block; font-size:9.5px; letter-spacing:.18em; text-transform:uppercase; opacity:.5 }
+.vide { padding:26px 6px; font-size:14.5px; opacity:.6; text-align:center; font-style:italic; font-family:var(--serif) }
+
+/* ---------- barème animateur : les plus gros boutons de l'app ---------- */
+.baremes { display:flex; flex-direction:column; gap:11px; margin-top:14px }
+.note {
+  display:flex; align-items:center; gap:14px; width:100%; min-height:66px; padding:14px 18px;
+  border:1.5px solid rgba(197,150,60,.4); background:rgba(40,22,52,.58);
+  transition:transform .13s, border-color .16s;
+}
+.note:active:not(:disabled) { transform:scale(.985); border-color:var(--or-clair) }
+.note:disabled { opacity:.5; cursor:progress }
+.note .nl { font-family:var(--serif); font-weight:700; font-size:19px; text-transform:uppercase; letter-spacing:.04em }
+.note .np { margin-left:auto; font-family:var(--serif); font-weight:700; font-size:27px; font-variant-numeric:tabular-nums }
+.note.gagne { border-color:rgba(95,168,106,.6) } .note.gagne .np { color:var(--vert-ok-clair) }
+.note.moyen .np { color:var(--or-clair) }
+.note.nul { border-color:rgba(241,231,210,.22) } .note.nul .np { opacity:.5 }
+
+/* ---------- paliers fournisseur ---------- */
+.paliers { display:flex; flex-wrap:wrap; gap:9px; margin-top:12px }
+.palier {
+  flex:1 1 calc(50% - 5px); min-height:54px; padding:13px 16px; text-align:center;
+  border:1.5px solid rgba(197,150,60,.4); font-weight:600; font-size:16px;
+  transition:background .16s, color .16s, border-color .16s;
+}
+.palier[aria-pressed="true"] { background:var(--grad-or); color:var(--nuit-2); border-color:var(--or) }
+
+/* ---------- journal ---------- */
+.mouvements { display:flex; flex-direction:column }
+.mvt { display:flex; align-items:baseline; gap:12px; padding:11px 2px; border-bottom:1px solid rgba(197,150,60,.14); font-size:14.5px }
+.mvt:last-child { border-bottom:none }
+.mvt .mh { flex:0 0 38px; font-size:11px; opacity:.45; font-variant-numeric:tabular-nums }
+.mvt .ml { flex:1 1 auto; line-height:1.35 }
+.mvt .ml small { display:block; font-size:11px; letter-spacing:.1em; text-transform:uppercase; opacity:.45; margin-top:1px }
+.mvt .md { flex:0 0 auto; font-family:var(--serif); font-weight:700; font-size:17px; font-variant-numeric:tabular-nums }
+.mvt .md.plus { color:var(--vert-ok-clair) } .mvt .md.moins { color:var(--terracotta-clair) }
+
+/* ---------- grille des 100 cases ---------- */
+.grille { display:grid; grid-template-columns:repeat(10,1fr); gap:5px; margin-top:14px }
+.case {
+  aspect-ratio:1; display:flex; align-items:center; justify-content:center;
+  font-size:11.5px; font-weight:600; font-variant-numeric:tabular-nums;
+  border:1px solid rgba(197,150,60,.38); background:rgba(40,22,52,.55); color:var(--creme);
+  transition:transform .1s, background .16s;
+}
+.case:active:not(:disabled) { transform:scale(1.2); background:var(--or-clair); color:var(--nuit-2) }
+.case:disabled { opacity:.26; background:rgba(241,231,210,.06); border-color:rgba(241,231,210,.14) }
+.legende { display:flex; gap:16px; flex-wrap:wrap; font-size:11.5px; opacity:.62; margin-top:12px }
+.legende i { display:inline-block; width:10px; height:10px; margin-right:5px; vertical-align:-1px; border:1px solid rgba(197,150,60,.38) }
+.legende i.prise { opacity:.26; background:rgba(241,231,210,.06); border-color:rgba(241,231,210,.14) }
+
+/* ---------- révélation d'un lot ---------- */
+.revele { text-align:center; padding:34px 14px }
+.revele .rk { font-family:var(--script); font-size:46px; line-height:1; color:var(--or-clair) }
+.revele .rt {
+  font-family:var(--serif); font-weight:700; font-size:27px; text-transform:uppercase;
+  letter-spacing:.05em; margin-top:6px;
+  background:var(--grad-or); -webkit-background-clip:text; background-clip:text; color:transparent;
+}
+.revele.perdu .rt { background:none; color:var(--creme); opacity:.75 }
+.revele .rlot { margin-top:22px; padding:18px; border:1px solid var(--or); font-family:var(--serif); font-size:19px; color:var(--creme-2) }
+.revele .rcode { font-family:var(--sans); font-size:12px; letter-spacing:.24em; text-transform:uppercase; opacity:.65; margin-top:12px }
+.revele .rcase { font-size:11px; letter-spacing:.2em; text-transform:uppercase; opacity:.5; margin-top:18px }
+
+/* ---------- tableau de bord Bony ---------- */
+.indics { display:grid; grid-template-columns:1fr 1fr; gap:8px }
+.indic { padding:13px 14px; border:1px solid rgba(197,150,60,.28); background:rgba(40,22,52,.5) }
+.indic .iv { font-family:var(--serif); font-weight:700; font-size:27px; color:var(--or-clair); font-variant-numeric:tabular-nums; line-height:1.1 }
+.indic .il { font-size:10px; letter-spacing:.13em; text-transform:uppercase; opacity:.6; margin-top:3px; line-height:1.4 }
+.indic.large { grid-column:1 / -1 }
+.indic.alerte { border-color:rgba(209,91,48,.55) } .indic.alerte .iv { color:var(--terracotta-clair) }
+.jauge { height:6px; background:rgba(241,231,210,.1); margin-top:9px; overflow:hidden }
+.jauge span { display:block; height:100%; background:var(--grad-or-h) }
+
+/* ---------- bandeaux d'état ---------- */
+.bandeau {
+  display:flex; align-items:center; gap:9px; font-size:12.5px; padding:10px 13px;
+  border:1px solid rgba(209,91,48,.5); background:rgba(209,91,48,.13); color:var(--terracotta-clair);
+  margin-bottom:14px; flex:0 0 auto;
+}
+.bandeau i { width:7px; height:7px; border-radius:50%; background:var(--terracotta-clair); flex:0 0 auto }
+.bandeau.ok { border-color:rgba(95,168,106,.5); background:rgba(95,168,106,.13); color:var(--vert-ok-clair) }
+.bandeau.ok i { background:var(--vert-ok-clair) }
+
+/* ---------- confirmation (§16) ---------- */
+#toast {
+  position:fixed; left:12px; right:12px; z-index:50;
+  bottom:calc(14px + env(safe-area-inset-bottom));
+  border:1px solid var(--or); background:rgba(26,14,34,.97); padding:15px 17px;
+  box-shadow:0 -10px 44px rgba(0,0,0,.6);
+  transform:translateY(150%); transition:transform .34s cubic-bezier(.2,.9,.25,1);
+  max-width:520px; margin:0 auto;
+}
+#toast.visible { transform:translateY(0) }
+#toast .tt { font-family:var(--serif); font-weight:700; font-size:18px; color:var(--vert-ok-clair) }
+#toast .tc { font-size:13.5px; opacity:.85; margin-top:3px }
+#toast .tc b { color:var(--or-clair); font-family:var(--serif); font-size:17px; font-variant-numeric:tabular-nums }
+#toast.negatif { border-color:var(--terracotta) } #toast.negatif .tt { color:var(--terracotta-clair) }
+#toast.attente { border-color:var(--or-clair) } #toast.attente .tt { color:var(--or-clair) }
+
+/* ---------- chargement ---------- */
+.chargement { padding:60px 0; text-align:center; font-family:var(--serif); font-style:italic; opacity:.6 }
+
+@media (prefers-reduced-motion:reduce) {
+  .halo, .loupiotte, .ampoule, .solde .chiffre { animation:none !important }
+  #toast { transition:none }
+}
