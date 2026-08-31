@@ -1,0 +1,26 @@
+{
+  // ===================================================================
+  //  Déploiement Cloudflare — Workers avec ressources statiques
+  //
+  //  Il n'y a AUCUN code serveur : pas de champ "main", donc pas de
+  //  Worker à exécuter. Cloudflare se contente de servir le dossier
+  //  app/ depuis son réseau. C'est ce qui rend l'hébergement gratuit
+  //  et sans limite de requêtes.
+  //
+  //  Le fichier app/_headers reste pris en compte.
+  // ===================================================================
+  "name": "forum-2026",
+  "compatibility_date": "2026-08-01",
+
+  "assets": {
+    "directory": "./app",
+    // Toute URL inconnue renvoie l'application : la navigation interne
+    // se fait par ancre (#), donc un lien mal recopié atterrit quand
+    // même sur l'écran d'accueil plutôt que sur une erreur 404.
+    "not_found_handling": "single-page-application"
+  },
+
+  "observability": {
+    "enabled": true
+  }
+}

@@ -22,17 +22,22 @@ Le site WordPress de Bony est un multisite géré par MotorK : ni plugin, ni PHP
 un CSP qui interdit d'appeler Supabase depuis ses pages. D'où l'hébergement séparé,
 qui apporte en prime le service worker, donc le vrai mode hors ligne.
 
-## Déploiement sur Cloudflare Pages
+## Déploiement sur Cloudflare
 
-1. Cloudflare -> Workers & Pages -> Create -> Pages -> Connect to Git
-2. Choisir ce dépôt, branche `main`
-3. **Framework preset** : `None`
-4. **Build command** : *laisser vide*
-5. **Build output directory** : `app`
-6. Save and Deploy
+Le projet est déployé en **Worker avec ressources statiques** (le flux actuel de
+Cloudflare pour les sites statiques ; Pages reste possible mais n'évolue plus).
+Il n'y a aucun code serveur : `wrangler.jsonc` ne déclare que le dossier à servir.
 
-Chaque `git push` sur `main` redéploie. Les autres branches donnent une URL de
-prévisualisation. Retour arrière en un clic depuis l'onglet Deployments.
+1. Cloudflare -> Create app -> Import a repository -> `MarketBony/Forum-2026`
+2. **Build command** : *laisser vide*
+3. **Deploy command** : `npx wrangler deploy` (valeur préremplie, à garder)
+4. **Builds for non-production branches** : coché, pour obtenir des URL de
+   prévisualisation sur les autres branches
+5. **Protect with Cloudflare Access** : NON sur la production — 400 participants
+   scannant un QR code ne peuvent pas franchir un portail d'authentification
+
+Chaque `git push` sur `main` redéploie. Retour arrière en un clic depuis l'historique
+des déploiements.
 
 ## Base de données
 
