@@ -9,18 +9,24 @@ garage, animateur, fournisseur, équipe Bony.
 ## Architecture
 
 ```
-QR code  ->  bonyauto-mobile.com/forum-pieces-2026   (page Elementor, redirection)
-         ->  <projet>.pages.dev                      (cette application, PWA)
-         ->  Supabase                                (Postgres, plan gratuit)
+QR code  ->  forum-2026.bonyauto-mobile.workers.dev/?e=bal2026   (cette application, PWA)
+         ->  Supabase                                            (Postgres, plan gratuit)
 ```
 
 L'application est **statique** : des modules JavaScript natifs, aucune étape de
-compilation. Cloudflare Pages sert les fichiers, le navigateur parle directement
-aux fonctions `api_*` de la base.
+compilation. Cloudflare sert les fichiers, le navigateur parle directement aux
+fonctions `api_*` de la base. Aucun code serveur.
 
-Le site WordPress de Bony est un multisite géré par MotorK : ni plugin, ni PHP, et
-un CSP qui interdit d'appeler Supabase depuis ses pages. D'où l'hébergement séparé,
-qui apporte en prime le service worker, donc le vrai mode hors ligne.
+**Le site WordPress de Bony n'intervient pas.** Deux raisons : c'est un multisite
+géré par MotorK, donc ni plugin ni PHP possible, et son CSP (une unique directive
+`default-src` de 96 hôtes) interdit d'appeler Supabase depuis ses pages. Une page
+tremplin sur `bonyauto-mobile.com` avait été envisagée pour respecter le §4 du
+cahier des charges — « le participant arrive sur une page dédiée du site Bony » —
+puis écartée : le QR code mène directement à l'application. **Cet écart au cahier
+des charges est assumé.**
+
+L'hébergement séparé apporte en prime le service worker, donc le vrai mode hors
+ligne, impossible à l'intérieur d'une page WordPress qu'on ne contrôle pas.
 
 ## Déploiement sur Cloudflare
 
@@ -79,7 +85,15 @@ Stockés dans la table `config` et dans les tables `animations` / `stands`.
 | Stands | `2001` à `2005` |
 | Code d'événement (dans le QR) | `bal2026` |
 
-Le QR code doit pointer vers `…/?e=bal2026`.
+Le QR code doit pointer vers :
+
+```
+https://forum-2026.bonyauto-mobile.workers.dev/?e=bal2026
+```
+
+Le paramètre `e` porte le code d'événement. Sans lui, la recherche d'inscription
+est refusée : c'est ce qui empêche d'aspirer la liste des garages invités de
+l'extérieur, sans être sur place.
 
 ## Ce qui n'est pas dans ce dépôt
 
