@@ -523,7 +523,10 @@ async function agir(a, el) {
     case 'espace':    S.vue = 'espace'; await chargerEtat(); return rendre();
     case 'grille':    S.vue = 'grille'; await chargerEtat(); return rendre();
     case 'recherche': S.cible = null; S.partieLancee = false; S.q = ''; return rendre();
-    case 'admin':     S.vue = 'admin'; return rendre();
+    // On recharge toujours en revenant au tableau de bord : sinon un lot
+    // que Bony vient de remettre reste affiché comme « à remettre »
+    // jusqu'au sondage suivant, et l'équipe doute de l'outil.
+    case 'admin':     S.vue = 'admin'; rendre(); await chargerSupervision(); return rendre();
     case 'rafraichir':
       if (await chargerEtat()) { rendre(); toast('Solde à jour', `<b>${S.etat.garage.solde}</b> points`); }
       else toast('Pas de réseau', 'Le solde affiché est celui de la dernière consultation.', 'attente');
@@ -687,7 +690,9 @@ async function agir(a, el) {
       const n = +el.dataset.n;
       try {
         await api.ecrit.remettreLot(n);
-        S.lots = await api.lire.lots(); rendre();
+        S.lots = await api.lire.lots();
+        S.sup = null;                     // le tableau de bord devra se recharger
+        rendre();
         toast('Lot remis', `Case n°${n}`);
       } catch (e) { toast('Impossible', e.detail || e.message, 'negatif'); }
       return;
