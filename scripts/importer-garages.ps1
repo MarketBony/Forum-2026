@@ -149,6 +149,130 @@ $ACCENTS = @{
   'eloy'         = 'Éloy'
 }
 
+# =====================================================================
+#  COMMUNES : reconstitution des libellés coupés par l'export
+#
+#  L'export tronque la colonne commune à 20 caractères. Un nom de commune
+#  est une donnée publique et le code postal lève l'ambiguïté, donc on
+#  reconstitue — contrairement aux raisons sociales, qu'on ne touche pas :
+#  le nom qu'un garagiste s'est choisi ne s'invente pas.
+#
+#  La clé est « CP|libellé brut » : la correction ne peut donc s'appliquer
+#  qu'au cas exact prévu, jamais par ricochet sur une autre ligne.
+#  Chaque entrée est vérifiable à l'œil, code postal en main.
+# =====================================================================
+$COMMUNES = @{
+  '03160|BOURBON L ARCHAMBAUL' = "Bourbon-l'Archambault"
+  '03250|LE MAYET DE MONTAGNE' = 'Le Mayet-de-Montagne'
+  '03260|ST GERMAIN DES FOSSE' = 'Saint-Germain-des-Fossés'
+  '03290|DOMPIERRE SUR BESBRE' = 'Dompierre-sur-Besbre'
+  '03500|ST POURCAIN SUR SIOU' = 'Saint-Pourçain-sur-Sioule'
+  '03700|BELLERIVE SUR ALLIER' = 'Bellerive-sur-Allier'
+  '07310|ST MARTIN DE VALAMAS' = 'Saint-Martin-de-Valamas'
+  '12100|ST GEORGES DE LUZENC' = 'Saint-Georges-de-Luzençon'
+  '12130|ST GENIEZ D OLT ET D' = "Saint-Geniez-d'Olt-et-d'Aubrac"
+  '12200|VILLEFRANCHE DE ROUE' = 'Villefranche-de-Rouergue'
+  '12230|L HOSPITALET DU LARZ' = "L'Hospitalet-du-Larzac"
+  '12250|ROQUEFORT SUR SOULZO' = 'Roquefort-sur-Soulzon'
+  '12310|LAISSAC SEVERAC L EG' = "Laissac-Sévérac-l'Église"
+  '12330|ST CHRISTOPHE VALLON' = 'Saint-Christophe-Vallon'
+  '12430|VILLEFRANCHE DE PANA' = 'Villefranche-de-Panat'
+  '12440|LA SALVETAT PEYRALES' = 'La Salvetat-Peyralès'
+  '12490|SAINT ROME DE CERNON' = 'Saint-Rome-de-Cernon'
+  '12800|SAUVETERRE DE ROUERG' = 'Sauveterre-de-Rouergue'
+  '15130|LAFEUILLADE EN VEZIE' = 'Lafeuillade-en-Vézie'
+  '15170|NEUSSARGUES EN PINAT' = 'Neussargues en Pinatelle'
+  '15220|ST MAMET LA SALVETAT' = 'Saint-Mamet-la-Salvetat'
+  '15260|NEUVEGLISE SUR TRUYE' = 'Neuvéglise-sur-Truyère'
+  '15270|CHAMPS SUR TARENTAIN' = 'Champs-sur-Tarentaine-Marchal'
+  '19400|ARGENTAT SUR DORDOGN' = 'Argentat-sur-Dordogne'
+  '30940|ST ANDRE DE VALBORGN' = 'Saint-André-de-Valborgne'
+  '34520|ST PIERRE DE LA FAGE' = 'Saint-Pierre-de-la-Fage'
+  '43000|LE PUY EN VELAY CEDE' = 'Le Puy-en-Velay'
+  '43130|ST ANDRE DE CHALENCO' = 'Saint-André-de-Chalencon'
+  '43140|SAINT VICTOR MALESCO' = 'Saint-Victor-Malescours'
+  '43150|LE MONASTIER SUR GAZ' = 'Le Monastier-sur-Gazeille'
+  "43230|SAINT GEORGES D'AURA" = "Saint-Georges-d'Aurac"
+  '43260|ST ETIENNE LARDEYROL' = 'Saint-Étienne-Lardeyrol'
+  '43360|BOURNONCLE ST PIERRE' = 'Bournoncle-Saint-Pierre'
+  '43370|ST CHRISTOPHE SUR DO' = 'Saint-Christophe-sur-Dolaison'
+  '43400|LE CHAMBON SUR LIGNO' = 'Le Chambon-sur-Lignon'
+  '43410|LEMPDES SUR ALLAGNON' = 'Lempdes-sur-Allagnon'
+  '46190|SOUSCEYRAC EN QUERCY' = 'Sousceyrac-en-Quercy'
+  '46400|ST MEDARD DE PRESQUE' = 'Saint-Médard-de-Presque'
+  '46400|ST LAURENT LES TOURS' = 'Saint-Laurent-les-Tours'
+  '48110|STE CROIX VALLEE FRA' = 'Sainte-Croix-Vallée-Française'
+  '48120|ST ALBAN SUR LIMAGNO' = 'Saint-Alban-sur-Limagnole'
+  '48170|CHATEAUNEUF DE RANDO' = 'Châteauneuf-de-Randon'
+  '48190|MONT LOZERE ET GOULE' = 'Mont Lozère et Goulet'
+  '48220|PONT DE MONTVERT SUD' = 'Pont de Montvert - Sud Mont Lozère'
+  '48250|LA BASTIDE PUYLAUREN' = 'La Bastide-Puylaurent'
+  '48400|FLORAC TROIS RIVIERE' = 'Florac-Trois-Rivières'
+  '48500|MASSEGROS CAUSSES GO' = 'Massegros Causses Gorges'
+  '63100|CLERMONT FERRAND CED' = 'Clermont-Ferrand'
+  '63122|ST GENES CHAMPANELLE' = 'Saint-Genès-Champanelle'
+  '63170|PERIGNAT LES SARLIEV' = 'Pérignat-lès-Sarliève'
+  '63210|ST BONNET PRES ORCIV' = 'Saint-Bonnet-près-Orcival'
+  '63310|ST CLEMENT DE REGNAT' = 'Saint-Clément-de-Régnat'
+  '63330|ST MAURICE PRES PION' = 'Saint-Maurice-près-Pionsat'
+  '63340|CHARBONNIER LES MINE' = 'Charbonnier-les-Mines'
+  '63380|CONDAT EN COMBRAILLE' = 'Condat-en-Combraille'
+  '63390|ST GERVAIS D AUVERGN' = "Saint-Gervais-d'Auvergne"
+  '63410|CHARBONNIERES-LES-VA' = 'Charbonnières-les-Varennes'
+  '63430|LES MARTRES D ARTIER' = "Les Martres-d'Artière"
+  '63500|SAUVAGNAT STE MARTHE' = 'Sauvagnat-Sainte-Marthe'
+  '63610|BESSE ET ST ANASTAIS' = 'Besse-et-Saint-Anastaise'
+  '63650|LA MONNERIE LE MONTE' = 'La Monnerie-le-Montel'
+  '63660|ST CLEMENT DE VALORG' = 'Saint-Clément-de-Valorgue'
+  '63730|LES MARTRES DE VEYRE' = 'Les Martres-de-Veyre'
+  '63820|ST JULIEN PUY LAVEZE' = 'Saint-Julien-Puy-Lavèze'
+  '63850|EGLISENEUVE D ENTRAI' = "Égliseneuve-d'Entraigues"
+  '63950|ST SAUVES D AUVERGNE' = "Saint-Sauves-d'Auvergne"
+  '81140|CASTELNAU DE MONTMIR' = 'Castelnau-de-Montmiral'
+  '81190|MIRANDOL BOURGNOUNAC' = 'Mirandol-Bourgnounac'
+  '81370|ST SULPICE LA POINTE' = 'Saint-Sulpice-la-Pointe'
+  '81400|ST BENOIT DE CARMAUX' = 'Saint-Benoît-de-Carmaux'
+  '81430|VILLEFRANCHE D ALBIG' = "Villefranche-d'Albigeois"
+  '82140|ST ANTONIN NOBLE VAL' = 'Saint-Antonin-Noble-Val'
+  # '15310|SAINT SULPICE L APOI' : NON IDENTIFIÉE avec certitude, laissée
+  # telle quelle plutôt que devinée. À vérifier avec Bony.
+}
+
+# ---------------------------------------------------------------------
+#  UNIFICATION : une commune, une seule orthographe
+#
+#  Deux sources de divergence. D'abord mes propres corrections : en
+#  réparant « LE PUY EN VELAY CEDE » en « Le Puy-en-Velay », je laissais
+#  ses voisines intactes écrites « Le Puy en Velay » — deux orthographes
+#  pour la même ville. Ensuite la source elle-même, qui contient déjà
+#  « ST LAURENT D OLT » et « ST LAURENT D'OLT ».
+#
+#  Cette table est indexée sur le nom réduit (minuscules, ponctuation
+#  ramenée à des espaces), donc elle rattrape toutes les variantes d'un
+#  coup et fonctionne quel que soit le code postal.
+# ---------------------------------------------------------------------
+$UNIFIEES = @{
+  'clermont ferrand'    = 'Clermont-Ferrand'
+  'le puy en velay'     = 'Le Puy-en-Velay'
+  'saint laurent d olt' = "Saint-Laurent-d'Olt"
+  'severac d aveyron'   = "Sévérac-d'Aveyron"
+}
+
+function Reduire([string]$t) {
+  if (-not $t) { return '' }
+  $s = $t.ToLower()
+  $s = $s -replace "[-'’./&,()]+", ' '
+  $s = ($s -replace '\s+', ' ').Trim()
+  # les accents ne doivent pas empêcher la correspondance
+  return $s.Normalize([Text.NormalizationForm]::FormD) -replace '\p{Mn}', ''
+}
+
+function Unifier([string]$ville) {
+  $k = Reduire $ville
+  if ($UNIFIEES.ContainsKey($k)) { return $UNIFIEES[$k] }
+  return $ville
+}
+
 function Accentuer([string]$t) {
   if (-not $t) { return '' }
   foreach ($e in $EXPRESSIONS.GetEnumerator()) {
@@ -202,6 +326,7 @@ function CodeDe([string]$compte, [int]$variante) {
 $propre = New-Object System.Collections.Generic.List[object]
 $pris = @{}
 $collisions = 0
+$script:corrigees = 0
 foreach ($g in $brut) {
   $nom = Propre $g.raison $false
   if (-not $nom) { $nom = Propre $g.raison $true }   # filet : nom vidé par le nettoyage
@@ -211,10 +336,17 @@ foreach ($g in $brut) {
   while ($pris.ContainsKey($code)) { $v++; $collisions++; $code = CodeDe $g.compte $v }
   $pris[$code] = $g.compte
 
+  # La table des communes prime sur la mise en forme automatique : elle
+  # porte le libellé officiel, tirets et accents compris.
+  $cle = ($g.cp + '|' + ($g.commune -replace '\s+', ' ').Trim())
+  $ville = if ($COMMUNES.ContainsKey($cle)) { $COMMUNES[$cle] } else { Propre $g.commune $true }
+  if ($COMMUNES.ContainsKey($cle)) { $script:corrigees++ }
+  $ville = Unifier $ville      # une commune, une seule orthographe
+
   $propre.Add([pscustomobject]@{
     compte = $g.compte; ref = $g.id
     nom = $nom
-    ville = Propre $g.commune $true
+    ville = $ville
     cp = $g.cp; profil = $g.profil; email = $g.email
     code = $code
   })
