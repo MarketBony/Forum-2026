@@ -183,7 +183,9 @@ Write-Output '==================================================================
 Write-Output ''
 Write-Output '--- Preparation : remise a zero -------------------------------------'
 $rz = Sql @'
-update public.grille set garage_id=null, journal_id=null, joue_le=null,
+delete from public.tirage;
+delete from public.tentatives;
+update public.grille set garage_id=null, journal_id=null, achete_le=null, revele_le=null,
        code_retrait=null, remis=false, remis_le=null;
 alter table public.journal disable trigger journal_pas_de_modif;
 delete from public.journal;
@@ -194,19 +196,21 @@ select count(*)::int as n from public.garages;
 '@
 Write-Output ("  Base propre : " + $rz.data[0].n + " garages")
 
-$ids = (Sql "select id from public.garages order by nom limit 400").data
+# On simule 400 arrivées : chaque garage entre par SON code, comme le
+# fera un garagiste. La base compte 1 407 invités, on en prend 400.
+$ids = (Sql "select id, code from public.garages order by nom limit 400").data
 $jetons = @()
 foreach ($g in $ids) { $jetons += (([guid]::NewGuid().ToString('N')) + ([guid]::NewGuid().ToString('N'))) }
 
 # ---------------------------------------------------------------------
 Write-Output ''
-Write-Output '--- Phase 0 : 400 inscriptions en rafale (ouverture des portes) ------'
+Write-Output '--- Phase 0 : 400 entrees par code en rafale (ouverture des portes) ---'
 $corps = @()
 for ($i = 0; $i -lt 400; $i++) {
-  $corps += (@{ p_jeton = $jetons[$i]; p_garage = $ids[$i].id } | ConvertTo-Json -Compress)
+  $corps += (@{ p_jeton = $jetons[$i]; p_code = $ids[$i].code } | ConvertTo-Json -Compress)
 }
-$r0 = [Charge]::Executer("$base/rest/v1/rpc/api_inscrire", $corps, 0, 0)
-Rapport 'Phase 0 - inscriptions simultanees' $r0 'rafale'
+$r0 = [Charge]::Executer("$base/rest/v1/rpc/api_entrer", $corps, 0, 0)
+Rapport 'Phase 0 - entrees simultanees' $r0 'rafale'
 $inscrits = (Sql "select count(*)::int as n from public.garages where inscrit_le is not null").data[0].n
 Write-Output ("    controle      : {0} garages inscrits en base" -f $inscrits)
 

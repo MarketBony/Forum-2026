@@ -74,13 +74,16 @@ Write-Output '  Terrain propre.'
 $rep = (Sql "select nature, count(*)::int as n from grille group by nature order by nature").data
 Write-Output ('  Repartition : ' + (($rep | ForEach-Object { "$($_.n) $($_.nature)" }) -join ' / '))
 
-# on dote six garages nommes de quoi acheter plusieurs cases
-$noms = @('Garage Dupont','Garage Dupuy','Carrosserie Marchand','Auto Services Chabrier','Garage du Velay','Méca Thiers')
+# On dote six garages réels, désignés par leur code d'accès de test, de
+# quoi acheter plusieurs cases.
+$six = (Sql "select id, nom, code from garages where code in ('TEST','BNY2','GRND','BAL2','FRUM','JEUX') order by code").data
+if ($six.Count -lt 6) { throw "Les six codes de test sont absents de la base." }
+$noms = @($six | ForEach-Object { $_.nom })
 $jetons = @{}
-foreach ($n in $noms) {
-  $id = (Sql "select id from garages where nom = '$($n.Replace("'","''"))'").data[0].id
+foreach ($g in $six) {
+  $n = $g.nom; $id = $g.id
   $j = Jeton
-  Rpc 'api_inscrire' @{ p_jeton = $j; p_garage = $id } | Out-Null
+  Rpc 'api_entrer' @{ p_jeton = $j; p_code = $g.code } | Out-Null
   Sql @"
 insert into journal (garage_id, delta, libelle, source, cle_idem)
 values ('$id', 200, 'Dotation test bingo', 'administration', 'bingo-$id');
@@ -95,7 +98,7 @@ Write-Output ("  6 garages dotes de 210 points chacun.")
 Write-Output ''
 Write-Output '=== MODE IMMEDIAT : le garage decouvre a l achat ==================='
 Mode 'immediate'
-$j1 = $jetons['Garage Dupont'].jeton
+$j1 = $jetons[$noms[0]].jeton
 
 # une perdante, un lot, un billet : on prend des numeros connus
 $perdante = (Sql "select min(numero)::int as n from grille where nature='perdante' and garage_id is null").data[0].n
@@ -126,7 +129,7 @@ Verdict 'L ecran garage voit ses trois cases, toutes revelees' `
 Write-Output ''
 Write-Output '=== MODE DIFFERE : le garage achete a l aveugle ===================='
 Mode 'differee'
-$j2 = $jetons['Garage Dupuy'].jeton
+$j2 = $jetons[$noms[1]].jeton
 $n2 = (Sql "select min(numero)::int as n from grille where nature='lot' and garage_id is null").data[0].n
 $rd = Rpc 'api_jouer_case' @{ p_jeton = $j2; p_numero = $n2; p_cle = (Cle) }
 Verdict "Case n°$n2 achetee : RIEN n est revele" `
@@ -166,7 +169,7 @@ Write-Output '=== LE GRAND TIRAGE ==============================================
 Mode 'immediate'
 # les 4 billets restants sont achetes par 4 garages differents
 $restants = (Sql "select numero from grille where nature='billet' and garage_id is null order by numero").data
-$acheteurs = @('Garage Dupuy','Carrosserie Marchand','Auto Services Chabrier','Garage du Velay')
+$acheteurs = @($noms[1], $noms[2], $noms[3], $noms[4])
 for ($i = 0; $i -lt [Math]::Min($restants.Count, $acheteurs.Count); $i++) {
   Rpc 'api_jouer_case' @{ p_jeton = $jetons[$acheteurs[$i]].jeton; p_numero = $restants[$i].numero; p_cle = (Cle) } | Out-Null
 }

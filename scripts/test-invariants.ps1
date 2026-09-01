@@ -77,8 +77,10 @@ Write-Output '--- Remise a zero du terrain de test -----------------------------
 $r = Sql @'
 -- 1. on libere les references de la grille vers le journal (cle etrangere)
 update public.grille
-   set garage_id=null, journal_id=null, joue_le=null, code_retrait=null,
-       remis=false, remis_le=null;
+   set garage_id=null, journal_id=null, achete_le=null, revele_le=null,
+       code_retrait=null, remis=false, remis_le=null;
+delete from public.tirage;
+delete from public.tentatives;
 -- 2. purge du journal, verrou d'immuabilite momentanement leve
 alter table public.journal disable trigger journal_pas_de_modif;
 delete from public.journal;
@@ -89,19 +91,24 @@ delete from public.appareils;
 select count(*)::int as garages from public.garages;
 '@
 Write-Output ('  ' + $(if ($r.ok) { 'Terrain propre — ' + $r.data[0].garages + ' garages en base.' } else { 'Nettoyage HTTP ' + $r.http }))
-$dupont = (Sql "select id from garages where nom = 'Garage Dupont'").data[0].id
-$dupuy  = (Sql "select id from garages where nom = 'Garage Dupuy'").data[0].id
-$vidal  = (Sql "select id from garages where nom = 'Garage Vidal'").data[0].id
+# On travaille sur trois garages réels tirés de la base, désignés par
+# leur code d'accès : c'est le chemin exact que prendra un garagiste.
+$trois = (Sql "select id, nom, code from garages where code in ('TEST','BNY2','GRND') order by code").data
+if ($trois.Count -lt 3) { throw "Codes de test TEST/BNY2/GRND absents de la base." }
+$gA = $trois[0]; $gB = $trois[1]; $gC = $trois[2]
+$dupont = $gA.id; $dupuy = $gB.id; $vidal = $gC.id
+Write-Output ("  Garages temoins : {0} ({1}), {2} ({3}), {4} ({5})" -f `
+               $gA.nom, $gA.code, $gB.nom, $gB.code, $gC.nom, $gC.code)
 
 # =====================================================================
 Write-Output ''
 Write-Output '=== 1. Un portefeuille par garage, partage entre ses telephones ====='
 $tel1 = Jeton; $tel2 = Jeton
-$a = Rpc 'api_inscrire' @{ p_jeton = $tel1; p_garage = $dupont }
+$a = Rpc 'api_entrer' @{ p_jeton = $tel1; p_code = $gA.code }
 Verdict 'Premier telephone : bonus d inscription verse' `
         ($a.data.garage.solde -eq 10) ('solde = ' + $a.data.garage.solde + ' (attendu 10)')
 
-$b = Rpc 'api_inscrire' @{ p_jeton = $tel2; p_garage = $dupont }
+$b = Rpc 'api_entrer' @{ p_jeton = $tel2; p_code = $gA.code }
 Verdict 'Second telephone du MEME garage : aucun second bonus' `
         ($b.data.garage.solde -eq 10) ('solde = ' + $b.data.garage.solde + ' (attendu 10, pas 20)')
 
@@ -138,9 +145,9 @@ Verdict 'Resultat tape 3 fois tres vite : 1 seul credit' `
 # =====================================================================
 Write-Output ''
 Write-Output '=== 3. Solde insuffisant : ni point debite, ni case consommee ======='
-Sql "update grille set garage_id=null, journal_id=null, joue_le=null, code_retrait=null where numero=77" | Out-Null
+Sql "update grille set garage_id=null, journal_id=null, achete_le=null, revele_le=null, code_retrait=null where numero=77" | Out-Null
 $telV = Jeton
-Rpc 'api_inscrire' @{ p_jeton = $telV; p_garage = $vidal } | Out-Null   # Vidal a 10 pts
+Rpc 'api_entrer' @{ p_jeton = $telV; p_code = $gC.code } | Out-Null   # 10 pts de bonus
 $j = Rpc 'api_jouer_case' @{ p_jeton = $telV; p_numero = 77; p_cle = (Cle) }
 $apres = (Sql "select (select solde from garages where id='$vidal') as solde, (select garage_id is null from grille where numero=77) as libre").data[0]
 Verdict 'Tirage a 20 pts avec 10 pts : refuse proprement' `
@@ -171,7 +178,7 @@ Verdict 'Attribution de 50 pts : acceptee et tracee au nom du stand' `
 Write-Output ''
 Write-Output '=== 5. Une case de la grille ne part qu une seule fois =============='
 $telD = Jeton
-Rpc 'api_inscrire' @{ p_jeton = $telD; p_garage = $dupuy } | Out-Null
+Rpc 'api_entrer' @{ p_jeton = $telD; p_code = $gB.code } | Out-Null
 Sql @"
 insert into journal (garage_id, delta, libelle, source, cle_idem)
 values ('$dupuy', 490, 'Dotation de test', 'administration', 'prep-' || gen_random_uuid()::text);
@@ -180,8 +187,8 @@ update garages set solde = (select coalesce(sum(delta),0) from journal where gar
 "@ | Out-Null
 
 $c1 = Rpc 'api_jouer_case' @{ p_jeton = $telD; p_numero = 13; p_cle = (Cle) }
-Verdict 'Garage Dupuy prend la case 13 (gagnante)' `
-        (($c1.ok) -and ($c1.data.gagnante -eq $true)) `
+Verdict 'Le garage prend la case 13 et decouvre son contenu' `
+        (($c1.ok) -and ($c1.data.revelee -eq $true) -and ($null -ne $c1.data.nature)) `
         ('lot = ' + $c1.data.lot + ', code de retrait = ' + $c1.data.code_retrait + ', solde = ' + $c1.data.solde)
 
 $c2 = Rpc 'api_jouer_case' @{ p_jeton = $tel1; p_numero = 13; p_cle = (Cle) }
