@@ -18,6 +18,7 @@ const S = {
   r: null,              // rôle : {role, libelle, animation_id, cout, bareme, stand_id...}
   etat: null,           // réponse de api_etat pour un garage
   q: '',                // saisie de recherche
+  code: '',             // saisie du code garage
   cible: null,          // garage visé par le personnel
   palier: 20,           // points choisis par le fournisseur
   revele: null,         // résultat d'un tirage
@@ -166,13 +167,15 @@ function vueAccueil() {
         <p class="sous">${esc(CONFIG.evenement.date)} · ${esc(CONFIG.evenement.lieu)}</p>
       </div>
       <div class="section">
-        <p class="etiq">Votre garage</p>
-        <input class="champ" id="q" type="text" inputmode="text" autocomplete="off"
-               placeholder="Tapez les premières lettres…" value="${esc(S.q)}">
-        ${S.invites === undefined ? '' : listeGarages(S.invites, 'inscrire', false)}
+        <p class="etiq">Votre code garage</p>
+        <input class="champ code" id="cg" type="text" inputmode="text"
+               autocomplete="off" autocapitalize="characters" spellcheck="false"
+               maxlength="6" placeholder="••••" value="${esc(S.code)}"
+               ${S.envoi ? 'disabled' : ''}>
+        <button class="bouton" data-a="entrer" ${S.envoi ? 'disabled' : ''}>Entrer</button>
       </div>
-      <p class="sous">Aucun mot de passe, aucun formulaire. Votre téléphone se
-        souvient de vous jusqu'à la fin de la soirée.</p>
+      <p class="sous">Le code figure sur votre invitation. Vous l'avez perdu&nbsp;?
+        L'accueil vous le redonne en trois secondes.</p>
     </div>`;
 }
 
@@ -187,10 +190,11 @@ function vueParticipant() {
       ${bandeauReseau()}
       <div class="surface solde">
         <div class="gnom">${esc(g.nom)}</div>
-        <div class="gville">${esc(g.ville)}</div>
+        <div class="gville">${esc(g.cp ? g.cp + ' ' : '')}${esc(g.ville)}</div>
         <div class="chiffre">${g.solde}</div>
         <div class="unite">points</div>
-        <div class="maj">Touchez « Actualiser » à tout moment</div>
+        ${g.code ? `<div class="rappel">Votre code <b>${esc(g.code)}</b><span>Notez-le : il rouvre
+          votre solde si vous fermez l'application ou changez de téléphone.</span></div>` : ''}
       </div>
       <button class="bouton" data-a="grille">Tenter un lot · ${e.cout_grille} pts</button>
       ${e.mes_cases && e.mes_cases.length ? `
@@ -619,12 +623,6 @@ function rendre(garderFocus) {
 // =====================================================================
 //  Actions
 // =====================================================================
-function codeEvenement() {
-  const p = new URLSearchParams(location.search).get('e');
-  if (p) localStorage.setItem('gbp.code', p);
-  return localStorage.getItem('gbp.code') || 'bal2026';
-}
-
 async function chargerEtat() {
   try {
     S.etat = await api.lire.etat();
@@ -682,7 +680,7 @@ function telecharger(nom, contenu, type) {
 async function agir(a, el) {
   switch (a) {
     // ---------------- navigation ----------------
-    case 'accueil':   S.vue = 'accueil'; S.q = ''; S.invites = undefined; return rendre();
+    case 'accueil':   S.vue = 'accueil'; S.q = ''; S.code = ''; return rendre();
     case 'service':   S.vue = 'service'; return rendre();
     case 'espace':    S.vue = 'espace'; await chargerEtat(); return rendre();
     case 'grille':    S.vue = 'grille'; await chargerEtat(); return rendre();
@@ -700,17 +698,34 @@ async function agir(a, el) {
       S.r = null; S.cible = null; S.vue = 'accueil'; S.q = '';
       return rendre();
 
-    // ---------------- inscription ----------------
-    case 'inscrire': {
-      const id = el.dataset.id;
+    // ---------------- entrée par code garage ----------------
+    case 'entrer': {
+      if (S.envoi) return;
+      const code = (S.code || '').trim();
+      if (code.length < 4) { toast('Code incomplet', 'Votre code fait 4 caractères.', 'attente'); return; }
+      S.envoi = true; rendre();
       try {
-        S.etat = await api.lire.inscrire(id);
+        const r = await api.lire.entrer(code);
+        // Un code refusé revient en résultat, pas en exception : c'est ce
+        // qui permet au frein sur les tentatives d'être réellement compté.
+        if (r && r.erreur) {
+          S.envoi = false; rendre(true);
+          const reste = (r.restantes != null && r.restantes <= 3)
+            ? ` Encore ${r.restantes} essai${r.restantes > 1 ? 's' : ''}.` : '';
+          toast(r.erreur === 'CODE_INCONNU' ? 'Code inconnu' : 'Trop d\'essais',
+                (r.detail || '') + reste, 'negatif');
+          return;
+        }
+        S.etat = r;
         api.definirRole({ role: 'garage' });
         S.r = { role: 'garage' };
+        S.envoi = false; S.code = '';
         S.vue = 'espace'; rendre(); sondage();
-        toast('Bienvenue !', `${esc(el.dataset.nom)} · <b>${S.etat.garage.solde}</b> points`);
+        toast('Bienvenue !', `${esc(S.etat.garage.nom)} · <b>${S.etat.garage.solde}</b> points`);
       } catch (e) {
-        toast('Inscription impossible', e.detail || e.message, 'negatif');
+        S.envoi = false; rendre(true);
+        toast(e.code === 'CODE_INCONNU' ? 'Code inconnu' : 'Impossible',
+              e.detail || e.message, 'negatif');
       }
       return;
     }
@@ -914,23 +929,24 @@ $('#app').addEventListener('click', (ev) => {
   agir(el.dataset.a, el);
 });
 
-let minuteurSaisie = null;
 $('#app').addEventListener('input', (ev) => {
   const el = ev.target;
+
+  // Saisie du code garage : on normalise à la volée et on valide dès que
+  // les 4 caractères sont là. À l'entrée du Forum, un appui économisé sur
+  // 150 personnes, ça compte.
+  if (el.id === 'cg') {
+    const avant = el.value;
+    const propre = avant.toUpperCase().replace(/[^A-HJ-NP-Z2-9]/g, '');
+    S.code = propre;
+    if (propre !== avant) { el.value = propre; }
+    if (propre.length >= 4 && !S.envoi) agir('entrer', el);
+    return;
+  }
+
   if (el.id !== 'q') return;
   S.q = el.value;
-  if (S.vue === 'accueil') {
-    // la recherche d'inscription passe par le réseau : on attend la frappe
-    clearTimeout(minuteurSaisie);
-    minuteurSaisie = setTimeout(async () => {
-      if (S.q.trim().length < 2) { S.invites = []; return rendre(true); }
-      try { S.invites = await api.lire.invites(codeEvenement(), S.q.trim()); }
-      catch { S.invites = []; }
-      rendre(true);
-    }, 280);
-  } else {
-    rendre(true);   // personnel : recherche locale, donc instantanée
-  }
+  rendre(true);      // personnel : recherche locale, donc instantanée
 });
 
 addEventListener('online',  () => { S.horsLigne = false; rendre(); api.viderFile(); });
@@ -947,7 +963,6 @@ document.addEventListener('visibilitychange', async () => {
 //  Démarrage
 // =====================================================================
 (async function demarrer() {
-  codeEvenement();
   api.demarrerFile();
 
   S.r = api.role();

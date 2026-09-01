@@ -601,3 +601,17 @@ body.decore #decor { display:block }
   .halo, .loupiotte, .ampoule { animation:none !important }
   #toast { transition:none }
 }
+
+/* Rappel du code garage sur l'écran de solde : c'est la clé de retour,
+   il doit être visible et notable, sans voler l'attention au solde. */
+.solde .rappel {
+  margin-top:var(--e5); padding-top:var(--e4);
+  border-top:1px solid var(--filet);
+  font-size:13px; color:var(--txt-3);
+}
+.solde .rappel b {
+  display:block; font-family:var(--serif); font-size:30px; font-weight:700;
+  letter-spacing:.16em; color:var(--or-clair); margin:var(--e1) 0 var(--e2);
+  padding-left:.16em;
+}
+.solde .rappel span { display:block; font-size:12px; line-height:1.45; max-width:30ch; margin:0 auto }

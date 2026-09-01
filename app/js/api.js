@@ -127,8 +127,9 @@ export const lire = {
   chercher:    (q)      => appel('api_chercher', { p_jeton: jeton(), p_q: q || '' }),
   supervision: ()       => appel('api_supervision', { p_jeton: jeton() }),
   connexion:   (pin)    => appel('api_connexion', { p_jeton: jeton(), p_pin: pin }),
-  inscrire:    (garage) => appel('api_inscrire', { p_jeton: jeton(), p_garage: garage }),
-  invites:     (code, q) => appel('api_garages_invites', { p_code: code, p_q: q }),
+  // Le code du garage est à la fois la clé d'entrée et la clé de retour :
+  // le retaper rouvre le même portefeuille, sur n'importe quel téléphone.
+  entrer:      (code)   => appel('api_entrer', { p_jeton: jeton(), p_code: code }),
   garages:     ()       => appel('api_garages_liste', { p_jeton: jeton() }, { delaiMs: 25000 }),
   journal:     ()       => appel('api_journal_complet', { p_jeton: jeton() }, { delaiMs: 30000 }),
   lots:        ()       => appel('api_lots', { p_jeton: jeton() }),
