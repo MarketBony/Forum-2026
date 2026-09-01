@@ -25,6 +25,9 @@ const S = {
   palier: 20,           // points choisis par le fournisseur
   revele: null,         // résultat d'un tirage
   sup: null,            // tableau de bord Bony
+  accueil: null,        // compteur d'arrivées du poste d'accueil
+  trouves: null,        // résultats de recherche de l'accueil
+  codeZoom: null,       // code affiché en très grand
   lots: null,
   tirage: null,       // etat du grand tirage du soir
   cleEnCours: null,     // clé d'idempotence de l'opération en cours
@@ -559,6 +562,67 @@ function vueLots() {
     </div>`;
 }
 
+// --- poste d'accueil : donner son code à un garage qui l'a perdu -----
+function vueAccueilHotesse() {
+  const e = S.accueil;      // compteur d'arrivées
+  const r = S.trouves;      // résultats de recherche
+  const zoom = S.codeZoom;  // un code affiché en très grand
+
+  // Un code montré en grand, lisible de l'autre côté du comptoir.
+  if (zoom) {
+    return `<div class="ecran large">
+      ${barre('Accueil du Forum', 'accueil-retour')}
+      <div class="verre zoom">
+        <div class="znom">${esc(zoom.nom)}</div>
+        <div class="zlieu">${esc(zoom.cp || '')} ${esc(zoom.ville || '')}</div>
+        <div class="zcode">${esc(zoom.code)}</div>
+        <div class="znote">${zoom.arrive
+          ? `Déjà entré dans l'application à ${esc(zoom.arrive_a)} · ${zoom.appareils} appareil${zoom.appareils > 1 ? 's' : ''}`
+          : `Pas encore entré. Ce code ouvre son portefeuille.`}</div>
+      </div>
+      <button class="bouton creux bas" data-a="accueil-retour">Chercher un autre garage</button>
+    </div>`;
+  }
+
+  const restants = e ? e.invites - e.arrives : 0;
+  const part = e && e.invites ? Math.round((e.arrives / e.invites) * 100) : 0;
+
+  return `<div class="ecran large">
+    ${barre('Accueil du Forum', null, `<button class="lien" data-a="quitter">Quitter</button>`)}
+    ${e ? `<div class="verre compteur">
+      <div class="cchiffres"><b>${e.arrives}</b><span>sur ${e.invites} invités</span></div>
+      <div class="jauge"><span style="width:${part}%"></span></div>
+      <div class="cnote">${restants} garages pas encore entrés dans l'application</div>
+    </div>` : ''}
+    <div class="section">
+      <p class="etiq">Chercher un garage</p>
+      <input class="champ" id="q" type="text" autocomplete="off" spellcheck="false"
+             placeholder="Nom, commune ou code postal…" value="${esc(S.q)}">
+      ${r === null
+        ? `<p class="sous">Deux caractères suffisent. La recherche ignore les accents et les majuscules.</p>`
+        : (r.length === 0
+            ? `<div class="groupe"><p class="vide">Aucun garage ne correspond.<br>Essayez la commune ou le code postal.</p></div>`
+            : `<div class="groupe">${r.map((g) => `
+                <button class="rangee accueil" data-a="zoom" data-id="${g.id}">
+                  <span class="principal">
+                    <span class="nom">${esc(g.nom)}</span>
+                    <span class="detail">${esc(g.cp || '')} ${esc(g.ville || '')}${
+                      g.arrive ? ` · arrivé à ${esc(g.arrive_a)}` : ''}</span>
+                  </span>
+                  <span class="codebulle${g.arrive ? ' vu' : ''}">${esc(g.code)}</span>
+                </button>`).join('')}</div>`)}
+    </div>
+    ${e && e.derniers.length ? `<div class="section">
+      <p class="etiq">Dernières arrivées</p>
+      <div class="groupe">${e.derniers.map((d) => `
+        <div class="rangee"><span class="principal">
+          <span class="nom">${esc(d.nom)}</span>
+          <span class="detail">${esc(d.ville)}</span></span>
+          <span class="valeur"><b>${esc(d.heure)}</b></span></div>`).join('')}</div>
+    </div>` : ''}
+  </div>`;
+}
+
 // --- écran de projection du grand tirage (§11) -----------------------
 function vueProjection() {
   const t = S.tirage;
@@ -618,6 +682,7 @@ const VUES = {
   admin: vueAdmin,
   lots: vueLots,
   projection: vueProjection,
+  accueil_hotesse: vueAccueilHotesse,
 };
 
 function rendre(garderFocus) {
@@ -627,7 +692,8 @@ function rendre(garderFocus) {
   // Verre allégé, sans flou : les seuls écrans animateur et fournisseur,
   // ceux qui tournent cinq heures dans une main.
   const avecDecor = ['accueil', 'espace', 'grille', 'revelation',
-                     'projection', 'admin', 'lots', 'service'].includes(S.vue);
+                     'projection', 'admin', 'lots', 'service',
+                     'accueil_hotesse'].includes(S.vue);
   const enService = ['animateur', 'fournisseur'].includes(S.vue);
   document.body.classList.toggle('decore', avecDecor);
   document.body.classList.toggle('service', enService);
@@ -674,6 +740,10 @@ async function chargerEtat() {
 
 async function chargerSupervision() {
   try { S.sup = await api.lire.supervision(); } catch {}
+}
+
+async function chargerAccueil() {
+  try { S.accueil = await api.lire.accueilEtat(); } catch {}
 }
 
 let minuteurSondage = null;
@@ -797,12 +867,15 @@ async function agir(a, el) {
       try {
         const r = await api.lire.connexion(pin.trim());
         api.definirRole(r); S.r = r;
-        S.vue = r.role === 'admin' ? 'admin' : r.role;
+        S.vue = r.role === 'admin' ? 'admin'
+              : (r.role === 'accueil' ? 'accueil_hotesse' : r.role);
         S.q = ''; S.cible = null; S.partieLancee = false;
+        S.trouves = null; S.codeZoom = null;
         S.envoi = false;
         rendre();
         toast('Connecté', esc(r.libelle));
-        api.rafraichirGarages().then(() => rendre()).catch(() => {});
+        if (r.role === 'accueil') { await chargerAccueil(); rendre(); }
+        else { api.rafraichirGarages().then(() => rendre()).catch(() => {}); }
         if (r.role === 'admin') { await chargerSupervision(); rendre(); }
         sondage();
       } catch (e) {
@@ -901,6 +974,14 @@ async function agir(a, el) {
       catch (e) { toast('Impossible', e.detail || e.message, 'negatif'); }
       return;
     }
+    // ---------------- poste d'accueil ----------------
+    case 'accueil-retour': S.codeZoom = null; return rendre();
+    case 'zoom': {
+      const g = (S.trouves || []).find((x) => x.id === el.dataset.id);
+      if (g) { S.codeZoom = g; rendre(); }
+      return;
+    }
+
     // ---------------- bingo : révélation et grand tirage ----------------
     case 'reveler': {
       if (!confirm('Révéler toutes les cases achetées ? Cette action est définitive.')) return;
@@ -980,8 +1061,25 @@ $('#app').addEventListener('input', (ev) => {
 
   if (el.id !== 'q') return;
   S.q = el.value;
-  rendre(true);      // personnel : recherche locale, donc instantanée
+
+  // L'accueil cherche parmi les 1 407 invités, donc côté serveur : on
+  // attend la fin de la frappe pour ne pas envoyer une requête par lettre.
+  if (S.vue === 'accueil_hotesse') {
+    rendre(true);
+    clearTimeout(minuteurAccueil);
+    minuteurAccueil = setTimeout(async () => {
+      const q = S.q.trim();
+      if (q.length < 2) { S.trouves = null; return rendre(true); }
+      try { S.trouves = await api.lire.accueilChercher(q); }
+      catch (e) { S.trouves = []; }
+      rendre(true);
+    }, 260);
+    return;
+  }
+
+  rendre(true);      // animateur et fournisseur : recherche locale
 });
+let minuteurAccueil = null;
 
 addEventListener('online',  () => { S.horsLigne = false; rendre(); api.viderFile(); });
 addEventListener('offline', () => { S.horsLigne = true;  rendre(); });
@@ -1012,10 +1110,12 @@ document.addEventListener('visibilitychange', async () => {
   }
 
   // personnel : on affiche tout de suite, la liste se rafraîchit derrière
-  S.vue = S.r.role === 'admin' ? 'admin' : S.r.role;
+  S.vue = S.r.role === 'admin' ? 'admin'
+        : (S.r.role === 'accueil' ? 'accueil_hotesse' : S.r.role);
   rendre();
   if (S.r.role === 'admin') { await chargerSupervision(); rendre(); }
-  api.rafraichirGarages().then(() => rendre()).catch(() => {});
+  if (S.r.role === 'accueil') { await chargerAccueil(); rendre(); }
+  else if (S.r.role !== 'admin') api.rafraichirGarages().then(() => rendre()).catch(() => {});
   sondage();
 })();
 

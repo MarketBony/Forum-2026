@@ -134,6 +134,9 @@ export const lire = {
   journal:     ()       => appel('api_journal_complet', { p_jeton: jeton() }, { delaiMs: 30000 }),
   lots:        ()       => appel('api_lots', { p_jeton: jeton() }),
   tirage:      ()       => appel('api_tirage_etat', { p_jeton: jeton() }),
+  // Poste d'accueil : le seul endroit où un code de garage est lisible
+  accueilChercher: (q) => appel('api_accueil_chercher', { p_jeton: jeton(), p_q: q }),
+  accueilEtat:     ()  => appel('api_accueil_etat', { p_jeton: jeton() }),
 };
 
 // ---------------------------------------------------------------------
