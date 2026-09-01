@@ -5,6 +5,7 @@
 // =====================================================================
 import { CONFIG } from '../config.js';
 import * as api from './api.js';
+import * as verre from './verre.js';
 
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;')
@@ -34,11 +35,22 @@ const S = {
 // ---------------------------------------------------------------------
 //  Décor — guirlande et loupiottes, réservés aux écrans garage
 // ---------------------------------------------------------------------
-/* Six loupiottes seulement, cantonnées au tiers supérieur : elles
-   signent l'ambiance sans jamais passer derrière le texte qu'on lit. */
+/* Loupiottes : deux tailles pour la profondeur. Elles restent hors de la
+   zone de lecture — le verre des surfaces les laisse deviner par-dessous,
+   ce qui suffit largement. */
 const LOUPIOTTES = [
-  [8, 6, 4, 7.0, 0], [23, 11, 3, 8.5, 1.4], [41, 5, 4, 6.2, 2.6],
-  [62, 10, 3, 9.0, .8], [79, 6, 4, 7.5, 3.1], [93, 12, 3, 8.0, 1.9],
+  [7, 5, 5, 7.0, 0],   [19, 10, 3, 8.5, 1.4], [31, 4, 4, 6.2, 2.6],
+  [44, 9, 3, 9.0, .8], [56, 5, 5, 7.5, 3.1],  [68, 11, 3, 8.0, 1.9],
+  [81, 4, 4, 6.8, 2.2], [92, 9, 3, 9.4, .5],
+  [4, 34, 3, 10.0, 1.1], [96, 41, 3, 9.2, 2.8],
+  [12, 88, 3, 8.8, 3.4], [88, 92, 4, 7.8, 1.6],
+];
+
+/* Braises : x, taille, durée, retard, dérive horizontale */
+const BRAISES = [
+  [10, 6, 19, 0, 42], [23, 4, 24, 3.5, -32], [36, 5, 17, 7, 54],
+  [48, 6, 22, 1.5, -48], [59, 4, 26, 9, 36], [70, 5, 18, 4.5, -26],
+  [82, 6, 23, 11, 58], [93, 4, 20, 2.5, -42],
 ];
 
 function monterDecor() {
@@ -46,9 +58,13 @@ function monterDecor() {
   if (d.dataset.pret) return;
   d.innerHTML =
     '<div class="nappe"></div>' +
-    '<div class="halo h1"></div><div class="halo h2"></div>' +
+    '<div class="halo h1"></div><div class="halo h2"></div><div class="halo h3"></div>' +
+    '<div class="vichy"></div>' +
     LOUPIOTTES.map(([x, y, t, dur, del]) =>
       `<span class="loupiotte" style="left:${x}%;top:${y}%;width:${t}px;height:${t}px;--d:${dur}s;--r:${del}s"></span>`
+    ).join('') +
+    BRAISES.map(([x, t, dur, del, dx]) =>
+      `<span class="braise" style="left:${x}%;width:${t}px;height:${t}px;--rd:${dur}s;--rl:${del}s;--dx:${dx}px"></span>`
     ).join('') +
     '<div class="grain"></div>';
   d.dataset.pret = '1';
@@ -363,7 +379,7 @@ function vueAnimateur() {
         <div class="funite">points au compteur</div>
       </div>
       ${assez
-        ? `<button class="bouton" data-a="lancer" ${S.envoi ? 'disabled' : ''}>Lancer la partie · −${r.cout} pts</button>`
+        ? `<button class="bouton bas" data-a="lancer" ${S.envoi ? "disabled" : ""}>Lancer la partie · −${r.cout} pts</button>`
         : `<div class="bandeau"><i></i>Solde insuffisant — participation à ${r.cout} pts</div>`}
       <p class="sous">La participation est débitée au lancement. Le résultat se saisit juste après.</p>
     </div>`;
@@ -608,11 +624,17 @@ function rendre(garderFocus) {
   document.body.classList.toggle('decore', avecDecor);
   if (avecDecor) monterDecor();
 
-  const champ = $('#q') || $('#pin');
+  const champ = $('#q') || $('#pin') || $('#cg');
   const pos = champ ? champ.selectionStart : null;
   const idChamp = champ ? champ.id : null;
 
   $('#app').innerHTML = (VUES[S.vue] || VUES.chargement)();
+
+  // Le verre liquide n'est posé que sur la carte du solde, et seulement
+  // sur les écrans garage : c'est la chaîne de filtres la plus coûteuse
+  // de l'application, elle ne mérite qu'un seul élément.
+  const carte = $('.solde');
+  if (carte && avecDecor) verre.verrer(carte);
 
   if (garderFocus && idChamp) {
     const encore = $('#' + idChamp);

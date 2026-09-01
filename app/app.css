@@ -72,7 +72,16 @@
 html { -webkit-text-size-adjust:100% }
 html, body { height:100% }
 body {
-  background:var(--nuit); color:var(--txt);
+  /* Un fond chaud STATIQUE, peint une fois : les écrans du personnel n'ont
+     pas de décor animé, mais ils n'ont aucune raison d'être gris pour
+     autant. Aucun coût de rendu continu. */
+  background:
+    radial-gradient(90% 60% at 50% -6%,  rgba(247,120,70,.22) 0%, transparent 62%),
+    radial-gradient(70% 50% at 92% 34%,  rgba(176,40,110,.16) 0%, transparent 66%),
+    radial-gradient(80% 55% at 4% 78%,   rgba(143,18,171,.14) 0%, transparent 68%),
+    var(--nuit);
+  background-attachment:fixed;
+  color:var(--txt);
   font-family:var(--sans); font-size:16px; line-height:1.55;
   font-feature-settings:"kern" 1;
   -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
@@ -110,36 +119,71 @@ input { font:inherit }
 #decor { position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none; display:none }
 body.decore #decor { display:block }
 
-/* une nappe de lumière chaude qui tombe du haut, comme les ampoules */
+/* La nappe de lumière chaude qui tombe du haut. Elle est franche : c'est
+   elle que le verre va réfracter, donc elle a le droit d'exister. */
 .nappe {
-  position:absolute; left:50%; top:-42vh; transform:translateX(-50%);
-  width:150vw; height:96vh;
+  position:absolute; left:50%; top:-38vh; transform:translateX(-50%);
+  width:160vw; height:110vh;
   background:radial-gradient(50% 50% at 50% 50%,
-      rgba(230,129,82,.20) 0%, rgba(176,40,110,.13) 42%, transparent 72%);
+      rgba(247,120,70,.42) 0%, rgba(214,64,120,.26) 38%,
+      rgba(143,18,171,.14) 62%, transparent 78%);
 }
 .halo { position:absolute; inset:-40%; mix-blend-mode:screen; will-change:transform }
-.h1 { background:radial-gradient(32% 26% at 50% 22%, rgba(247,86,50,.20), transparent 70%); animation:flo1 26s ease-in-out infinite alternate }
-.h2 { background:radial-gradient(36% 30% at 76% 74%, rgba(176,40,110,.16), transparent 70%); animation:flo2 31s ease-in-out infinite alternate }
-@keyframes flo1 { 0%{transform:translate(-12%,-8%) scale(1)} 100%{transform:translate(14%,10%) scale(1.3)} }
-@keyframes flo2 { 0%{transform:translate(10%,7%) scale(1.05)} 100%{transform:translate(-13%,-9%) scale(1.3)} }
+.h1 { background:radial-gradient(34% 28% at 50% 20%, rgba(247,86,50,.46), transparent 68%); animation:flo1 22s ease-in-out infinite alternate }
+.h2 { background:radial-gradient(38% 32% at 78% 72%, rgba(176,40,110,.38), transparent 70%); animation:flo2 27s ease-in-out infinite alternate }
+.h3 { background:radial-gradient(34% 30% at 16% 66%, rgba(143,18,171,.34), transparent 70%); animation:flo3 25s ease-in-out infinite alternate }
+@keyframes flo1 { 0%{transform:translate(-14%,-9%) scale(1)} 100%{transform:translate(16%,12%) scale(1.34)} }
+@keyframes flo2 { 0%{transform:translate(12%,8%) scale(1.05)} 100%{transform:translate(-15%,-10%) scale(1.32)} }
+@keyframes flo3 { 0%{transform:translate(10%,-10%) scale(1)} 100%{transform:translate(-14%,14%) scale(1.28)} }
+
+/* La nappe vichy revient — plus large, plus chaude, toujours discrète.
+   Sous le verre elle donne de la matière au lieu de faire motif. */
+.vichy {
+  position:absolute; inset:0; opacity:.032; mix-blend-mode:screen;
+  background-image:
+    repeating-linear-gradient(0deg,#E68152 0 22px,transparent 22px 44px),
+    repeating-linear-gradient(90deg,#E68152 0 22px,transparent 22px 44px);
+  background-size:44px 44px;
+  /* Masqué au centre : la nappe reste une texture de coin, jamais un
+     damier derrière ce qu'on lit. */
+  -webkit-mask:radial-gradient(120% 85% at 50% 42%, transparent 38%, #000 88%);
+  mask:radial-gradient(120% 85% at 50% 42%, transparent 38%, #000 88%);
+}
 
 /* grain très fin : donne de la matière sans jamais faire motif */
 .grain {
-  position:absolute; inset:0; opacity:.035; mix-blend-mode:overlay;
+  position:absolute; inset:0; opacity:.05; mix-blend-mode:overlay;
   background-image:radial-gradient(rgba(255,247,224,.9) .5px, transparent .5px);
   background-size:3px 3px;
 }
 
-/* six loupiottes seulement, et uniquement au-dessus du contenu */
+/* Loupiottes : plus nombreuses, et deux tailles pour la profondeur. */
 .loupiotte {
   position:absolute; border-radius:50%;
   background:radial-gradient(circle at 38% 32%, #FFF7E0 0%, var(--or-clair) 55%, var(--or-fonce) 100%);
-  box-shadow:0 0 12px rgba(232,163,61,.5);
+  box-shadow:0 0 14px rgba(232,163,61,.65), 0 0 34px rgba(232,163,61,.25);
 }
 @media (prefers-reduced-motion:no-preference) {
   .loupiotte { animation:clignote var(--d,6s) ease-in-out infinite; animation-delay:var(--r,0s) }
 }
-@keyframes clignote { 0%,100%{opacity:.85} 50%{opacity:.3} }
+@keyframes clignote { 0%,100%{opacity:.9} 50%{opacity:.22} }
+
+/* Braises qui montent en dérivant — reprises de la page d'invitation.
+   C'est ce qui manquait le plus : du mouvement lent et vivant. */
+.braise {
+  position:absolute; bottom:-16px; border-radius:50%; opacity:0;
+  background:radial-gradient(circle at 40% 35%, #FFF1D2 0%, #E6A23C 55%, rgba(230,162,60,0) 76%);
+  filter:drop-shadow(0 0 6px rgba(230,162,60,.7));
+}
+@media (prefers-reduced-motion:no-preference) {
+  .braise { animation:monte var(--rd,20s) linear infinite; animation-delay:var(--rl,0s) }
+}
+@keyframes monte {
+  0%   { transform:translate(0,0) scale(.9); opacity:0 }
+  9%   { opacity:.85 }
+  84%  { opacity:.5 }
+  100% { transform:translate(var(--dx,26px),-118vh) scale(1.15); opacity:0 }
+}
 
 /* =====================================================================
    Guirlande — affinée : fil plus fin, ampoules plus petites et moins
@@ -214,20 +258,72 @@ body.decore #decor { display:block }
    Surfaces — le remplacement des anciens cadres.
    Un reflet en haut, une ombre en bas. Aucun contour visible.
    ===================================================================== */
-.surface {
+/* =====================================================================
+   LE VERRE
+   Les surfaces ne sont plus des blocs peints : elles sont translucides et
+   laissent voir le décor derrière, déformé et saturé. C'est ce qui les
+   rend vivantes — une surface opaque, aussi bien dessinée soit-elle,
+   éteint le décor et rend l'écran inerte.
+
+   Deux couches de reflets spéculaires, reprises de liquid-glass-react :
+   un anneau de 1,5 px obtenu par mask-composite, en « screen » puis en
+   « overlay », traversé par un dégradé blanc diagonal. C'est ce qui donne
+   l'arête lumineuse caractéristique du verre.
+   ===================================================================== */
+.verre, .surface, .groupe, .note, .indic, .revele .rlot, #toast {
   position:relative;
-  background:var(--surface);
+  background:linear-gradient(150deg, rgba(74,44,98,.52) 0%, rgba(40,22,52,.44) 100%);
+  backdrop-filter:blur(22px) saturate(1.7);
+  -webkit-backdrop-filter:blur(22px) saturate(1.7);
   border-radius:var(--r3);
-  box-shadow:var(--ombre-1);
-  overflow:hidden;
+  box-shadow:0 1px 2px rgba(0,0,0,.22), 0 12px 40px -12px rgba(0,0,0,.55),
+             inset 0 0 0 .5px rgba(255,247,224,.10);
+  isolation:isolate;
 }
-.surface::before {            /* le reflet : la lumière qui tombe du haut */
-  content:""; position:absolute; inset:0 0 auto; height:1px;
-  background:linear-gradient(90deg, transparent, var(--reflet-fort) 22%, var(--reflet-fort) 78%, transparent);
-  pointer-events:none;
+/* anneau spéculaire, couche 1 : screen */
+.verre::before, .surface::before, .groupe::before, .indic::before, .revele .rlot::before {
+  content:""; position:absolute; inset:0; z-index:1;
+  border-radius:inherit; padding:1.5px; pointer-events:none;
+  mix-blend-mode:screen; opacity:.9;
+  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor; mask-composite:exclude;
+  background:linear-gradient(135deg,
+    rgba(255,247,224,0) 0%, rgba(255,247,224,.16) 30%,
+    rgba(255,247,224,.46) 64%, rgba(255,247,224,0) 100%);
 }
-.surface.plate { background:var(--surface-plate); backdrop-filter:blur(14px) saturate(1.15); box-shadow:none }
+/* anneau spéculaire, couche 2 : overlay, plus contrastée */
+.verre::after, .surface::after {
+  content:""; position:absolute; inset:0; z-index:1;
+  border-radius:inherit; padding:1.5px; pointer-events:none;
+  mix-blend-mode:overlay;
+  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor; mask-composite:exclude;
+  background:linear-gradient(135deg,
+    rgba(255,255,255,0) 0%, rgba(255,255,255,.34) 32%,
+    rgba(255,255,255,.62) 66%, rgba(255,255,255,0) 100%);
+}
+/* le contenu passe au-dessus des anneaux */
+.verre > *, .surface > *, .groupe > *, .indic > * { position:relative; z-index:2 }
+
+/* Sur les appareils de service, le verre reste mais sans flou : cinq
+   heures de backdrop-filter sur un téléphone d'animateur, ça chauffe. */
+body:not(.decore) .verre,
+body:not(.decore) .surface,
+body:not(.decore) .groupe,
+body:not(.decore) .note,
+body:not(.decore) .indic {
+  backdrop-filter:none; -webkit-backdrop-filter:none;
+  background:linear-gradient(150deg, rgba(64,38,86,.92) 0%, rgba(36,21,49,.96) 100%);
+}
+
+.surface.plate { background:rgba(46,27,62,.5); box-shadow:none }
 .pad { padding:var(--e5) }
+
+/* Élément passé au verre liquide par verre.js : le filtre SVG remplace
+   les anneaux, sinon les deux se superposent et ça bave. */
+.verre-liquide::before, .verre-liquide::after { opacity:.5 }
 
 /* =====================================================================
    Le solde — l'élément principal (§7)
@@ -305,15 +401,7 @@ body.decore #decor { display:block }
    Listes groupées — une seule surface, des hairlines en retrait.
    Remplace les anciennes piles de boîtes encadrées.
    ===================================================================== */
-.groupe {
-  background:var(--surface); border-radius:var(--r3);
-  box-shadow:var(--ombre-1); overflow:hidden; position:relative;
-}
-.groupe::before {
-  content:""; position:absolute; inset:0 0 auto; height:1px; z-index:2;
-  background:linear-gradient(90deg, transparent, var(--reflet) 22%, var(--reflet) 78%, transparent);
-  pointer-events:none;
-}
+.groupe { overflow:hidden }
 .rangee {
   display:flex; align-items:center; gap:var(--e3);
   width:100%; min-height:64px; padding:var(--e3) var(--e5);
@@ -350,10 +438,9 @@ body.decore #decor { display:block }
    d'une main, debout, cinq heures d'affilee. */
 .bas { margin-top:auto }
 .note {
-  position:relative; display:flex; align-items:center; gap:var(--e4);
+  display:flex; align-items:center; gap:var(--e4);
   width:100%; min-height:76px; padding:var(--e4) var(--e5) var(--e4) var(--e6);
   border-radius:var(--r2);
-  background:var(--surface); box-shadow:var(--ombre-1);
   overflow:hidden;
   transition:transform .16s var(--sortie), box-shadow .2s var(--sortie), opacity .16s;
 }
@@ -471,7 +558,6 @@ body.decore #decor { display:block }
 .revele.perdu .rt { color:var(--creme); text-shadow:none; opacity:.8 }
 .revele .rlot {
   margin-top:var(--e5); padding:var(--e5); border-radius:var(--r2);
-  background:var(--surface); box-shadow:var(--ombre-1);
   font-family:var(--serif); font-size:20px; color:var(--creme-2); line-height:1.3;
 }
 .revele .rcode {
@@ -485,17 +571,12 @@ body.decore #decor { display:block }
    Supervision Bony
    ===================================================================== */
 .indics { display:grid; grid-template-columns:1fr 1fr; gap:var(--e2) }
-.indic {
-  position:relative; padding:var(--e4); border-radius:var(--r2);
-  background:var(--surface); box-shadow:var(--ombre-1); overflow:hidden;
-}
-.indic::before { content:""; position:absolute; inset:0 0 auto; height:1px;
-  background:linear-gradient(90deg, transparent, var(--reflet) 25%, var(--reflet) 75%, transparent) }
+.indic { padding:var(--e4); border-radius:var(--r2); overflow:hidden }
 .indic .iv { font-family:var(--serif); font-weight:700; font-size:28px; line-height:1.05;
   letter-spacing:-.025em; color:var(--or-clair); font-variant-numeric:tabular-nums }
 .indic .il { font-size:11.5px; line-height:1.4; color:var(--txt-3); margin-top:var(--e1) }
 .indic.large { grid-column:1 / -1 }
-.indic.alerte { box-shadow:var(--ombre-1), inset 0 0 0 1px rgba(209,91,48,.42) }
+.indic.alerte { box-shadow:0 1px 2px rgba(0,0,0,.22), 0 12px 40px -12px rgba(0,0,0,.55), inset 0 0 0 1px rgba(209,91,48,.5) }
 .indic.alerte .iv { color:var(--terracotta-clair) }
 .jauge { height:5px; border-radius:var(--r-plein); background:rgba(241,231,210,.09); margin-top:var(--e3); overflow:hidden }
 .jauge span { display:block; height:100%; border-radius:var(--r-plein);
@@ -523,8 +604,6 @@ body.decore #decor { display:block }
   bottom:calc(var(--e4) + env(safe-area-inset-bottom));
   max-width:456px; margin:0 auto;
   padding:var(--e4) var(--e5); border-radius:var(--r2);
-  background:rgba(36,21,49,.92); backdrop-filter:blur(20px) saturate(1.4);
-  box-shadow:var(--ombre-2), inset 0 0 0 1px var(--reflet);
   transform:translateY(calc(100% + var(--e8))); opacity:0;
   transition:transform .38s var(--sortie), opacity .24s;
 }
