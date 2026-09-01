@@ -60,18 +60,21 @@ Les fichiers `sql/` sont numérotés et rejouables. Pour les envoyer :
 | `03_donnees.sql` | animations, barèmes, stands, grille de 100 cases, garages |
 | `04_complements.sql` | liste des garages (cache hors ligne), export CSV, suivi des lots |
 | `05_inscription.sql` | recherche d'inscription, protégée par le code du QR code |
+| `06_bingo.sql` | nature des cases, deux modes de révélation, le grand tirage |
 | `99_remise_a_zero.sql` | purge après la répétition générale |
 
 ## Vérifications
 
 ```
 .\scripts\test-invariants.ps1
+.\scripts\test-bingo.ps1
 .\scripts\test-charge.ps1
 ```
 
 Le premier prouve que la base refuse le double crédit, le double tirage sur une
-même case, le solde négatif et les dépassements de plafond. Le second mesure la
-tenue en charge.
+même case, le solde négatif et les dépassements de plafond. Le deuxième vérifie le
+bingo dans les deux modes de révélation et déroule le grand tirage jusqu'au gagnant.
+Le troisième mesure la tenue en charge.
 
 ## Codes
 
@@ -100,3 +103,48 @@ l'extérieur, sans être sur place.
 `.env.local` contient les accès Supabase et **n'est pas versionné**. Seule la clé
 `publishable` apparaît dans `app/config.js` : elle est publique par nature et ne
 donne accès à aucune table, uniquement aux fonctions vérifiées.
+
+## Le bingo
+
+La grille de 100 cases est le bingo. Trois natures de case :
+
+| Nature | Nombre | Effet |
+|---|---|---|
+| `perdante` | 50 | rien |
+| `lot` | 45 | un lot, code de retrait, remis au comptoir Bony |
+| `billet` | 5 | une place au grand tirage du soir |
+
+Les numéros sont figés dans `sql/06_bingo.sql`, donc reproductibles et vérifiables.
+Les libellés « Lot à définir » sont des marque-places à remplacer.
+
+### Deux modes de révélation, un seul réglage
+
+```sql
+update config set valeur = 'immediate' where cle = 'revelation';  -- ou 'differee'
+```
+
+- **`immediate`** — le garage découvre à l'achat. C'est le ticket à gratter : il gagne,
+  donc il retourne chercher des points, donc il achète. La grille se vide visiblement,
+  ce qui crée l'urgence. Les billets qualifient pour le tirage du soir, ce qui donne une
+  raison de rester au cocktail.
+- **`differee`** — le garage achète à l'aveugle, rien ne se révèle. L'équipe Bony ouvre
+  tout le soir avec `api_reveler`, sur l'écran géant. Le suspense est collectif, mais la
+  boucle « je gagne, je rejoue » disparaît et les garages qui partent avant le cocktail
+  ne savent jamais.
+
+**Le mode se bascule jusqu'à la dernière minute**, y compris pendant la répétition
+générale : la mécanique d'achat est identique, seul le moment où `grille.revele_le` est
+renseigné change.
+
+### Le grand tirage
+
+Écran de projection accessible depuis l'espace Bony, pensé pour un vidéoprojecteur en
+paysage et une lecture à dix mètres.
+
+1. `api_tirage_ouvrir` photographie les billets vendus et révélés — la course est figée
+2. `api_tirage_manche` élimine environ la moitié des concurrents, à chaque appui
+3. quand il n'en reste qu'un, il est déclaré gagnant
+
+Chaque manche est enregistrée dans la table `tirage` : le tirage peut être rejoué et
+justifié, ce qui compte quand un lot est en jeu. `api_tirage_reset` efface tout et permet
+de recommencer, pour les répétitions.

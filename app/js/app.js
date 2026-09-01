@@ -23,6 +23,7 @@ const S = {
   revele: null,         // résultat d'un tirage
   sup: null,            // tableau de bord Bony
   lots: null,
+  tirage: null,       // etat du grand tirage du soir
   cleEnCours: null,     // clé d'idempotence de l'opération en cours
   envoi: false,         // garde anti-double-appui
   horsLigne: !navigator.onLine,
@@ -192,18 +193,36 @@ function vueParticipant() {
         <div class="maj">Touchez « Actualiser » à tout moment</div>
       </div>
       <button class="bouton" data-a="grille">Tenter un lot · ${e.cout_grille} pts</button>
-      ${e.mes_lots && e.mes_lots.length ? `
+      ${e.mes_cases && e.mes_cases.length ? `
         <div class="section">
-          <p class="etiq">Mes lots</p>
+          <p class="etiq">Mes cases</p>
           <div class="groupe">
-            ${e.mes_lots.map((l) => `<div class="lot">
-              <span class="principal">
-                <span class="lnom">${esc(l.lot)}</span>
-                <span class="ldetail">Case n°${l.numero} · code <b>${esc(l.code_retrait)}</b><br>
-                  ${l.remis ? 'Déjà retiré' : 'À retirer au comptoir Bony'}</span>
-              </span>
-              ${l.remis ? '<span class="lremis">Retiré</span>' : ''}
-            </div>`).join('')}
+            ${e.mes_cases.map((c) => {
+              if (!c.revelee) return `<div class="lot">
+                <span class="principal">
+                  <span class="lnom" style="color:var(--txt-2)">Case n°${c.numero}</span>
+                  <span class="ldetail">Verdict ce soir, sur l'écran géant</span>
+                </span>
+                <span class="cachet">?</span></div>`;
+              if (c.nature === 'billet') return `<div class="lot">
+                <span class="principal">
+                  <span class="lnom">Billet pour le grand tirage</span>
+                  <span class="ldetail">Case n°${c.numero} · rendez-vous au tirage de la soirée</span>
+                </span>
+                <span class="cachet billet">★</span></div>`;
+              if (c.nature === 'lot') return `<div class="lot">
+                <span class="principal">
+                  <span class="lnom">${esc(c.lot)}</span>
+                  <span class="ldetail">Case n°${c.numero} · code <b>${esc(c.code_retrait)}</b> ·
+                    ${c.remis ? 'déjà retiré' : 'à retirer au comptoir Bony'}</span>
+                </span>
+                ${c.remis ? '<span class="lremis">Retiré</span>' : ''}</div>`;
+              return `<div class="lot">
+                <span class="principal">
+                  <span class="lnom" style="color:var(--txt-3)">Case n°${c.numero}</span>
+                  <span class="ldetail">Perdante</span>
+                </span></div>`;
+            }).join('')}
           </div>
         </div>` : ''}
       <div class="section">
@@ -248,13 +267,38 @@ function vueGrille() {
 
 function vueRevelation() {
   const r = S.revele;
+
+  // Mode différé : la case est réservée, le verdict attend l'écran géant.
+  if (!r.revelee) {
+    return guirlande() + `
+      <div class="ecran">
+        ${barre('Garage', 'espace')}
+        <div class="revele attente">
+          <div class="rk">Votre case est</div>
+          <div class="rt">réservée</div>
+          <div class="rlot">Case n°${r.numero}
+            <div class="rnote">Personne ne peut plus la prendre. Le verdict tombera
+              ce soir, sur l'écran géant, en même temps que pour tout le monde.</div></div>
+        </div>
+        <div class="pile">
+          <button class="bouton" data-a="grille">Prendre une autre case</button>
+          <button class="bouton creux" data-a="espace">Revenir à mon solde</button>
+        </div>
+      </div>`;
+  }
+
+  const billet = r.nature === 'billet';
+  const lot = r.nature === 'lot';
   return guirlande() + `
     <div class="ecran">
       ${barre('Garage', 'espace')}
-      <div class="revele ${r.gagnante ? '' : 'perdu'}">
-        <div class="rk">${r.gagnante ? 'Bravo,' : 'Cette fois,'}</div>
-        <div class="rt">${r.gagnante ? "c'est gagné !" : "c'est raté"}</div>
-        ${r.gagnante ? `<div class="rlot">${esc(r.lot)}
+      <div class="revele ${(billet || lot) ? '' : 'perdu'}">
+        <div class="rk">${billet ? 'Vous êtes' : (lot ? 'Bravo,' : 'Cette fois,')}</div>
+        <div class="rt">${billet ? 'qualifié !' : (lot ? "c'est gagné !" : "c'est raté")}</div>
+        ${billet ? `<div class="rlot">Billet pour le grand tirage
+            <div class="rnote">Rendez-vous ce soir : le tirage se fait en direct
+              sur l'écran géant, entre les détenteurs de billets.</div></div>`
+          : lot ? `<div class="rlot">${esc(r.lot)}
             <div class="rcode">${esc(r.code_retrait)}</div>
             <div class="rnote">Code de retrait, à présenter au comptoir Bony</div></div>`
           : `<p class="sous">Il reste des cases, et la soirée est longue.</p>`}
@@ -434,6 +478,32 @@ function vueAdmin() {
         ${mouvements(s.journal.map((j) => ({ heure: j.heure, libelle: j.garage + ' · ' + j.libelle, source: j.source, delta: j.delta })))}
       </div>
       <div class="section">
+        <p class="etiq">Le bingo</p>
+        <div class="groupe">
+          <div class="rangee">
+            <span class="principal"><span class="nom">Mode de révélation</span>
+              <span class="detail">${s.revelation === 'immediate'
+                ? 'Immédiate — le garage découvre à l\'achat'
+                : 'Différée — tout se révèle ce soir'}</span></span>
+          </div>
+          <div class="rangee">
+            <span class="principal"><span class="nom">Billets de tirage</span>
+              <span class="detail">${s.billets_restants} encore à décrocher</span></span>
+            <span class="valeur"><b>${s.billets_vendus}</b><span>vendus</span></span>
+          </div>
+          ${s.a_reveler > 0 ? `<div class="rangee">
+            <span class="principal"><span class="nom">Cases en attente de révélation</span>
+              <span class="detail">Achetées, verdict non encore ouvert</span></span>
+            <span class="valeur"><b>${s.a_reveler}</b></span></div>` : ''}
+        </div>
+        <div class="pile">
+          ${s.a_reveler > 0
+            ? `<button class="bouton" data-a="reveler">Révéler les ${s.a_reveler} cases achetées</button>`
+            : ''}
+          <button class="bouton creux" data-a="projection">Écran de projection du tirage</button>
+        </div>
+      </div>
+      <div class="section">
         <p class="etiq">Sauvegarde</p>
         <p class="sous">Le plan gratuit n'a pas de sauvegarde automatique. Exportez le
           journal une fois en milieu de soirée et une fois à la fin.</p>
@@ -468,6 +538,50 @@ function vueLots() {
     </div>`;
 }
 
+// --- écran de projection du grand tirage (§11) -----------------------
+function vueProjection() {
+  const t = S.tirage;
+  if (!t) return `<div class="projection"><p class="chargement">Chargement du tirage…</p></div>`;
+
+  const gagnant = t.gagnant;
+  const enCourse = t.en_course || [];
+  const sortis = t.sortis || [];
+
+  let tete;
+  if (gagnant) {
+    tete = `<div class="pscript">Et le grand gagnant est</div>
+            <div class="ptitre">${esc(gagnant.garage)}</div>
+            <div class="pinfo">${esc(gagnant.ville)} · billet n°${gagnant.numero}</div>`;
+  } else if (!t.ouvert) {
+    tete = `<div class="pscript">Le grand tirage</div>
+            <div class="ptitre">${t.billets_reveles} billet${t.billets_reveles > 1 ? 's' : ''} en jeu</div>
+            <div class="pinfo">Ouvrez le tirage quand la salle est prête.</div>`;
+  } else {
+    tete = `<div class="pscript">Manche ${t.manche}</div>
+            <div class="ptitre">${enCourse.length} encore en course</div>
+            <div class="pinfo">${sortis.length} éliminé${sortis.length > 1 ? 's' : ''}</div>`;
+  }
+
+  const jetons = [
+    ...enCourse.map((b) => `<div class="pbillet${gagnant && gagnant.numero === b.numero ? ' gagnant' : ''}">
+        <span class="pnum">${b.numero}</span>${esc(b.garage)}</div>`),
+    ...sortis.map((b) => `<div class="pbillet sorti"><span class="pnum">${b.numero}</span>${esc(b.garage)}</div>`),
+  ].join('');
+
+  return `<div class="projection">
+      ${tete}
+      <div class="pcourse">${jetons}</div>
+      <div class="pactions">
+        ${!t.ouvert
+          ? `<button class="bouton" data-a="tirage-ouvrir">Ouvrir le tirage</button>`
+          : (gagnant
+              ? `<button class="bouton creux" data-a="tirage-reset">Recommencer</button>`
+              : `<button class="bouton" data-a="tirage-manche">${enCourse.length === 2 ? 'Désigner le gagnant' : 'Manche suivante'}</button>`)}
+        <button class="bouton creux" data-a="admin">Quitter la projection</button>
+      </div>
+    </div>`;
+}
+
 // =====================================================================
 //  Rendu
 // =====================================================================
@@ -482,10 +596,11 @@ const VUES = {
   fournisseur: vueFournisseur,
   admin: vueAdmin,
   lots: vueLots,
+  projection: vueProjection,
 };
 
 function rendre(garderFocus) {
-  const avecDecor = ['accueil', 'espace', 'grille', 'revelation'].includes(S.vue);
+  const avecDecor = ['accueil', 'espace', 'grille', 'revelation', 'projection'].includes(S.vue);
   document.body.classList.toggle('decore', avecDecor);
   if (avecDecor) monterDecor();
 
@@ -609,12 +724,14 @@ async function agir(a, el) {
       try {
         const r = await api.ecrit.jouerCase(n, cle);
         if (r.enAttente) {
-          toast('Sans réseau', 'Un tirage exige une réponse immédiate. Réessayez quand le réseau revient.', 'attente');
+          toast('Sans réseau', 'Une case exige une réponse immédiate. Réessayez quand le réseau revient.', 'attente');
         } else {
           S.revele = r; S.vue = 'revelation';
           await chargerEtat();
-          if (r.gagnante) toast('Lot gagné !', esc(r.lot));
-          else toast(`Case n°${n} jouée`, `−${S.etat.cout_grille} points · nouveau solde <b>${r.solde}</b>`, 'negatif');
+          if (!r.revelee) toast(`Case n°${n} réservée`, `−${S.etat.cout_grille} points · verdict ce soir`, 'attente');
+          else if (r.nature === 'billet') toast('Billet décroché !', 'Vous êtes qualifié pour le grand tirage');
+          else if (r.nature === 'lot') toast('Lot gagné !', esc(r.lot));
+          else toast(`Case n°${n} perdante`, `−${S.etat.cout_grille} points · nouveau solde <b>${r.solde}</b>`, 'negatif');
         }
       } catch (e) {
         toast(e.code === 'CASE_DEJA_PRISE' ? 'Case déjà prise' : 'Impossible', e.detail || e.message, 'negatif');
@@ -732,6 +849,44 @@ async function agir(a, el) {
     }
     case 'lots': {
       try { S.lots = await api.lire.lots(); S.vue = 'lots'; rendre(); }
+      catch (e) { toast('Impossible', e.detail || e.message, 'negatif'); }
+      return;
+    }
+    // ---------------- bingo : révélation et grand tirage ----------------
+    case 'reveler': {
+      if (!confirm('Révéler toutes les cases achetées ? Cette action est définitive.')) return;
+      try {
+        const r = await api.ecrit.reveler();
+        await chargerSupervision(); rendre();
+        toast('Cases révélées', `${r.revelees} case${r.revelees > 1 ? 's' : ''} ouverte${r.revelees > 1 ? 's' : ''}`);
+      } catch (e) { toast('Impossible', e.detail || e.message, 'negatif'); }
+      return;
+    }
+    case 'projection': {
+      S.vue = 'projection'; rendre();
+      try { S.tirage = await api.lire.tirage(); rendre(); }
+      catch (e) { toast('Impossible', e.detail || e.message, 'negatif'); }
+      return;
+    }
+    case 'tirage-ouvrir': {
+      try { S.tirage = await api.ecrit.tirageOuvrir(); rendre();
+            toast('Tirage ouvert', `${S.tirage.en_course.length} billets en course`); }
+      catch (e) { toast('Impossible', e.detail || e.message, 'negatif'); }
+      return;
+    }
+    case 'tirage-manche': {
+      if (S.envoi) return;
+      S.envoi = true;
+      try {
+        S.tirage = await api.ecrit.tirageManche(); rendre();
+        if (S.tirage.gagnant) toast('Gagnant désigné', esc(S.tirage.gagnant.garage));
+      } catch (e) { toast('Impossible', e.detail || e.message, 'negatif'); }
+      finally { S.envoi = false; }
+      return;
+    }
+    case 'tirage-reset': {
+      if (!confirm('Effacer le tirage et recommencer ?')) return;
+      try { await api.ecrit.tirageReset(); S.tirage = await api.lire.tirage(); rendre(); }
       catch (e) { toast('Impossible', e.detail || e.message, 'negatif'); }
       return;
     }

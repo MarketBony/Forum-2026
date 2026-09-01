@@ -132,6 +132,7 @@ export const lire = {
   garages:     ()       => appel('api_garages_liste', { p_jeton: jeton() }, { delaiMs: 25000 }),
   journal:     ()       => appel('api_journal_complet', { p_jeton: jeton() }, { delaiMs: 30000 }),
   lots:        ()       => appel('api_lots', { p_jeton: jeton() }),
+  tirage:      ()       => appel('api_tirage_etat', { p_jeton: jeton() }),
 };
 
 // ---------------------------------------------------------------------
@@ -273,4 +274,12 @@ export const ecrit = {
     ecrire('api_corriger', { p_garage: garage, p_delta: delta, p_motif: motif }, { cle }),
   remettreLot: (numero) =>
     ecrire('api_remettre_lot', { p_numero: numero }, { avecCle: false }),
+
+  // Le grand tirage : opérations d'estrade, jamais mises en file d'attente.
+  // Sur scène, une opération qui « partira plus tard » n'a aucun sens : on
+  // veut savoir tout de suite si elle a abouti.
+  reveler:      (numero = null) => appel('api_reveler', { p_jeton: jeton(), p_numero: numero }),
+  tirageOuvrir: () => appel('api_tirage_ouvrir', { p_jeton: jeton() }),
+  tirageManche: () => appel('api_tirage_manche', { p_jeton: jeton() }),
+  tirageReset:  () => appel('api_tirage_reset', { p_jeton: jeton() }),
 };
