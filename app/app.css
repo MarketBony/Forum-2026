@@ -397,12 +397,26 @@ body.service #toast {
 }
 .bouton:active:not(:disabled) { transform:scale(.978); box-shadow:0 3px 12px -4px rgba(197,150,60,.5) }
 .bouton:disabled { opacity:.42; box-shadow:none }
+/* Bouton secondaire : lui aussi en verre, sinon il fait tache à côté des
+   surfaces. Liseré de laiton pour qu'il se lise comme un bouton et non
+   comme une zone morte. */
 .bouton.creux {
-  background:rgba(241,231,210,.07); color:var(--txt);
-  box-shadow:inset 0 0 0 1px var(--filet);
-  font-weight:500;
+  background:linear-gradient(150deg, rgba(88,54,116,.42) 0%, rgba(44,25,58,.30) 100%);
+  backdrop-filter:blur(18px) saturate(1.8);
+  -webkit-backdrop-filter:blur(18px) saturate(1.8);
+  color:var(--creme-2); font-weight:600;
+  box-shadow:inset 0 1px 0 rgba(255,247,224,.20),
+             inset 0 0 0 1px rgba(197,150,60,.30),
+             0 8px 24px -10px rgba(0,0,0,.5);
 }
-.bouton.creux:active:not(:disabled) { background:rgba(241,231,210,.12); box-shadow:inset 0 0 0 1px var(--laiton) }
+.bouton.creux:active:not(:disabled) {
+  background:linear-gradient(150deg, rgba(104,64,136,.5) 0%, rgba(52,30,70,.4) 100%);
+  box-shadow:inset 0 0 0 1px rgba(197,150,60,.55);
+}
+body.service .bouton.creux {
+  backdrop-filter:none; -webkit-backdrop-filter:none;
+  background:linear-gradient(150deg, rgba(78,48,104,.9) 0%, rgba(42,25,58,.94) 100%);
+}
 .bouton.petit { min-height:44px; font-size:15px; padding:var(--e3) var(--e5); border-radius:var(--r-plein) }
 .pile { display:flex; flex-direction:column; gap:var(--e3) }
 
