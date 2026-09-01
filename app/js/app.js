@@ -32,30 +32,31 @@ const S = {
 // ---------------------------------------------------------------------
 //  Décor — guirlande et loupiottes, réservés aux écrans garage
 // ---------------------------------------------------------------------
+/* Six loupiottes seulement, cantonnées au tiers supérieur : elles
+   signent l'ambiance sans jamais passer derrière le texte qu'on lit. */
 const LOUPIOTTES = [
-  [6,9,9,4.2,0],[16,6,6,5.1,1.2],[27,13,5,3.6,.6],[38,8,8,4.8,2.1],[49,12,6,3.9,.4],
-  [61,7,10,5.4,1.7],[72,14,5,4.0,2.6],[84,9,7,5.3,.9],[93,13,6,4.6,1.4],
-  [9,44,7,4.4,1.1],[31,50,5,5.6,.3],[54,55,6,3.8,2.0],[77,47,8,5.0,.7],[90,58,5,4.3,1.9],
-  [14,78,6,4.9,.2],[44,84,5,3.9,2.3],[68,80,7,5.5,1.3],[88,88,6,4.1,.8],
+  [8, 6, 4, 7.0, 0], [23, 11, 3, 8.5, 1.4], [41, 5, 4, 6.2, 2.6],
+  [62, 10, 3, 9.0, .8], [79, 6, 4, 7.5, 3.1], [93, 12, 3, 8.0, 1.9],
 ];
 
 function monterDecor() {
   const d = $('#decor');
   if (d.dataset.pret) return;
   d.innerHTML =
-    '<div class="halo h1"></div><div class="halo h2"></div><div class="halo h3"></div>' +
-    '<div class="vichy"></div>' +
+    '<div class="nappe"></div>' +
+    '<div class="halo h1"></div><div class="halo h2"></div>' +
     LOUPIOTTES.map(([x, y, t, dur, del]) =>
       `<span class="loupiotte" style="left:${x}%;top:${y}%;width:${t}px;height:${t}px;--d:${dur}s;--r:${del}s"></span>`
-    ).join('');
+    ).join('') +
+    '<div class="grain"></div>';
   d.dataset.pret = '1';
 }
 
 /** Guirlande : fil en courbes de Bézier, ampoules suspendues à hauteurs
  *  et teintes variées. Reprise de la page d'invitation. */
 function guirlande() {
-  const appuis = [{x:0,y:10},{x:185,y:7},{x:415,y:13},{x:610,y:6},{x:805,y:12},{x:1000,y:9}];
-  const creux = [36, 31, 39, 33, 35];
+  const appuis = [{x:0,y:8},{x:185,y:6},{x:415,y:10},{x:610,y:5},{x:805,y:9},{x:1000,y:7}];
+  const creux = [26, 22, 28, 24, 25];
   let d = `M ${appuis[0].x} ${appuis[0].y}`;
   const segs = [];
   for (let i = 0; i < appuis.length - 1; i++) {
@@ -70,15 +71,17 @@ function guirlande() {
   };
   const teintes = [['#FFF3D6','#F0C36A'],['#FFE9B0','#E0A23C'],['#FFD9A0','#D98A33'],
                    ['#FFFFFF','#F1E7D2'],['#FFE0C0','#E6824A'],['#FFEFC4','#E9B24A']];
-  const places = [[0.30,0.62],[0.28,0.55,0.80],[0.40,0.70],[0.33,0.60,0.85],[0.45,0.72]];
-  const tailles = [11,14,10,13,12,15,11,14,10,13,12,11];
-  const pendus  = [8,17,5,14,21,10,18,7,13,23,11,16];
-  const halos   = [5,9,4,8,11,6,9,5,7,12,6,8];
-  const plancher= [.5,.66,.4,.55,.7,.45,.6,.5,.58,.42,.62,.5];
-  const durees  = [3.0,4.2,2.6,3.6,4.8,3.2,4.0,2.8,3.4,4.6,3.0,3.8];
+  // Moins d'ampoules, plus petites, suspendues moins bas : la guirlande
+  // signe l'écran au lieu de le charger.
+  const places = [[0.34,0.68],[0.32,0.74],[0.42],[0.36,0.72],[0.48]];
+  const tailles = [7,9,6,8,7,9,6,8];
+  const pendus  = [6,12,4,10,15,7,13,5];
+  const halos   = [5,8,4,7,9,5,8,4];
+  const plancher= [.6,.72,.52,.64,.76,.56,.68,.6];
+  const durees  = [4.8,6.4,4.2,5.6,7.0,5.0,6.0,4.6];
   let k = 0, html = '';
   places.forEach((liste, s) => liste.forEach((t) => {
-    const p = pt(segs[s], t), c = teintes[k % 6], i = k % 12;
+    const p = pt(segs[s], t), c = teintes[k % teintes.length], i = k % tailles.length;
     html += `<span class="ampoule" style="left:${(p.x/1000*100).toFixed(2)}%;top:${(p.y+pendus[i]).toFixed(1)}px;`
           + `--t:${tailles[i]}px;--p:${pendus[i]}px;--g:${halos[i]}px;--c1:${c[0]};--c2:${c[1]};`
           + `--f:${plancher[i]};--dt:${durees[i]}s;--ds:${(durees[i]+2.2).toFixed(1)}s;--dl:${((k*0.37)%3).toFixed(2)}s"></span>`;
@@ -124,22 +127,27 @@ function bandeauReseau() {
 
 function listeGarages(liste, action, avecSolde = true) {
   if (!liste || !liste.length) {
-    return `<p class="vide">Aucun garage ne correspond.<br>Vérifiez l'orthographe.</p>`;
+    return `<div class="groupe"><p class="vide">Aucun garage ne correspond.<br>Vérifiez l'orthographe.</p></div>`;
   }
-  return `<div class="resultats">` + liste.map((g) => `
-    <button class="trouve" data-a="${action}" data-id="${g.id}" data-nom="${esc(g.nom)}" data-ville="${esc(g.ville)}">
-      <span><span class="tn">${esc(g.nom)}</span><span class="tv">${esc(g.ville)}</span></span>
-      ${avecSolde && g.solde != null ? `<span class="ts"><b>${g.solde}</b><span>points</span></span>` : ''}
+  return `<div class="groupe">` + liste.map((g) => `
+    <button class="rangee" data-a="${action}" data-id="${g.id}" data-nom="${esc(g.nom)}" data-ville="${esc(g.ville)}">
+      <span class="principal"><span class="nom">${esc(g.nom)}</span><span class="detail">${esc(g.ville)}</span></span>
+      ${avecSolde && g.solde != null
+        ? `<span class="valeur"><b>${g.solde}</b><span>pts</span></span>`
+        : ''}
+      <span class="fleche"></span>
     </button>`).join('') + `</div>`;
 }
 
-function mouvements(ops) {
-  if (!ops || !ops.length) return `<p class="vide">Aucune opération pour le moment.</p>`;
-  return `<div class="mouvements">` + ops.map((m) => `
-    <div class="mvt"><span class="mh">${esc(m.heure)}</span>
-      <span class="ml">${esc(m.libelle)}<small>${esc(m.source)}</small></span>
-      <span class="md ${m.delta > 0 ? 'plus' : 'moins'}">${m.delta > 0 ? '+' : ''}${m.delta}</span>
-    </div>`).join('') + `</div>`;
+function mouvements(ops, groupe = true) {
+  const corps = (!ops || !ops.length)
+    ? `<p class="vide">Aucune opération pour le moment.</p>`
+    : `<div class="mouvements">` + ops.map((m) => `
+        <div class="mvt"><span class="mh">${esc(m.heure)}</span>
+          <span class="ml">${esc(m.libelle)}<small>${esc(m.source)}</small></span>
+          <span class="md ${m.delta > 0 ? 'plus' : 'moins'}">${m.delta > 0 ? '+' : ''}${m.delta}</span>
+        </div>`).join('') + `</div>`;
+  return groupe ? `<div class="groupe">${corps}</div>` : corps;
 }
 
 // =====================================================================
@@ -151,16 +159,19 @@ function vueAccueil() {
   return guirlande() + `
     <div class="ecran">
       ${barre('Forum Pièces 2026', null, '<button class="lien" data-a="service">Équipe</button>')}
-      <div class="script">Bienvenue au</div>
-      <h1 class="titre">${esc(CONFIG.evenement.nom)}</h1>
-      <p class="sous">${esc(CONFIG.evenement.date)} · ${esc(CONFIG.evenement.lieu)}</p>
-      <div class="trait"></div>
-      <p class="etiq">Votre garage</p>
-      <input class="champ" id="q" type="text" inputmode="text" autocomplete="off"
-             placeholder="Tapez les premières lettres…" value="${esc(S.q)}">
-      <div id="zone">${S.invites === undefined ? '' : listeGarages(S.invites, 'inscrire', false)}</div>
-      <p class="sous" style="margin-top:20px">Aucun mot de passe, aucun formulaire.
-        Votre téléphone se souvient de vous jusqu'à la fin de la soirée.</p>
+      <div class="entete">
+        <div class="script">Bienvenue au</div>
+        <h1 class="titre">${esc(CONFIG.evenement.nom)}</h1>
+        <p class="sous">${esc(CONFIG.evenement.date)} · ${esc(CONFIG.evenement.lieu)}</p>
+      </div>
+      <div class="section">
+        <p class="etiq">Votre garage</p>
+        <input class="champ" id="q" type="text" inputmode="text" autocomplete="off"
+               placeholder="Tapez les premières lettres…" value="${esc(S.q)}">
+        ${S.invites === undefined ? '' : listeGarages(S.invites, 'inscrire', false)}
+      </div>
+      <p class="sous">Aucun mot de passe, aucun formulaire. Votre téléphone se
+        souvient de vous jusqu'à la fin de la soirée.</p>
     </div>`;
 }
 
@@ -173,27 +184,32 @@ function vueParticipant() {
     <div class="ecran">
       ${barre('Mon espace', null, '<button class="lien" data-a="rafraichir">Actualiser</button>')}
       ${bandeauReseau()}
-      <div class="carte solde">
+      <div class="surface solde">
         <div class="gnom">${esc(g.nom)}</div>
         <div class="gville">${esc(g.ville)}</div>
         <div class="chiffre">${g.solde}</div>
         <div class="unite">points</div>
         <div class="maj">Touchez « Actualiser » à tout moment</div>
       </div>
-      <div class="pile">
-        <button class="bouton" data-a="grille">Tenter un lot · ${e.cout_grille} pts</button>
-      </div>
+      <button class="bouton" data-a="grille">Tenter un lot · ${e.cout_grille} pts</button>
       ${e.mes_lots && e.mes_lots.length ? `
-        <div class="trait"></div>
-        <p class="etiq">Mes lots</p>
-        ${e.mes_lots.map((l) => `<div class="carte" style="margin-bottom:8px">
-            <b style="font-family:var(--serif);font-size:17px;color:var(--creme-2)">${esc(l.lot)}</b>
-            <div class="sous">Case n°${l.numero} · code de retrait <b style="color:var(--or-clair);letter-spacing:.2em">${esc(l.code_retrait)}</b>
-            ${l.remis ? ' · déjà retiré' : ' · à retirer au comptoir Bony'}</div>
-          </div>`).join('')}` : ''}
-      <div class="trait"></div>
-      <p class="etiq">Mes opérations</p>
-      ${mouvements(e.operations)}
+        <div class="section">
+          <p class="etiq">Mes lots</p>
+          <div class="groupe">
+            ${e.mes_lots.map((l) => `<div class="lot">
+              <span class="principal">
+                <span class="lnom">${esc(l.lot)}</span>
+                <span class="ldetail">Case n°${l.numero} · code <b>${esc(l.code_retrait)}</b><br>
+                  ${l.remis ? 'Déjà retiré' : 'À retirer au comptoir Bony'}</span>
+              </span>
+              ${l.remis ? '<span class="lremis">Retiré</span>' : ''}
+            </div>`).join('')}
+          </div>
+        </div>` : ''}
+      <div class="section">
+        <p class="etiq">Mes opérations</p>
+        ${mouvements(e.operations)}
+      </div>
     </div>`;
 }
 
@@ -212,18 +228,21 @@ function vueGrille() {
     <div class="ecran">
       ${barre('Garage', 'espace')}
       ${bandeauReseau()}
-      <div class="script">La grille</div>
-      <h1 class="titre">des 100 cases</h1>
-      <p class="sous">Une case au hasard, un lot peut-être. Chaque case ne se joue qu'une fois.</p>
-      <div class="carte" style="margin-top:16px;display:flex;gap:14px;align-items:center">
-        <div><div class="etiq" style="margin:0 0 2px">Participation</div>
-          <b style="font-family:var(--serif);font-size:24px;color:var(--or-clair)">${e.cout_grille} pts</b></div>
-        <div style="margin-left:auto;text-align:right"><div class="etiq" style="margin:0 0 2px">Votre solde</div>
-          <b style="font-family:var(--serif);font-size:24px;color:${peut ? 'var(--vert-ok-clair)' : 'var(--terracotta-clair)'}">${e.garage.solde} pts</b></div>
+      <div class="entete">
+        <div class="script">La grille</div>
+        <h1 class="titre">des 100 cases</h1>
+        <p class="sous">Une case au hasard, un lot peut-être. Chaque case ne se joue qu'une fois.</p>
       </div>
-      ${peut ? '' : `<div class="bandeau" style="margin-top:14px"><i></i>Il vous manque ${e.cout_grille - e.garage.solde} points — jouez ou achetez</div>`}
-      <div class="grille">${cases}</div>
-      <div class="legende"><span><i></i>${e.cases_libres} libres</span><span><i class="prise"></i>${100 - e.cases_libres} jouées</span></div>
+      <div class="surface duo">
+        <div><span class="etiq">Participation</span><span class="dv">${e.cout_grille} pts</span></div>
+        <div><span class="etiq">Votre solde</span>
+          <span class="dv ${peut ? 'suffisant' : 'faible'}">${e.garage.solde} pts</span></div>
+      </div>
+      ${peut ? '' : `<div class="bandeau"><i></i>Il vous manque ${e.cout_grille - e.garage.solde} points — jouez ou achetez</div>`}
+      <div class="section">
+        <div class="grille">${cases}</div>
+        <div class="legende"><span><i></i>${e.cases_libres} libres</span><span><i class="prise"></i>${100 - e.cases_libres} jouées</span></div>
+      </div>
     </div>`;
 }
 
@@ -236,13 +255,13 @@ function vueRevelation() {
         <div class="rk">${r.gagnante ? 'Bravo,' : 'Cette fois,'}</div>
         <div class="rt">${r.gagnante ? "c'est gagné !" : "c'est raté"}</div>
         ${r.gagnante ? `<div class="rlot">${esc(r.lot)}
-            <div class="rcode">Code de retrait ${esc(r.code_retrait)}</div>
-            <div class="sous" style="font-family:var(--sans)">À présenter au comptoir Bony</div></div>`
-          : `<p class="sous" style="max-width:26ch;margin:18px auto 0">Il reste des cases, et la soirée est longue.</p>`}
+            <div class="rcode">${esc(r.code_retrait)}</div>
+            <div class="rnote">Code de retrait, à présenter au comptoir Bony</div></div>`
+          : `<p class="sous">Il reste des cases, et la soirée est longue.</p>`}
         <div class="rcase">Case n°${r.numero}</div>
       </div>
       <div class="pile">
-        <button class="bouton creux" data-a="grille">Retenter ma chance</button>
+        <button class="bouton" data-a="grille">Retenter ma chance</button>
         <button class="bouton creux" data-a="espace">Revenir à mon solde</button>
       </div>
     </div>`;
@@ -252,14 +271,14 @@ function vueRevelation() {
 function vueService() {
   return `<div class="ecran">
       ${barre('Accès équipe', 'accueil')}
-      <div class="script">Animateurs,</div>
-      <h1 class="titre">fournisseurs, équipe Bony</h1>
-      <p class="sous">Saisissez le code de votre stand ou de votre animation.</p>
-      <input class="champ" id="pin" type="text" inputmode="numeric" autocomplete="off"
-             maxlength="8" placeholder="Code à 4 chiffres" style="margin-top:18px;font-size:22px;letter-spacing:.3em;text-align:center">
-      <div class="pile">
-        <button class="bouton" data-a="connexion" ${S.envoi ? 'disabled' : ''}>Se connecter</button>
+      <div class="entete">
+        <div class="script">Animateurs,</div>
+        <h1 class="titre">fournisseurs, équipe Bony</h1>
+        <p class="sous">Saisissez le code de votre stand ou de votre animation.</p>
       </div>
+      <input class="champ code" id="pin" type="text" inputmode="numeric" autocomplete="off"
+             maxlength="8" placeholder="••••">
+      <button class="bouton" data-a="connexion" ${S.envoi ? 'disabled' : ''}>Se connecter</button>
     </div>`;
 }
 
@@ -272,11 +291,15 @@ function vueAnimateur() {
     return `<div class="ecran">
       ${barre(r.libelle, null, `<button class="lien" data-a="quitter">Quitter</button>`)}
       ${bandeauReseau()}
-      <h1 class="titre">Qui joue&nbsp;?</h1>
-      <p class="sous">Participation : ${r.cout} point${r.cout > 1 ? 's' : ''}</p>
+      <div class="entete">
+        <h1 class="titre">Qui joue&nbsp;?</h1>
+        <p class="sous">Participation : ${r.cout} point${r.cout > 1 ? 's' : ''}</p>
+      </div>
       <input class="champ" id="q" type="text" autocomplete="off" placeholder="Nom du garage…"
-             value="${esc(S.q)}" style="margin-top:14px">
-      ${liste === null ? `<p class="vide">Liste des garages en cours de chargement…</p>` : listeGarages(liste, 'cibler')}
+             value="${esc(S.q)}">
+      ${liste === null
+        ? `<div class="groupe"><p class="vide">Chargement de la liste des garages…</p></div>`
+        : listeGarages(liste, 'cibler')}
     </div>`;
   }
   // fiche du garage : on lance la partie
@@ -285,34 +308,46 @@ function vueAnimateur() {
     return `<div class="ecran">
       ${barre(r.libelle, 'recherche')}
       ${bandeauReseau()}
-      <div class="carte" style="text-align:center;padding:22px 16px">
-        <div style="font-family:var(--serif);font-size:22px;color:var(--creme-2)">${esc(S.cible.nom)}</div>
-        <div class="gville" style="font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;opacity:.6;margin-top:4px">${esc(S.cible.ville)}</div>
-        <div style="font-family:var(--serif);font-weight:700;font-size:54px;color:var(--or-clair);margin-top:12px;font-variant-numeric:tabular-nums">${S.cible.solde}</div>
-        <div class="unite" style="font-size:12px;font-weight:600;letter-spacing:.3em;text-transform:uppercase;color:var(--or-clair)">points au compteur</div>
+      <div class="surface fiche">
+        <div class="fnom">${esc(S.cible.nom)}</div>
+        <div class="fville">${esc(S.cible.ville)}</div>
+        <div class="fsolde">${S.cible.solde}</div>
+        <div class="funite">points au compteur</div>
       </div>
       ${assez
-        ? `<div class="pile"><button class="bouton" data-a="lancer" ${S.envoi ? 'disabled' : ''}>Lancer la partie · −${r.cout} pts</button></div>`
-        : `<div class="bandeau" style="margin-top:16px"><i></i>Solde insuffisant — participation à ${r.cout} pts</div>`}
-      <p class="sous" style="margin-top:14px">La participation est débitée au lancement. Le résultat se saisit juste après.</p>
+        ? `<button class="bouton" data-a="lancer" ${S.envoi ? 'disabled' : ''}>Lancer la partie · −${r.cout} pts</button>`
+        : `<div class="bandeau"><i></i>Solde insuffisant — participation à ${r.cout} pts</div>`}
+      <p class="sous">La participation est débitée au lancement. Le résultat se saisit juste après.</p>
     </div>`;
   }
   // saisie du résultat
   return `<div class="ecran">
       ${barre(r.libelle, 'recherche')}
       ${bandeauReseau()}
-      <h1 class="titre">${esc(S.cible.nom)}</h1>
-      <p class="sous">Partie lancée, participation débitée. Sélectionnez le résultat.</p>
-      <div class="baremes">
-        ${r.bareme.map((b) => {
-          const ton = b.points === 0 ? 'nul' : (b.points >= 10 ? 'gagne' : 'moyen');
+      <div class="entete">
+        <h1 class="titre">${esc(S.cible.nom)}</h1>
+        <p class="sous">Participation débitée. Sélectionnez le résultat.</p>
+      </div>
+      <div class="surface duo">
+        <div><span class="etiq">Participation</span><span class="dv">−${r.cout} pts</span></div>
+        <div><span class="etiq">Solde après débit</span><span class="dv">${S.cible.solde} pts</span></div>
+      </div>
+      <div class="baremes bas">
+        ${(() => {
+          // La couleur est RELATIVE au barème du jeu, pas à un seuil absolu :
+          // le vert désigne le meilleur résultat de CE jeu, et lui seul.
+          // Sinon un animateur voit deux barres vertes et hésite.
+          const max = Math.max(...r.bareme.map((b) => b.points));
+          return r.bareme.map((b) => {
+          const ton = b.points === 0 ? 'nul' : (b.points === max ? 'gagne' : 'moyen');
           return `<button class="note ${ton}" data-a="noter" data-id="${b.id}" data-pts="${b.points}"
             data-lib="${esc(b.libelle)}" ${S.envoi ? 'disabled' : ''}>
             <span class="nl">${esc(b.libelle)}</span>
             <span class="np">${b.points > 0 ? '+' : ''}${b.points}</span></button>`;
-        }).join('')}
+          }).join('');
+        })()}
       </div>
-      <p class="sous" style="margin-top:16px">Un seul appui suffit. Un double appui ne crédite jamais deux fois.</p>
+      <p class="sous">Un seul appui suffit. Un double appui ne crédite jamais deux fois.</p>
     </div>`;
 }
 
@@ -325,35 +360,38 @@ function vueFournisseur() {
     return `<div class="ecran">
       ${barre(r.libelle, null, `<button class="lien" data-a="quitter">Quitter</button>`)}
       ${bandeauReseau()}
-      <div class="script">Une vente</div>
-      <h1 class="titre">vient d'être conclue&nbsp;?</h1>
-      <p class="sous">Retrouvez le garage, attribuez les points de l'opération.</p>
+      <div class="entete">
+        <div class="script">Une vente</div>
+        <h1 class="titre">vient d'être conclue&nbsp;?</h1>
+        <p class="sous">Retrouvez le garage, attribuez les points de l'opération.</p>
+      </div>
       <input class="champ" id="q" type="text" autocomplete="off" placeholder="Nom du garage…"
-             value="${esc(S.q)}" style="margin-top:16px">
-      ${liste === null ? `<p class="vide">Liste des garages en cours de chargement…</p>` : listeGarages(liste, 'cibler')}
+             value="${esc(S.q)}">
+      ${liste === null
+        ? `<div class="groupe"><p class="vide">Chargement de la liste des garages…</p></div>`
+        : listeGarages(liste, 'cibler')}
     </div>`;
   }
   return `<div class="ecran">
       ${barre(r.libelle, 'recherche')}
       ${bandeauReseau()}
-      <div class="carte" style="display:flex;align-items:center;gap:12px">
-        <div><div style="font-family:var(--serif);font-size:19px;color:var(--creme-2)">${esc(S.cible.nom)}</div>
-        <div style="font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;opacity:.55;margin-top:2px">${esc(S.cible.ville)}</div></div>
-        <div style="margin-left:auto;text-align:right">
-          <b style="font-family:var(--serif);font-size:26px;color:var(--or-clair)">${S.cible.solde}</b>
-          <div style="font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;opacity:.5">points</div></div>
+      <div class="groupe">
+        <div class="rangee">
+          <span class="principal"><span class="nom">${esc(S.cible.nom)}</span>
+            <span class="detail">${esc(S.cible.ville)}</span></span>
+          <span class="valeur"><b>${S.cible.solde}</b><span>pts</span></span>
+        </div>
       </div>
-      <div class="trait"></div>
-      <p class="etiq">Points de l'opération</p>
-      <div class="paliers">
-        ${PALIERS.filter((p) => p <= (r.plafond_operation || 50)).map((p) =>
-          `<button class="palier" data-a="palier" data-p="${p}" aria-pressed="${S.palier === p}">+${p} pts</button>`).join('')}
+      <div class="section">
+        <p class="etiq">Points de l'opération</p>
+        <div class="paliers">
+          ${PALIERS.filter((p) => p <= (r.plafond_operation || 50)).map((p) =>
+            `<button class="palier" data-a="palier" data-p="${p}" aria-pressed="${S.palier === p}">+${p}</button>`).join('')}
+        </div>
+        <p class="sous">Plafond de ${r.plafond_operation || 50} points par opération.
+          L'écriture est signée au nom du stand.</p>
       </div>
-      <p class="sous" style="margin-top:12px">Barème du stand · plafond de ${r.plafond_operation || 50} points par opération.</p>
-      <div class="pile">
-        <button class="bouton" data-a="attribuer" ${S.envoi ? 'disabled' : ''}>Attribuer +${S.palier} points</button>
-      </div>
-      <p class="sous" style="margin-top:12px">L'écriture est signée au nom du stand.</p>
+      <button class="bouton bas" data-a="attribuer" ${S.envoi ? 'disabled' : ''}>Attribuer +${S.palier} points</button>
     </div>`;
 }
 
@@ -364,9 +402,11 @@ function vueAdmin() {
   return `<div class="ecran">
       ${barre('Supervision Bony', null, `<button class="lien" data-a="quitter">Quitter</button>`)}
       ${bandeauReseau()}
-      <div class="script">Le Forum</div>
-      <h1 class="titre">en un coup d'œil</h1>
-      <div class="indics" style="margin-top:14px">
+      <div class="entete">
+        <div class="script">Le Forum</div>
+        <h1 class="titre">en un coup d'œil</h1>
+      </div>
+      <div class="indics">
         <div class="indic"><div class="iv">${s.garages_actifs} / ${s.garages_invites}</div><div class="il">Garages actifs sur invités</div></div>
         <div class="indic"><div class="iv">${s.points_circulation}</div><div class="il">Points en circulation</div></div>
         <div class="indic"><div class="iv">${s.points_emis}</div><div class="il">Points émis</div></div>
@@ -379,21 +419,28 @@ function vueAdmin() {
         ${s.ecarts_solde > 0 ? `<div class="indic large alerte"><div class="iv">${s.ecarts_solde}</div>
           <div class="il">Écarts entre solde et journal — à signaler immédiatement</div></div>` : ''}
       </div>
-      ${s.tension ? `<div class="bandeau" style="margin-top:12px"><i></i>Plus de points en circulation que de cases restantes — resserrer les barèmes</div>` : ''}
-      <div class="trait"></div>
-      <p class="etiq">Distribution par stand</p>
-      ${s.par_stand.map((p) => `<div class="mvt"><span class="ml">${esc(p.stand)}</span>
-        <span class="md">${p.distribue} <span style="font-family:var(--sans);font-size:11px;opacity:.5">/ ${p.plafond}</span></span></div>`).join('')}
-      <div class="trait"></div>
-      <p class="etiq">Journal en direct</p>
-      ${mouvements(s.journal.map((j) => ({ heure: j.heure, libelle: j.garage + ' · ' + j.libelle, source: j.source, delta: j.delta })))}
-      <div class="trait"></div>
-      <p class="etiq">Sauvegarde</p>
-      <p class="sous" style="margin-bottom:12px">Le plan gratuit n'a pas de sauvegarde automatique.
-        Exportez le journal une fois en milieu de soirée et une fois à la fin.</p>
-      <div class="pile">
-        <button class="bouton creux" data-a="export">Télécharger le journal (CSV)</button>
-        <button class="bouton creux" data-a="lots">Suivi des lots</button>
+      ${s.tension ? `<div class="bandeau"><i></i>Plus de points en circulation que de cases restantes — resserrer les barèmes</div>` : ''}
+      <div class="section">
+        <p class="etiq">Distribution par stand</p>
+        <div class="groupe">
+          ${s.par_stand.map((p) => `<div class="rangee">
+            <span class="principal"><span class="nom">${esc(p.stand)}</span></span>
+            <span class="valeur"><b>${p.distribue}</b><span>/ ${p.plafond}</span></span>
+          </div>`).join('')}
+        </div>
+      </div>
+      <div class="section">
+        <p class="etiq">Journal en direct</p>
+        ${mouvements(s.journal.map((j) => ({ heure: j.heure, libelle: j.garage + ' · ' + j.libelle, source: j.source, delta: j.delta })))}
+      </div>
+      <div class="section">
+        <p class="etiq">Sauvegarde</p>
+        <p class="sous">Le plan gratuit n'a pas de sauvegarde automatique. Exportez le
+          journal une fois en milieu de soirée et une fois à la fin.</p>
+        <div class="pile">
+          <button class="bouton creux" data-a="export">Télécharger le journal (CSV)</button>
+          <button class="bouton creux" data-a="lots">Suivi des lots</button>
+        </div>
       </div>
     </div>`;
 }
@@ -402,20 +449,22 @@ function vueLots() {
   const l = S.lots || [];
   return `<div class="ecran">
       ${barre('Suivi des lots', 'admin')}
-      <h1 class="titre">Lots gagnés</h1>
-      <p class="sous">${l.filter((x) => !x.remis).length} à remettre sur ${l.length} gagnés</p>
-      <div class="trait"></div>
-      ${l.length === 0 ? `<p class="vide">Aucun lot gagné pour le moment.</p>` : l.map((x) => `
-        <div class="carte" style="margin-bottom:9px;display:flex;align-items:center;gap:12px">
-          <div style="flex:1 1 auto">
-            <b style="font-family:var(--serif);font-size:16px;color:var(--creme-2)">${esc(x.lot)}</b>
-            <div class="sous" style="margin-top:2px">${esc(x.garage)} · case n°${x.numero} · ${esc(x.joue_a)}
-              · code <b style="color:var(--or-clair);letter-spacing:.16em">${esc(x.code_retrait)}</b></div>
-          </div>
-          ${x.remis
-            ? `<span style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--vert-ok-clair)">Remis</span>`
-            : `<button class="bouton petit" data-a="remettre" data-n="${x.numero}" style="width:auto;flex:0 0 auto">Remettre</button>`}
-        </div>`).join('')}
+      <div class="entete">
+        <h1 class="titre">Lots gagnés</h1>
+        <p class="sous">${l.filter((x) => !x.remis).length} à remettre sur ${l.length} gagnés</p>
+      </div>
+      <div class="groupe">
+        ${l.length === 0 ? `<p class="vide">Aucun lot gagné pour le moment.</p>` : l.map((x) => `
+          <div class="lot">
+            <span class="principal">
+              <span class="lnom">${esc(x.lot)}</span>
+              <span class="ldetail">${esc(x.garage)} · case n°${x.numero} · ${esc(x.joue_a)} · code <b>${esc(x.code_retrait)}</b></span>
+            </span>
+            ${x.remis
+              ? `<span class="lremis">Remis</span>`
+              : `<button class="bouton petit" data-a="remettre" data-n="${x.numero}" style="width:auto;flex:0 0 auto">Remettre</button>`}
+          </div>`).join('')}
+      </div>
     </div>`;
 }
 
