@@ -89,6 +89,77 @@ function Majuscule($mot) {
   return $sb.ToString()
 }
 
+# =====================================================================
+#  ACCENTS
+#  Le fichier source n'en contient aucun. On ne devine JAMAIS sur un
+#  patronyme : seuls entrent ici des mots dont l'orthographe accentuée ne
+#  fait aucun doute, et des expressions vérifiées dans les données.
+#
+#  Le piège qui justifie les deux niveaux : CERE donne « Cère » à
+#  Vic-sur-Cère et Arpajon-sur-Cère (Cantal, la rivière), mais « Céré » à
+#  Saint-Céré (Lot). Une règle au mot seul en aurait écorché un des deux.
+# =====================================================================
+
+# Niveau 1 — expressions entières, appliquées avant les mots isolés.
+$EXPRESSIONS = [ordered]@{
+  'Vic sur Cere'      = 'Vic-sur-Cère'
+  'Arpajon sur Cere'  = 'Arpajon-sur-Cère'
+  # avec ET sans tiret : la mise en forme transforme « ST CERE » en
+  # « Saint-Cere » avant que les accents soient appliqués
+  'Saint-Cere'        = 'Saint-Céré'
+  'Saint Cere'        = 'Saint-Céré'
+  'de la Cere'        = 'de la Cère'
+}
+
+# Niveau 2 — mots isolés dont l'accentuation est certaine, quel que soit
+# le contexte. Aucun nom de famille, aucun mot tronqué.
+$ACCENTS = @{
+  # noms communs
+  'republique'   = 'République';   'mecanique'  = 'Mécanique'
+  'meca'         = 'Méca';         'vehicule'   = 'Véhicule'
+  'vehicules'    = 'Véhicules';    'equipement' = 'Équipement'
+  'equipements'  = 'Équipements';  'electrique' = 'Électrique'
+  'electricite'  = 'Électricité';  'electro'    = 'Électro'
+  'electronique' = 'Électronique'; 'general'    = 'Général'
+  'generale'     = 'Générale';     'reparation' = 'Réparation'
+  'reparations'  = 'Réparations';  'depannage'  = 'Dépannage'
+  'securite'     = 'Sécurité';     'qualite'    = 'Qualité'
+  'specialiste'  = 'Spécialiste';  'freres'     = 'Frères'
+  'eglise'       = 'Église';       'chateau'    = 'Château'
+  'pres'         = 'près';         'foret'      = 'Forêt'
+  'cevennes'     = 'Cévennes';     'vallee'     = 'Vallée'
+  'riviere'      = 'Rivière';      'rivieres'   = 'Rivières'
+  'depot'        = 'Dépôt';        'echappement'= 'Échappement'
+  'revision'     = 'Révision';     'renovation' = 'Rénovation'
+  'esthetique'   = 'Esthétique';   'numero'     = 'Numéro'
+  'reseau'       = 'Réseau';       'proximite'  = 'Proximité'
+  'marechal'     = 'Maréchal';     'etoile'     = 'Étoile'
+  'ideal'        = 'Idéal';        'clee'       = 'Clé'
+  # toponymes certains
+  'aubiere'      = 'Aubière';      'chamalieres'= 'Chamalières'
+  'severac'      = 'Sévérac';      'chely'      = 'Chély'
+  'geniez'       = 'Géniez';       'perignat'   = 'Pérignat'
+  'sarlieve'     = 'Sarliève';     'vezie'      = 'Vézie'
+  'truyere'      = 'Truyère';      'neuveglise' = 'Neuvéglise'
+  'courpiere'    = 'Courpière';    'montlucon'  = 'Montluçon'
+  'pourcain'     = 'Pourçain';     'cerilly'    = 'Cérilly'
+  'allegre'      = 'Allègre';      'decazeville'= 'Décazeville'
+  'requista'     = 'Réquista';     'realmont'   = 'Réalmont'
+  'valderies'    = 'Valdériès';    'monesties'  = 'Monestiés'
+  'eloy'         = 'Éloy'
+}
+
+function Accentuer([string]$t) {
+  if (-not $t) { return '' }
+  foreach ($e in $EXPRESSIONS.GetEnumerator()) {
+    $t = [regex]::Replace($t, [regex]::Escape($e.Key), $e.Value, 'IgnoreCase')
+  }
+  foreach ($m in $ACCENTS.GetEnumerator()) {
+    $t = [regex]::Replace($t, '\b' + [regex]::Escape($m.Key) + '\b', $m.Value, 'IgnoreCase')
+  }
+  return $t
+}
+
 function Propre([string]$t, [bool]$commune) {
   if (-not $t) { return '' }
   $t = ($t -replace '\s+', ' ').Trim()
@@ -109,7 +180,7 @@ function Propre([string]$t, [bool]$commune) {
   }
   $r = ($mots -join ' ').Trim()
   if ($commune) { $r = $r -replace '^Saint ', 'Saint-' -replace '^Sainte ', 'Sainte-' }
-  return $r
+  return (Accentuer $r)
 }
 
 # --- code d'accès -----------------------------------------------------
