@@ -295,8 +295,8 @@ body.decore #decor { display:block }
   mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite:xor; mask-composite:exclude;
   background:linear-gradient(135deg,
-    rgba(255,247,224,0) 0%, rgba(255,247,224,.30) 26%,
-    rgba(255,247,224,.85) 58%, rgba(255,247,224,.14) 82%,
+    rgba(255,247,224,0) 0%, rgba(255,247,224,.22) 26%,
+    rgba(255,247,224,.58) 58%, rgba(255,247,224,.10) 82%,
     rgba(255,247,224,0) 100%);
 }
 /* Anneau spéculaire, couche 2 : overlay, plus contrastée.
@@ -310,8 +310,8 @@ body.decore #decor { display:block }
   mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite:xor; mask-composite:exclude;
   background:linear-gradient(135deg,
-    rgba(255,255,255,0) 0%, rgba(255,255,255,.55) 30%,
-    rgba(255,255,255,.95) 62%, rgba(255,255,255,.2) 84%,
+    rgba(255,255,255,0) 0%, rgba(255,255,255,.34) 30%,
+    rgba(255,255,255,.62) 62%, rgba(255,255,255,.14) 84%,
     rgba(255,255,255,0) 100%);
 }
 /* le contenu passe au-dessus des anneaux */
@@ -334,9 +334,24 @@ body.service #toast {
 .surface.plate { background:rgba(46,27,62,.5); box-shadow:none }
 .pad { padding:var(--e5) }
 
-/* Élément passé au verre liquide par verre.js : le filtre SVG remplace
-   les anneaux, sinon les deux se superposent et ça bave. */
-.verre-liquide::before, .verre-liquide::after { opacity:.5 }
+/* =====================================================================
+   LA VITRE
+   Couche vide, insérée par verre.js derrière le contenu. Elle seule porte
+   le flou et le filtre de réfraction : feDisplacementMap déforme ce qu'il
+   filtre, donc un conteneur filaire directement verrait son texte tordu
+   et irisé sur les bords. Le contenu reste net, au-dessus.
+   ===================================================================== */
+.vitre {
+  position:absolute; inset:0; z-index:0; pointer-events:none;
+  border-radius:inherit;
+  background:linear-gradient(150deg, rgba(88,54,116,.46) 0%, rgba(44,25,58,.34) 100%);
+  backdrop-filter:blur(26px) saturate(2.1) brightness(1.08);
+  -webkit-backdrop-filter:blur(26px) saturate(2.1) brightness(1.08);
+}
+/* le porteur devient transparent : c'est la vitre qui fait le verre */
+.verre-liquide { background:transparent !important;
+  backdrop-filter:none !important; -webkit-backdrop-filter:none !important }
+.verre-liquide > *:not(.vitre) { position:relative; z-index:2 }
 
 /* =====================================================================
    Le solde — l'élément principal (§7)

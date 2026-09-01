@@ -177,11 +177,28 @@ export function verreLiquidePossible() {
   return !!supporte && !ff && !peuDeMouvement && !petiteMachine;
 }
 
-/** Active le verre liquide sur un élément, si la machine suit. */
+/**
+ * Active le verre liquide sur un élément.
+ *
+ * ATTENTION, PIÈGE : feDisplacementMap déforme le CONTENU de l'élément
+ * filtré, pas seulement ce qu'on voit à travers. Appliquer le filtre
+ * directement sur un conteneur tord son texte et l'irise sur les bords —
+ * spectaculaire, et illisible.
+ *
+ * On insère donc une vitre : une couche VIDE, en position absolue derrière
+ * le contenu, qui porte seule le flou et le filtre de réfraction. Le
+ * contenu reste net, au-dessus. C'est l'architecture du composant
+ * d'origine, que j'avais court-circuitée.
+ */
 export function verrer(el) {
   if (!el || !verreLiquidePossible()) return false;
+  if (el.querySelector(':scope > .vitre')) return true;
   if (!poserFiltre()) return false;
-  el.style.filter = `url(#${ID})`;
+  const vitre = document.createElement('span');
+  vitre.className = 'vitre';
+  vitre.setAttribute('aria-hidden', 'true');
+  vitre.style.filter = `url(#${ID})`;
+  el.insertBefore(vitre, el.firstChild);
   el.classList.add('verre-liquide');
   return true;
 }
