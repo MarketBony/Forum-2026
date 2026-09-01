@@ -270,52 +270,65 @@ body.decore #decor { display:block }
    « overlay », traversé par un dégradé blanc diagonal. C'est ce qui donne
    l'arête lumineuse caractéristique du verre.
    ===================================================================== */
-.verre, .surface, .groupe, .note, .indic, .revele .rlot, #toast {
+.verre, .surface, .groupe, .note, .indic, .revele .rlot, .duo, #toast {
   position:relative;
-  background:linear-gradient(150deg, rgba(74,44,98,.52) 0%, rgba(40,22,52,.44) 100%);
-  backdrop-filter:blur(22px) saturate(1.7);
-  -webkit-backdrop-filter:blur(22px) saturate(1.7);
+  background:linear-gradient(150deg, rgba(88,54,116,.46) 0%, rgba(44,25,58,.34) 100%);
+  backdrop-filter:blur(26px) saturate(2.1) brightness(1.08);
+  -webkit-backdrop-filter:blur(26px) saturate(2.1) brightness(1.08);
   border-radius:var(--r3);
-  box-shadow:0 1px 2px rgba(0,0,0,.22), 0 12px 40px -12px rgba(0,0,0,.55),
-             inset 0 0 0 .5px rgba(255,247,224,.10);
+  /* le liseré intérieur clair fait la moitié de l'effet de verre */
+  box-shadow:0 1px 2px rgba(0,0,0,.24), 0 16px 44px -14px rgba(0,0,0,.6),
+             inset 0 1px 0 rgba(255,247,224,.22),
+             inset 0 0 0 .5px rgba(255,247,224,.14),
+             inset 0 -14px 28px -18px rgba(255,247,224,.16);
   isolation:isolate;
 }
-/* anneau spéculaire, couche 1 : screen */
-.verre::before, .surface::before, .groupe::before, .indic::before, .revele .rlot::before {
+
+/* Anneau spéculaire, couche 1 : screen.
+   S'applique à TOUTES les surfaces de verre — c'était l'oubli. */
+.verre::before, .surface::before, .groupe::before, .indic::before,
+.revele .rlot::before, .duo::before, #toast::before {
   content:""; position:absolute; inset:0; z-index:1;
-  border-radius:inherit; padding:1.5px; pointer-events:none;
-  mix-blend-mode:screen; opacity:.9;
+  border-radius:inherit; padding:1.6px; pointer-events:none;
+  mix-blend-mode:screen;
   -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite:xor; mask-composite:exclude;
   background:linear-gradient(135deg,
-    rgba(255,247,224,0) 0%, rgba(255,247,224,.16) 30%,
-    rgba(255,247,224,.46) 64%, rgba(255,247,224,0) 100%);
+    rgba(255,247,224,0) 0%, rgba(255,247,224,.30) 26%,
+    rgba(255,247,224,.85) 58%, rgba(255,247,224,.14) 82%,
+    rgba(255,247,224,0) 100%);
 }
-/* anneau spéculaire, couche 2 : overlay, plus contrastée */
-.verre::after, .surface::after {
+/* Anneau spéculaire, couche 2 : overlay, plus contrastée.
+   Elle aussi sur toutes les surfaces. */
+.verre::after, .surface::after, .groupe::after, .indic::after,
+.revele .rlot::after, .duo::after, .note::after, #toast::after {
   content:""; position:absolute; inset:0; z-index:1;
-  border-radius:inherit; padding:1.5px; pointer-events:none;
+  border-radius:inherit; padding:1.6px; pointer-events:none;
   mix-blend-mode:overlay;
   -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite:xor; mask-composite:exclude;
   background:linear-gradient(135deg,
-    rgba(255,255,255,0) 0%, rgba(255,255,255,.34) 32%,
-    rgba(255,255,255,.62) 66%, rgba(255,255,255,0) 100%);
+    rgba(255,255,255,0) 0%, rgba(255,255,255,.55) 30%,
+    rgba(255,255,255,.95) 62%, rgba(255,255,255,.2) 84%,
+    rgba(255,255,255,0) 100%);
 }
 /* le contenu passe au-dessus des anneaux */
-.verre > *, .surface > *, .groupe > *, .indic > * { position:relative; z-index:2 }
+.verre > *, .surface > *, .groupe > *, .indic > *, .duo > * { position:relative; z-index:2 }
 
-/* Sur les appareils de service, le verre reste mais sans flou : cinq
-   heures de backdrop-filter sur un téléphone d'animateur, ça chauffe. */
-body:not(.decore) .verre,
-body:not(.decore) .surface,
-body:not(.decore) .groupe,
-body:not(.decore) .note,
-body:not(.decore) .indic {
+/* SEULS les appareils d'animateur et de fournisseur perdent le flou :
+   ce sont eux qui tournent cinq heures dans une main. La tablette de
+   supervision est unique et branchée, elle garde tout. */
+body.service .verre,
+body.service .surface,
+body.service .groupe,
+body.service .note,
+body.service .indic,
+body.service .duo,
+body.service #toast {
   backdrop-filter:none; -webkit-backdrop-filter:none;
-  background:linear-gradient(150deg, rgba(64,38,86,.92) 0%, rgba(36,21,49,.96) 100%);
+  background:linear-gradient(150deg, rgba(78,48,104,.92) 0%, rgba(42,25,58,.96) 100%);
 }
 
 .surface.plate { background:rgba(46,27,62,.5); box-shadow:none }
@@ -416,7 +429,7 @@ body:not(.decore) .indic {
 .principal { min-width:0; flex:1 1 auto; display:flex; flex-direction:column }
 .rangee .nom { font-size:15.5px; font-weight:600; color:var(--creme-2); line-height:1.3;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
-.rangee .detail { font-size:12.5px; color:var(--txt-3); margin-top:1px;
+.rangee .detail { font-size:12.5px; color:var(--txt-2); margin-top:1px;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
 .rangee .valeur { flex:0 0 auto; text-align:right; display:flex; align-items:baseline; gap:5px }
 .rangee .valeur b { font-family:var(--serif); font-size:21px; font-weight:700; color:var(--or-clair); font-variant-numeric:tabular-nums }
@@ -447,10 +460,6 @@ body:not(.decore) .indic {
 .note::before {                  /* la barre d'accent sémantique */
   content:""; position:absolute; left:0; top:0; bottom:0; width:4px;
   background:var(--accent, var(--txt-3));
-}
-.note::after {                   /* reflet, comme les autres surfaces */
-  content:""; position:absolute; inset:0 0 auto; height:1px;
-  background:linear-gradient(90deg, transparent, var(--reflet) 30%, var(--reflet) 70%, transparent);
 }
 .note:active:not(:disabled) { transform:scale(.985); box-shadow:0 1px 3px rgba(0,0,0,.3) }
 .note:disabled { opacity:.4 }
@@ -574,7 +583,7 @@ body:not(.decore) .indic {
 .indic { padding:var(--e4); border-radius:var(--r2); overflow:hidden }
 .indic .iv { font-family:var(--serif); font-weight:700; font-size:28px; line-height:1.05;
   letter-spacing:-.025em; color:var(--or-clair); font-variant-numeric:tabular-nums }
-.indic .il { font-size:11.5px; line-height:1.4; color:var(--txt-3); margin-top:var(--e1) }
+.indic .il { font-size:11.5px; line-height:1.4; color:var(--txt-2); margin-top:var(--e1) }
 .indic.large { grid-column:1 / -1 }
 .indic.alerte { box-shadow:0 1px 2px rgba(0,0,0,.22), 0 12px 40px -12px rgba(0,0,0,.55), inset 0 0 0 1px rgba(209,91,48,.5) }
 .indic.alerte .iv { color:var(--terracotta-clair) }

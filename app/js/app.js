@@ -8,6 +8,7 @@ import * as api from './api.js';
 import * as verre from './verre.js';
 
 const $ = (s) => document.querySelector(s);
+const $$ = (s) => [...document.querySelectorAll(s)];
 const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;')
                     .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
@@ -620,8 +621,16 @@ const VUES = {
 };
 
 function rendre(garderFocus) {
-  const avecDecor = ['accueil', 'espace', 'grille', 'revelation', 'projection'].includes(S.vue);
+  // Décor animé et verre complet : les écrans garage, et la supervision
+  // Bony — c'est UNE tablette, branchée, elle n'a aucune raison d'être
+  // moins belle que le reste.
+  // Verre allégé, sans flou : les seuls écrans animateur et fournisseur,
+  // ceux qui tournent cinq heures dans une main.
+  const avecDecor = ['accueil', 'espace', 'grille', 'revelation',
+                     'projection', 'admin', 'lots', 'service'].includes(S.vue);
+  const enService = ['animateur', 'fournisseur'].includes(S.vue);
   document.body.classList.toggle('decore', avecDecor);
+  document.body.classList.toggle('service', enService);
   if (avecDecor) monterDecor();
 
   const champ = $('#q') || $('#pin') || $('#cg');
@@ -630,11 +639,14 @@ function rendre(garderFocus) {
 
   $('#app').innerHTML = (VUES[S.vue] || VUES.chargement)();
 
-  // Le verre liquide n'est posé que sur la carte du solde, et seulement
-  // sur les écrans garage : c'est la chaîne de filtres la plus coûteuse
-  // de l'application, elle ne mérite qu'un seul élément.
-  const carte = $('.solde');
-  if (carte && avecDecor) verre.verrer(carte);
+  // Le verre liquide — la vraie réfraction par filtre SVG — est posé sur
+  // les surfaces principales de l'écran, dans l'ordre d'importance et
+  // plafonné : la chaîne de filtres est coûteuse, on ne la met pas
+  // partout. Jamais sur les écrans animateur et fournisseur.
+  if (avecDecor) {
+    const candidats = $$('.solde, .fiche, .duo, .revele .rlot, .indic.large, .groupe');
+    candidats.slice(0, 4).forEach((el) => verre.verrer(el));
+  }
 
   if (garderFocus && idChamp) {
     const encore = $('#' + idChamp);
