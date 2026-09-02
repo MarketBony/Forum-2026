@@ -176,26 +176,31 @@ function mouvements(ops, groupe = true) {
 //  VUES
 // =====================================================================
 
-// --- accueil / inscription (§6) --------------------------------------
+// --- la porte : un seul champ pour tout le monde (§6) -----------------
+//  Garages, animateurs, fournisseurs, hôtesses et Bony tapent leur code
+//  au même endroit. Personne n'a plus d'onglet à trouver, et personne ne
+//  peut plus se tromper de champ.
 function vueAccueil() {
   return guirlande() + `
     <div class="ecran">
-      ${barre('Forum Pièces 2026', null, '<button class="lien" data-a="service">Équipe</button>')}
+      ${barre('Forum Pièces 2026')}
       <div class="entete">
         <div class="script">Bienvenue au</div>
         <h1 class="titre">${esc(CONFIG.evenement.nom)}</h1>
         <p class="sous">${esc(CONFIG.evenement.date)} · ${esc(CONFIG.evenement.lieu)}</p>
       </div>
       <div class="section">
-        <p class="etiq">Votre code garage</p>
+        <p class="etiq">Votre code</p>
         <input class="champ code" id="cg" type="text" inputmode="text"
                autocomplete="off" autocapitalize="characters" spellcheck="false"
-               maxlength="6" placeholder="••••" value="${esc(S.code)}"
-               ${S.envoi ? 'disabled' : ''}>
+               maxlength="8" placeholder="••••" value="${esc(S.code)}"
+               aria-label="Code d'accès" ${S.envoi ? 'disabled' : ''}>
         <button class="bouton" data-a="entrer" ${S.envoi ? 'disabled' : ''}>Entrer</button>
       </div>
-      <p class="sous">Le code figure sur votre invitation. Vous l'avez perdu&nbsp;?
-        L'accueil vous le redonne en trois secondes.</p>
+      <p class="sous">Garages : votre code figure sur l'invitation. Vous l'avez
+        perdu&nbsp;? L'accueil vous le redonne en trois secondes.<br>
+        Animateurs, fournisseurs et équipe Bony : votre code de stand ou
+        d'animation s'utilise ici aussi.</p>
     </div>`;
 }
 
@@ -332,21 +337,6 @@ function vueRevelation() {
         <button class="bouton" data-a="grille">Retenter ma chance</button>
         <button class="bouton creux" data-a="espace">Revenir à mon solde</button>
       </div>
-    </div>`;
-}
-
-// --- connexion du personnel ------------------------------------------
-function vueService() {
-  return `<div class="ecran">
-      ${barre('Accès équipe', 'accueil')}
-      <div class="entete">
-        <div class="script">Animateurs,</div>
-        <h1 class="titre">fournisseurs, équipe Bony</h1>
-        <p class="sous">Saisissez le code de votre stand ou de votre animation.</p>
-      </div>
-      <input class="champ code" id="pin" type="text" inputmode="numeric" autocomplete="off"
-             maxlength="8" placeholder="••••">
-      <button class="bouton" data-a="connexion" ${S.envoi ? 'disabled' : ''}>Se connecter</button>
     </div>`;
 }
 
@@ -676,7 +666,6 @@ const VUES = {
   espace: vueParticipant,
   grille: vueGrille,
   revelation: vueRevelation,
-  service: vueService,
   animateur: vueAnimateur,
   fournisseur: vueFournisseur,
   admin: vueAdmin,
@@ -692,14 +681,14 @@ function rendre(garderFocus) {
   // Verre allégé, sans flou : les seuls écrans animateur et fournisseur,
   // ceux qui tournent cinq heures dans une main.
   const avecDecor = ['accueil', 'espace', 'grille', 'revelation',
-                     'projection', 'admin', 'lots', 'service',
+                     'projection', 'admin', 'lots',
                      'accueil_hotesse'].includes(S.vue);
   const enService = ['animateur', 'fournisseur'].includes(S.vue);
   document.body.classList.toggle('decore', avecDecor);
   document.body.classList.toggle('service', enService);
   if (avecDecor) monterDecor();
 
-  const champ = $('#q') || $('#pin') || $('#cg');
+  const champ = $('#q') || $('#cg');
   const pos = champ ? champ.selectionStart : null;
   const idChamp = champ ? champ.id : null;
 
@@ -785,7 +774,6 @@ async function agir(a, el) {
   switch (a) {
     // ---------------- navigation ----------------
     case 'accueil':   S.vue = 'accueil'; S.q = ''; S.code = ''; return rendre();
-    case 'service':   S.vue = 'service'; return rendre();
     case 'espace':    S.vue = 'espace'; await chargerEtat(); return rendre();
     case 'grille':    S.vue = 'grille'; await chargerEtat(); return rendre();
     case 'recherche': S.cible = null; S.partieLancee = false; S.q = ''; return rendre();
@@ -799,20 +787,22 @@ async function agir(a, el) {
       return;
     case 'quitter':
       api.definirRole(null); api.oublierAppareil();
-      S.r = null; S.cible = null; S.vue = 'accueil'; S.q = '';
+      S.r = null; S.cible = null; S.vue = 'accueil'; S.q = ''; S.code = '';
       return rendre();
 
-    // ---------------- entrée par code garage ----------------
+    // ---------------- la porte unique ----------------
     case 'entrer': {
       if (S.envoi) return;
+      clearTimeout(minuteurPorte);
       const code = (S.code || '').trim();
-      if (code.length < 4) { toast('Code incomplet', 'Votre code fait 4 caractères.', 'attente'); return; }
+      if (code.length < 4) { toast('Code incomplet', 'Un code fait au moins 4 caractères.', 'attente'); return; }
       S.envoi = true; rendre();
       try {
-        const r = await api.lire.entrer(code);
+        const r = await api.lire.ouvrir(code);
+
         // Un code refusé revient en résultat, pas en exception : c'est ce
         // qui permet au frein sur les tentatives d'être réellement compté.
-        if (r && r.erreur) {
+        if (r && r.porte === 'refus') {
           S.envoi = false; rendre(true);
           const reste = (r.restantes != null && r.restantes <= 3)
             ? ` Encore ${r.restantes} essai${r.restantes > 1 ? 's' : ''}.` : '';
@@ -820,6 +810,24 @@ async function agir(a, el) {
                 (r.detail || '') + reste, 'negatif');
           return;
         }
+
+        // Personnel : animateur, fournisseur, hôtesse ou Bony.
+        if (r.porte === 'personnel') {
+          api.definirRole(r); S.r = r;
+          S.vue = r.role === 'admin' ? 'admin'
+                : (r.role === 'accueil' ? 'accueil_hotesse' : r.role);
+          S.q = ''; S.code = ''; S.cible = null; S.partieLancee = false;
+          S.trouves = null; S.codeZoom = null; S.envoi = false;
+          rendre();
+          toast('Connecté', esc(r.libelle));
+          if (r.role === 'accueil') { await chargerAccueil(); rendre(); }
+          else { api.rafraichirGarages().then(() => rendre()).catch(() => {}); }
+          if (r.role === 'admin') { await chargerSupervision(); rendre(); }
+          sondage();
+          return;
+        }
+
+        // Garage.
         S.etat = r;
         api.definirRole({ role: 'garage' });
         S.r = { role: 'garage' };
@@ -828,7 +836,7 @@ async function agir(a, el) {
         toast('Bienvenue !', `${esc(S.etat.garage.nom)} · <b>${S.etat.garage.solde}</b> points`);
       } catch (e) {
         S.envoi = false; rendre(true);
-        toast(e.code === 'CODE_INCONNU' ? 'Code inconnu' : 'Impossible',
+        toast(e.code === 'CODE_TROP_COURT' ? 'Code incomplet' : 'Impossible',
               e.detail || e.message, 'negatif');
       }
       return;
@@ -856,32 +864,6 @@ async function agir(a, el) {
         toast(e.code === 'CASE_DEJA_PRISE' ? 'Case déjà prise' : 'Impossible', e.detail || e.message, 'negatif');
         await chargerEtat();
       } finally { S.envoi = false; rendre(); }
-      return;
-    }
-
-    // ---------------- connexion personnel ----------------
-    case 'connexion': {
-      if (S.envoi) return;
-      const pin = ($('#pin') || {}).value || '';
-      S.envoi = true; rendre(true);
-      try {
-        const r = await api.lire.connexion(pin.trim());
-        api.definirRole(r); S.r = r;
-        S.vue = r.role === 'admin' ? 'admin'
-              : (r.role === 'accueil' ? 'accueil_hotesse' : r.role);
-        S.q = ''; S.cible = null; S.partieLancee = false;
-        S.trouves = null; S.codeZoom = null;
-        S.envoi = false;
-        rendre();
-        toast('Connecté', esc(r.libelle));
-        if (r.role === 'accueil') { await chargerAccueil(); rendre(); }
-        else { api.rafraichirGarages().then(() => rendre()).catch(() => {}); }
-        if (r.role === 'admin') { await chargerSupervision(); rendre(); }
-        sondage();
-      } catch (e) {
-        S.envoi = false; rendre();
-        toast('Code refusé', e.detail || e.message, 'negatif');
-      }
       return;
     }
 
@@ -1047,15 +1029,26 @@ $('#app').addEventListener('click', (ev) => {
 $('#app').addEventListener('input', (ev) => {
   const el = ev.target;
 
-  // Saisie du code garage : on normalise à la volée et on valide dès que
-  // les 4 caractères sont là. À l'entrée du Forum, un appui économisé sur
-  // 150 personnes, ça compte.
+  // Saisie du code, toutes portes confondues.
+  //
+  // On normalise sur A-Z0-9, et surtout PAS sur l'alphabet des codes
+  // garage : celui-ci exclut les 0 et les 1 pour qu'on ne les confonde
+  // pas avec O et I, mais les PIN du personnel en sont pleins. Filtrer
+  // ici transformerait « 1001 » en chaîne vide, sous les doigts de
+  // l'animateur, sans un mot d'explication.
+  //
+  // La validation part toute seule, mais après une pause : un code
+  // garage fait 4 caractères, un PIN peut en faire plus. Valider sec au
+  // quatrième brûlerait un essai à celui qui n'a pas fini de taper.
   if (el.id === 'cg') {
     const avant = el.value;
-    const propre = avant.toUpperCase().replace(/[^A-HJ-NP-Z2-9]/g, '');
+    const propre = avant.toUpperCase().replace(/[^A-Z0-9]/g, '');
     S.code = propre;
     if (propre !== avant) { el.value = propre; }
-    if (propre.length >= 4 && !S.envoi) agir('entrer', el);
+    clearTimeout(minuteurPorte);
+    if (propre.length >= 4 && !S.envoi) {
+      minuteurPorte = setTimeout(() => agir('entrer', el), 700);
+    }
     return;
   }
 
@@ -1080,6 +1073,16 @@ $('#app').addEventListener('input', (ev) => {
   rendre(true);      // animateur et fournisseur : recherche locale
 });
 let minuteurAccueil = null;
+let minuteurPorte = null;
+
+// Entrée au clavier : on n'attend pas la temporisation. C'est le geste
+// de celui qui sait son code, et de tout le personnel sur ordinateur.
+$('#app').addEventListener('keydown', (ev) => {
+  if (ev.key !== 'Enter' || ev.target.id !== 'cg') return;
+  ev.preventDefault();
+  clearTimeout(minuteurPorte);
+  agir('entrer', ev.target);
+});
 
 addEventListener('online',  () => { S.horsLigne = false; rendre(); api.viderFile(); });
 addEventListener('offline', () => { S.horsLigne = true;  rendre(); });

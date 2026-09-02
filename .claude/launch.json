@@ -3,8 +3,8 @@
   "configurations": [
     {
       "name": "grand-bal",
-      "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "8123", "--directory", "app"],
+      "runtimeExecutable": "powershell",
+      "runtimeArgs": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "scripts/serveur.ps1"],
       "port": 8123
     }
   ]
