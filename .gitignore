@@ -1,7 +1,13 @@
-# Secrets — ne doit JAMAIS partir vers GitHub / Cloudflare Pages
+# Secrets — ne doit JAMAIS partir vers GitHub / Cloudflare
 .env
 .env.*
+# La négation doit rester APRÈS le motif qu'elle rattrape, sinon
+# .env.example redevient ignoré.
 !.env.example
+
+# Exports de la soirée : ils contiennent les noms des garages et leurs
+# codes d'accès. Ils restent sur le poste, jamais dans le dépôt.
+exports/
 
 # Divers
 node_modules/
