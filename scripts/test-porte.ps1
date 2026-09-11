@@ -164,14 +164,39 @@ Write-Output '-- 5. Les 0 et les 1 des PIN survivent ---------------------------
 # C'est le piege de l'unification : l'alphabet des codes garage exclut 0
 # et 1 pour eviter la confusion avec O et I. Les filtrer a l'entree
 # viderait « 1001 » et « 4200 ».
-foreach ($p in @('1001', '1002', '1003', '1004', '2001', '2002', '2003', '2004', '2005', '4200', '9137')) {
+# La liste est LUE EN BASE et non recopiee ici. Une liste en dur avait
+# fige 11 PIN : les 6 animations et les 23 stands arrives ensuite
+# n'auraient jamais ete essayes, et le test serait reste vert en ne
+# verifiant plus rien.
+$pins = (Sql @"
+select code_pin from animations where actif and code_pin is not null
+union all select code_pin from stands where actif and code_pin is not null
+union all select valeur from config where cle in ('pin_accueil','pin_admin')
+"@).data | ForEach-Object { $_.code_pin }
+
+# Chaque PIN compte pour un controle — seuls les echecs sont imprimes,
+# sinon 31 lignes identiques noieraient le reste du rapport.
+$manques = @()
+foreach ($p in $pins) {
   $r = Ouvrir (Jeton) $p
-  $bon = $r.ok -and $r.data.porte -eq 'personnel'
-  if (-not $bon) { Verdict ("PIN {0} reconnu" -f $p) $false ("porte={0}" -f $(if ($r.data) { $r.data.porte } else { '' })) }
-  else { $script:ok++ }
+  if ($r.ok -and $r.data.porte -eq 'personnel') { $script:ok++ }
+  else {
+    $manques += $p
+    Verdict ("PIN {0} reconnu" -f $p) $false ("porte={0}" -f $(if ($r.data) { $r.data.porte } else { '' }))
+  }
 }
-Write-Output '  [OK]    Les 11 PIN du personnel sont tous reconnus'
-Write-Output '          preuve : 0, 1 et 2 en tete de PIN passent la normalisation'
+if (@($manques).Count -eq 0) {
+  Write-Output ("  [OK]    Les {0} PIN du personnel sont tous reconnus" -f @($pins).Count)
+  Write-Output  '          preuve : 0, 1 et 2 en tete de PIN passent la normalisation'
+}
+
+# Un PIN qui contient un 0 ou un 1 ne peut PAS heurter un code garage :
+# l'alphabet de generation exclut ces deux chiffres. C'est une garantie
+# structurelle, pas une coincidence — on la verifie au lieu de l'affirmer.
+$risque = @($pins | Where-Object { $_ -notmatch '[01]' })
+Verdict 'Tout PIN sans 0 ni 1 est un risque de collision assume' `
+        (@($risque).Count -eq 0) `
+        ("{0} PIN hors de la garantie structurelle {1}" -f @($risque).Count, ($risque -join ','))
 
 # --- 6. un code trop court reste une exception -------------------------
 Write-Output ''

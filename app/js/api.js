@@ -272,8 +272,11 @@ export const ecrit = {
     ecrire('api_participation', { p_garage: garage, p_animation: animation }, { cle }),
   resultat: (garage, bareme, cle) =>
     ecrire('api_resultat', { p_garage: garage, p_bareme: bareme }, { cle }),
-  achat: (garage, points, cle) =>
-    ecrire('api_points_achat', { p_garage: garage, p_points: points }, { cle }),
+  // p_palier porte le libellé du barème (« 200 à 699 € », « Contact »…).
+  // La base le revérifie contre le barème de la catégorie avant de
+  // l'inscrire au journal : un libellé inventé est ignoré, pas recopié.
+  achat: (garage, points, palier, cle) =>
+    ecrire('api_points_achat', { p_garage: garage, p_points: points, p_palier: palier }, { cle }),
   jouerCase: (numero, cle) =>
     ecrire('api_jouer_case', { p_numero: numero }, { cle }),
   corriger: (garage, delta, motif, cle) =>

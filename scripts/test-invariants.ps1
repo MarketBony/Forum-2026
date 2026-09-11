@@ -165,14 +165,29 @@ $four = Rpc 'api_connexion' @{ p_jeton = $telF; p_pin = '2001' }
 Verdict 'Connexion fournisseur par code PIN' `
         ($four.data.role -eq 'fournisseur') ('role = ' + $four.data.role + ', stand = ' + $four.data.libelle)
 
+# Le plafond par operation vaut desormais 20 : c'est le palier le plus
+# haut du bareme arrete par Bony (5 / 10 / 20). Ce n'est plus une regle
+# commerciale, c'est un garde-fou contre la faute de frappe.
 $trop = Rpc 'api_points_achat' @{ p_jeton=$telF; p_garage=$dupont; p_points=500; p_cle=(Cle) }
-Verdict 'Attribution de 500 pts (plafond 50) : refusee' `
+Verdict 'Attribution de 500 pts (plafond 20) : refusee' `
         (($trop.http -eq 400) -and ($trop.code -eq 'PLAFOND_OPERATION')) `
         ($trop.code + ' : "' + $trop.detail + '"')
 
-$bon = Rpc 'api_points_achat' @{ p_jeton=$telF; p_garage=$dupont; p_points=50; p_cle=(Cle) }
-Verdict 'Attribution de 50 pts : acceptee et tracee au nom du stand' `
-        ($bon.data.solde -eq 68) ('solde = ' + $bon.data.solde + ', stand = ' + $bon.data.stand + ', cumul stand = ' + $bon.data.cumul_stand)
+# FAAB est en categorie CA : ses paliers sont 1 a 199 EUR / 200 a 699 EUR /
+# 700 EUR et plus. Le palier remonte doit etre repris dans le journal.
+$bon = Rpc 'api_points_achat' @{ p_jeton=$telF; p_garage=$dupont; p_points=20; p_cle=(Cle); p_palier='700 € et plus' }
+Verdict 'Attribution au palier haut : acceptee et tracee au nom du stand' `
+        ($bon.data.solde -eq 38) ('solde = ' + $bon.data.solde + ', stand = ' + $bon.data.stand + ', cumul stand = ' + $bon.data.cumul_stand)
+
+Verdict 'Le palier choisi est repris dans l ecriture' `
+        ($bon.data.palier -eq '700 € et plus') ('palier journalise = ' + $bon.data.palier)
+
+# Un libelle qui n'appartient pas au bareme de la categorie ne doit pas
+# entrer dans un journal en ajout seul : il est ignore, pas recopie.
+$faux = Rpc 'api_points_achat' @{ p_jeton=$telF; p_garage=$dupont; p_points=5; p_cle=(Cle); p_palier='Cadeau du patron' }
+Verdict 'Un palier invente est ignore, pas journalise' `
+        (($faux.http -eq 200) -and ($null -eq $faux.data.palier)) `
+        ('palier = ' + $(if ($null -eq $faux.data.palier) { '(nul)' } else { $faux.data.palier }) + ', solde = ' + $faux.data.solde)
 
 # =====================================================================
 Write-Output ''
@@ -196,8 +211,9 @@ $soldeDupont = (Sql "select solde from garages where id='$dupont'").data[0].sold
 Verdict 'Un autre garage sur la MEME case : refuse' `
         (($c2.http -eq 400) -and ($c2.code -eq 'CASE_DEJA_PRISE')) `
         ($c2.code + ' : "' + $c2.detail + '"')
+# 18 apres l animation, + 20 au palier haut, + 5 au palier bas = 43.
 Verdict 'Le garage refuse n a rien paye' `
-        ($soldeDupont -eq 68) ('solde Dupont = ' + $soldeDupont + ' (attendu 68, inchange)')
+        ($soldeDupont -eq 43) ('solde Dupont = ' + $soldeDupont + ' (attendu 43, inchange)')
 
 # --- vraie concurrence : 8 requetes simultanees sur la meme case -----
 $taches = New-Object 'System.Collections.Generic.List[System.Threading.Tasks.Task[System.Net.Http.HttpResponseMessage]]'

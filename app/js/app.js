@@ -22,7 +22,7 @@ const S = {
   q: '',                // saisie de recherche
   code: '',             // saisie du code garage
   cible: null,          // garage visé par le personnel
-  palier: 20,           // points choisis par le fournisseur
+  palier: 0,            // INDICE du palier choisi dans le barème du stand
   revele: null,         // résultat d'un tirage
   sup: null,            // tableau de bord Bony
   accueil: null,        // compteur d'arrivées du poste d'accueil
@@ -264,12 +264,18 @@ function vueParticipant() {
 // --- grille des lots (§11) -------------------------------------------
 function vueGrille() {
   const e = S.etat;
+  // La taille de la grille vient de la base — un caractère par case
+  // dans e.grille. Elle n'est plus écrite ici : redimensionner la
+  // grille ne demande plus de redéployer le front.
+  const total = e.cases_total || (e.grille ? e.grille.length : 0);
   const peut = e.garage.solde >= e.cout_grille;
-  const prises = e.grille || '0'.repeat(100);
+  // Plafond de cases par garage : 0 = illimité.
+  const reste = e.cases_max > 0 ? Math.max(0, e.cases_max - (e.mes_cases_nb || 0)) : null;
+  const prises = e.grille || '0'.repeat(total);
   let cases = '';
-  for (let n = 1; n <= 100; n++) {
+  for (let n = 1; n <= total; n++) {
     const dispo = prises[n - 1] === '0';
-    cases += `<button class="case" data-a="jouer" data-n="${n}" ${(!dispo || !peut) ? 'disabled' : ''}
+    cases += `<button class="case" data-a="jouer" data-n="${n}" ${(!dispo || !peut || reste === 0) ? 'disabled' : ''}
       aria-label="Case ${n}${dispo ? '' : ' déjà jouée'}">${n}</button>`;
   }
   return guirlande() + `
@@ -278,7 +284,7 @@ function vueGrille() {
       ${bandeauReseau()}
       <div class="entete">
         <div class="script">La grille</div>
-        <h1 class="titre">des 100 cases</h1>
+        <h1 class="titre">des ${total} cases</h1>
         <p class="sous">Une case au hasard, un lot peut-être. Chaque case ne se joue qu'une fois.</p>
       </div>
       <div class="surface duo">
@@ -286,10 +292,13 @@ function vueGrille() {
         <div><span class="etiq">Votre solde</span>
           <span class="dv ${peut ? 'suffisant' : 'faible'}">${e.garage.solde} pts</span></div>
       </div>
-      ${peut ? '' : `<div class="bandeau"><i></i>Il vous manque ${e.cout_grille - e.garage.solde} points — jouez ou achetez</div>`}
+      ${reste === 0
+        ? `<div class="bandeau"><i></i>Vous avez pris vos ${e.cases_max} cases — l'équipe Bony peut en rouvrir en fin de journée</div>`
+        : peut ? '' : `<div class="bandeau"><i></i>Il vous manque ${e.cout_grille - e.garage.solde} points — jouez ou achetez</div>`}
       <div class="section">
         <div class="grille">${cases}</div>
-        <div class="legende"><span><i></i>${e.cases_libres} libres</span><span><i class="prise"></i>${100 - e.cases_libres} jouées</span></div>
+        <div class="legende"><span><i></i>${e.cases_libres} libres</span><span><i class="prise"></i>${total - e.cases_libres} jouées</span>${
+          reste !== null && reste > 0 ? `<span>${reste} case${reste > 1 ? 's' : ''} pour vous</span>` : ''}</div>
       </div>
     </div>`;
 }
@@ -410,7 +419,13 @@ function vueAnimateur() {
 }
 
 // --- fournisseur (§10) ------------------------------------------------
-const PALIERS = [5, 10, 20, 50];
+//  Les paliers ne sont plus écrits ici. Ils viennent du barème de la
+//  CATÉGORIE du stand, que la porte renvoie avec le profil : « 200 à
+//  699 € » chez FACOM, « 13 à 24 pneus » chez MICHELIN, « Contact »
+//  chez CASTROL. Le représentant lit son propre vocabulaire au lieu de
+//  traduire un nombre de points dans sa tête, un verre à la main.
+//  S.palier est l'INDICE dans r.bareme, pas un nombre de points : deux
+//  paliers pourraient un jour valoir le même nombre de points.
 function vueFournisseur() {
   const r = S.r;
   if (!S.cible) {
@@ -430,6 +445,12 @@ function vueFournisseur() {
         : listeGarages(liste, 'cibler')}
     </div>`;
   }
+  // Le palier le plus bas est présélectionné : une frappe malheureuse
+  // coûte 5 points, jamais 20. Une correction par le haut se remarque,
+  // une correction par le bas passe inaperçue.
+  const bar = r.bareme || [];
+  const idx = Math.min(S.palier, bar.length - 1);
+  const sel = bar[idx];
   return `<div class="ecran">
       ${barre(r.libelle, 'recherche')}
       ${bandeauReseau()}
@@ -441,15 +462,16 @@ function vueFournisseur() {
         </div>
       </div>
       <div class="section">
-        <p class="etiq">Points de l'opération</p>
+        <p class="etiq">L'opération conclue</p>
         <div class="paliers">
-          ${PALIERS.filter((p) => p <= (r.plafond_operation || 50)).map((p) =>
-            `<button class="palier" data-a="palier" data-p="${p}" aria-pressed="${S.palier === p}">+${p}</button>`).join('')}
+          ${bar.map((b, i) =>
+            `<button class="palier" data-a="palier" data-p="${i}" aria-pressed="${i === idx}">
+               <span class="pl">${esc(b.libelle)}</span><span class="pp">+${b.points}</span>
+             </button>`).join('')}
         </div>
-        <p class="sous">Plafond de ${r.plafond_operation || 50} points par opération.
-          L'écriture est signée au nom du stand.</p>
+        <p class="sous">Barème ${esc(r.categorie || '')} · l'écriture est signée au nom du stand.</p>
       </div>
-      <button class="bouton bas" data-a="attribuer" ${S.envoi ? 'disabled' : ''}>Attribuer +${S.palier} points</button>
+      <button class="bouton bas" data-a="attribuer" ${(S.envoi || !sel) ? 'disabled' : ''}>Attribuer +${sel ? sel.points : 0} points</button>
     </div>`;
 }
 
@@ -470,9 +492,12 @@ function vueAdmin() {
         <div class="indic"><div class="iv">${s.points_emis}</div><div class="il">Points émis</div></div>
         <div class="indic"><div class="iv">${s.lots_gagnes - s.lots_remis}</div><div class="il">Lots à remettre</div></div>
         <div class="indic large ${s.tension ? 'alerte' : ''}">
-          <div class="iv">${s.cases_jouees} / 100</div>
+          <div class="iv">${s.cases_jouees} / ${s.cases_total}</div>
           <div class="il">Cases jouées · ${s.parties_financables} parties encore finançables avec les points en circulation</div>
-          <div class="jauge"><span style="width:${s.cases_jouees}%"></span></div>
+          <!-- La largeur était le nombre de cases jouées pris DIRECTEMENT
+               pour un pourcentage : juste tant que la grille faisait 100
+               cases, faux dès qu'elle en fait 200. -->
+          <div class="jauge"><span style="width:${Math.round(s.cases_jouees / Math.max(s.cases_total, 1) * 100)}%"></span></div>
         </div>
         ${s.ecarts_solde > 0 ? `<div class="indic large alerte"><div class="iv">${s.ecarts_solde}</div>
           <div class="il">Écarts entre solde et journal — à signaler immédiatement</div></div>` : ''}
@@ -926,13 +951,18 @@ async function agir(a, el) {
 
     case 'attribuer': {
       if (S.envoi) return;
+      const bar = (S.r && S.r.bareme) || [];
+      const choix = bar[Math.min(S.palier, bar.length - 1)];
+      if (!choix) return;                     // stand sans barème : rien à envoyer
       S.envoi = true; rendre();
-      const nom = S.cible.nom, pts = S.palier;
+      const nom = S.cible.nom, pts = choix.points;
       const cle = api.nouvelleCle();
       try {
-        const r = await api.ecrit.achat(S.cible.id, pts, cle);
+        const r = await api.ecrit.achat(S.cible.id, pts, choix.libelle, cle);
         ajusterCache(S.cible.id, pts);
-        S.cible = null; S.q = '';
+        // Le palier revient au plus bas pour le garage suivant : laisser
+        // « Commande » armé ferait créditer 20 points au visiteur d'après.
+        S.cible = null; S.q = ''; S.palier = 0;
         if (r.enAttente) toast('Enregistré hors ligne', `${esc(nom)} · +${pts} pts en attente d'envoi`, 'attente');
         else toast(`+${pts} points ajoutés`, `${esc(nom)} · nouveau solde <b>${r.solde}</b>`);
       } catch (e) {

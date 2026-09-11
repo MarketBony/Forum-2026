@@ -207,6 +207,79 @@ Verdict 'Chaque manche est tracee en base (tirage justifiable)' `
         ($trace.n -gt 0) ("$($trace.n) lignes de tirage sur $($trace.m) manches")
 
 # =====================================================================
+#  La grille a 200 cases et le plafond par garage
+#
+#  Ces deux mecanismes protegent le meme risque : que la grille soit
+#  videe en debut d'apres-midi et qu'un garage arrive a 17 h ne trouve
+#  plus une seule case.
+# =====================================================================
+Write-Output ''
+Write-Output '=== 200 CASES ET PLAFOND PAR GARAGE ================================'
+Mode 'immediate'
+
+$taille = (Sql "select count(*)::int as n, max(numero)::int as m from grille").data[0]
+Verdict 'La grille compte bien 200 cases numerotees jusqu a 200' `
+        (($taille.n -eq 200) -and ($taille.m -eq 200)) ("cases=$($taille.n) numero max=$($taille.m)")
+
+# Un septieme garage, vierge de toute case : les six precedents ont
+# deja joue et fausseraient le compte du plafond.
+$g7 = (Sql @"
+select id, nom, code from garages
+ where code is not null and code not in ('TEST','BNY2','GRND','BAL2','FRUM','JEUX')
+   and id not in (select garage_id from grille where garage_id is not null)
+ limit 1
+"@).data[0]
+$j7 = Jeton
+Rpc 'api_entrer' @{ p_jeton = $j7; p_code = $g7.code } | Out-Null
+Sql @"
+insert into journal (garage_id, delta, libelle, source, cle_idem)
+values ('$($g7.id)', 200, 'Dotation test plafond', 'administration', 'plafond-$($g7.id)');
+update garages set solde = (select coalesce(sum(delta),0) from journal where garage_id='$($g7.id)')
+ where id = '$($g7.id)';
+"@ | Out-Null
+
+# Les cases 101 a 200 n'existaient pas avant 17_grille_200.sql : c'est
+# la moitie neuve de la grille, celle qu'aucun test ne couvrait.
+$hautes = @(150, 175, 200)
+$prises = 0
+foreach ($n in $hautes) {
+  $r = Rpc 'api_jouer_case' @{ p_jeton = $j7; p_numero = $n; p_cle = (Cle) }
+  if ($r.ok) { $prises++ }
+}
+Verdict 'Les cases de la moitie haute (101-200) sont jouables' `
+        ($prises -eq 3) ("cases 150, 175 et 200 prises = $prises / 3")
+
+$soldeAvant = (Sql "select solde from garages where id='$($g7.id)'").data[0].solde
+$quatrieme  = Rpc 'api_jouer_case' @{ p_jeton = $j7; p_numero = 199; p_cle = (Cle) }
+$soldeApres = (Sql "select solde from garages where id='$($g7.id)'").data[0].solde
+Verdict 'La 4e case est refusee : le plafond de 3 tient' `
+        (($quatrieme.http -eq 400) -and ($quatrieme.code -eq 'PLAFOND_CASES')) `
+        ("$($quatrieme.code) : `"$($quatrieme.detail)`"")
+Verdict 'Le garage plafonne n a rien paye et la case reste libre' `
+        (($soldeApres -eq $soldeAvant) -and
+         ((Sql "select count(*)::int as n from grille where numero=199 and garage_id is null").data[0].n -eq 1)) `
+        ("solde $soldeAvant -> $soldeApres, case 199 libre")
+
+# Un numero hors grille doit etre refuse comme invalide, pas provoquer
+# un debit sans case en face.
+$hors = Rpc 'api_jouer_case' @{ p_jeton = $j7; p_numero = 201; p_cle = (Cle) }
+Verdict 'La case 201 n existe pas et est refusee comme telle' `
+        (($hors.http -eq 400) -and ($hors.code -eq 'CASE_INVALIDE')) `
+        ("$($hors.code) : `"$($hors.detail)`"")
+
+# Le plafond se leve en direct, sans redeploiement : c'est ce qui
+# permettra d'ouvrir le reste de la grille au cocktail.
+Sql "update config set valeur='0' where cle='cases_max_garage'" | Out-Null
+$levee = Rpc 'api_jouer_case' @{ p_jeton = $j7; p_numero = 199; p_cle = (Cle) }
+Sql "update config set valeur='3' where cle='cases_max_garage'" | Out-Null
+Verdict 'Le plafond se leve en direct depuis config' `
+        ($levee.ok) ("4e case acceptee apres levee du plafond : http=$($levee.http)")
+
+$remis = (Sql "select valeur from config where cle='cases_max_garage'").data[0].valeur
+Verdict 'Le plafond est bien remis a 3 apres le test' `
+        ($remis -eq '3') ("cases_max_garage = $remis")
+
+# =====================================================================
 Write-Output ''
 Write-Output '=== Coherence finale ==============================================='
 $fin = (Sql @'
