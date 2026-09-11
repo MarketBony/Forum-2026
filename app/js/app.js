@@ -236,7 +236,7 @@ function vueParticipant() {
               if (c.nature === 'billet') return `<div class="lot">
                 <span class="principal">
                   <span class="lnom">${esc(c.lot || "Ticket d'or")}</span>
-                  <span class="ldetail">Case n°${c.numero} · qualifié pour le tirage de la soirée</span>
+                  <span class="ldetail">Case n°${c.numero} · un gros lot vous revient ce soir</span>
                 </span>
                 <span class="cachet billet">★</span></div>`;
               if (c.nature === 'lot') return `<div class="lot">
@@ -331,12 +331,12 @@ function vueRevelation() {
     <div class="ecran">
       ${barre('Garage', 'espace')}
       <div class="revele ${(billet || lot) ? '' : 'perdu'}">
-        <div class="rk">${billet ? 'Vous êtes' : (lot ? 'Bravo,' : 'Cette fois,')}</div>
-        <div class="rt">${billet ? 'qualifié !' : (lot ? "c'est gagné !" : "c'est raté")}</div>
+        <div class="rk">${billet ? 'Vous avez' : (lot ? 'Bravo,' : 'Cette fois,')}</div>
+        <div class="rt">${billet ? 'un gros lot !' : (lot ? "c'est gagné !" : "c'est raté")}</div>
         ${billet ? `<div class="rlot">${esc(r.lot || "Ticket d'or")}
-            <div class="rnote">Rendez-vous ce soir : le tirage au sort se fait en
-              direct sur l'écran géant, entre les porteurs de ticket d'or. Quinze
-              gros lots sont en jeu.</div></div>`
+            <div class="rnote">L'un des quinze gros lots vous revient. Le tirage
+              de ce soir, en direct sur l'écran géant, désignera lequel —
+              <b>il faut être là</b>.</div></div>`
           : lot ? `<div class="rlot">${esc(r.lot)}
             <div class="rcode">${esc(r.code_retrait)}</div>
             <div class="rnote">Code de retrait, à présenter au stand des lots</div></div>`
@@ -882,7 +882,7 @@ async function agir(a, el) {
           S.revele = r; S.vue = 'revelation';
           await chargerEtat();
           if (!r.revelee) toast(`Case n°${n} réservée`, `−${S.etat.cout_grille} points · verdict ce soir`, 'attente');
-          else if (r.nature === 'billet') toast("Ticket d'or !", 'Vous êtes qualifié pour le tirage au sort de la soirée');
+          else if (r.nature === 'billet') toast("Ticket d'or !", 'Un des quinze gros lots vous revient — rendez-vous au tirage de ce soir');
           else if (r.nature === 'lot') toast('Lot gagné !', esc(r.lot));
           else toast(`Case n°${n} perdante`, `−${S.etat.cout_grille} points · nouveau solde <b>${r.solde}</b>`, 'negatif');
         }

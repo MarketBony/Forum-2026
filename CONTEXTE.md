@@ -513,7 +513,7 @@ halle, le rendu sur téléphone étroit de la présentation : tout ce qui n'a pa
 |---|---|---|
 | 1 | ~~Les 32 lots à nommer~~ | ✅ **100 lots réels**, issus de `stock forum.xlsx` |
 | 2 | **Mode de révélation** | `immediate` aujourd'hui ; `differee` possible en une ligne |
-| 3 | ~~Nombre de billets~~ | ✅ **30 tickets d'or** sur 200 cases, pour 15 gros lots |
+| 3 | ~~Nombre de billets~~ | ✅ **15 tickets d'or** sur 200 cases, un par gros lot |
 | 4 | **Codes définitifs du personnel** | ceux en place sont des codes de démonstration — 31 PIN |
 | 5 | ~~Barèmes et plafonds~~ | ✅ barème fournisseur **par catégorie**, 6 animations en 20/10/5/0 |
 | 6 | **Répétition sur place** | non planifiée — **c'est le point le plus important** |
@@ -526,12 +526,22 @@ halle, le rendu sur téléphone étroit de la présentation : tout ce qui n'a pa
 | | Nombre | Comment | Où on le récupère |
 |---|---|---|---|
 | **Lots immédiats** | 85 | une case « lot » de la grille | au **stand des lots**, pendant le Forum, contre le code de retrait |
-| **Gros lots** | 15 | **tirage au sort du soir** | sur scène, au cocktail |
+| **Gros lots** | 15 | une case « ticket d'or », puis le tirage du soir | sur scène, au cocktail |
 
 Les 15 gros lots (1 696 € à eux seuls, dont le sac cuir Alpine à 379 €) **ne sont
-pas dans la grille**. La grille distribue **30 « tickets d'or »** — des cases qui
-ne disent pas ce qu'on gagne et qui qualifient pour le tirage. Trente pour quinze
-lots : moins, et le tirage n'en serait pas un.
+pas nommés dans la grille**. La grille distribue **15 « tickets d'or »** — des
+cases qui ne disent pas ce qu'on gagne.
+
+**Quinze tickets pour quinze gros lots : personne ne perd.** Une première version
+en posait trente, pour que le tirage ait de vrais perdants. C'était une faute,
+relevée par l'utilisateur : un garage qui lit « qualifié ! », reste pour le
+cocktail, monte sur scène et redescend les mains vides garde un plus mauvais
+souvenir que s'il était tombé sur une case perdante — on lui avait promis quelque
+chose. Le tirage ne décide donc plus *qui gagne* mais **qui gagne quoi**, entre le
+sac Alpine à 379 € et l'avion Caudron à 72 €. Le suspense reste entier.
+
+Résultat : **100 cases gagnantes sur 200, une chance sur deux, et exactement un
+lot par case gagnante.** C'est l'énoncé le plus simple possible du jeu.
 
 > ⚠️ **La mécanique du tirage à 15 gagnants reste à écrire.** `api_tirage_manche`
 > élimine aujourd'hui jusqu'à **un** seul gagnant. Il faudra l'arrêter à quinze,

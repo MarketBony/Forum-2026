@@ -4,16 +4,23 @@
 --  LA COMPOSITION DES 200 CASES
 --    85  lot        un lot remis pendant le Forum, au stand des lots,
 --                   contre le code de retrait affiché sur le téléphone
---    30  billet     le TICKET D'OR : il ne dit pas ce qu'on gagne, il
---                   qualifie pour le tirage au sort du soir
---    85  perdante   rien
+--    15  billet     le TICKET D'OR : il ne dit pas ce qu'on gagne, il
+--                   donne droit à l'un des 15 gros lots, remis le soir
+--   100  perdante   rien
 --
---  POURQUOI 30 TICKETS POUR 15 GROS LOTS :
---  il en faut plus que de lots, sinon le "tirage au sort" n'en est pas
---  un — tout le monde repartirait servi et l'écran géant n'aurait rien
---  à jouer. À 30, la moitié gagne : c'est un vrai tirage, et ça donne
---  30 raisons de rester jusqu'au cocktail. Le nombre se change en
---  rejouant ce fichier après avoir modifié la liste ci-dessous.
+--  Soit 100 cases gagnantes sur 200 — UNE CHANCE SUR DEUX — et
+--  exactement un lot par case gagnante : 85 + 15 = les 100 lots du
+--  stock. C'est l'énoncé le plus simple possible du jeu.
+--
+--  POURQUOI EXACTEMENT 15 TICKETS POUR 15 GROS LOTS :
+--  une première version en posait 30, pour que le tirage du soir ait
+--  de vrais perdants. C'était une faute. Un garage qui lit « Vous êtes
+--  qualifié ! », reste pour le cocktail, monte sur scène et redescend
+--  les mains vides garde un plus mauvais souvenir que s'il était tombé
+--  sur une case perdante : on lui avait promis quelque chose.
+--  À quinze pour quinze, PERSONNE NE PERD, et le tirage garde tout son
+--  suspense — il ne décide plus qui gagne, il décide QUI GAGNE QUOI,
+--  entre le sac cuir Alpine à 379 € et l'avion Caudron à 72 €.
 --
 --  ⚠️ LES 15 GROS LOTS NE SONT PAS DANS LA GRILLE. Ils se gagnent au
 --  tirage du soir, parmi les porteurs de ticket d'or. La mécanique
@@ -32,6 +39,13 @@
 --  exactement la même grille : la répartition est vérifiable, et
 --  personne ne peut prétendre qu'elle a été retouchée en cours de
 --  soirée.
+--
+--  LES 15 TICKETS SONT TIRÉS PAR TRANCHES, un par tranche de ~13 cases
+--  (graine "grand-bal-2026-tickets"). Un tirage libre en avait mis
+--  quatre sur les cases 9, 10, 11 et 12 : invisible pour les joueurs,
+--  mais une zone de la grille aurait été deux fois plus riche que les
+--  autres. Par tranches, un garage qui choisit ses cases dans n'importe
+--  quel coin de la grille a les mêmes chances.
 --
 --  Rejouable — mais REMET LA GRILLE À NEUF. À ne pas lancer en pleine
 --  soirée : les cases déjà achetées perdraient leur sens.
@@ -66,16 +80,15 @@ update public.grille
        nature = 'perdante', lot = null;
 
 -- ---------------------------------------------------------------------
--- 3. Les 30 tickets d'or
+-- 3. Les 15 tickets d'or
 --
 --  lot porte un libellé parce que la contrainte grille_lot_nomme ne
 --  l'exige que pour nature = 'lot' — mais un billet sans libellé
 --  s'afficherait vide sur le téléphone du garage.
 -- ---------------------------------------------------------------------
 update public.grille set nature = 'billet', lot = 'Ticket d''or'
- where numero in (  9,  10,  11,  12,  21,  25,  42,  45,  46,  48,
-                   59,  60,  86,  95,  96,  97, 102, 108, 114, 115,
-                  119, 120, 127, 134, 137, 145, 151, 152, 175, 186);
+ where numero in (  9,  23,  27,  42,  62,  74,  83, 103,
+                  110, 126, 138, 152, 163, 182, 192);
 
 -- ---------------------------------------------------------------------
 -- 4. Les 85 lots remis pendant le Forum
@@ -142,9 +155,9 @@ begin
     from public.grille;
 
   if v_l <> 85 then raise exception '85 cases lot attendues, % trouvées', v_l; end if;
-  if v_b <> 30 then raise exception '30 tickets d''or attendus, % trouvés', v_b; end if;
-  if v_p <> 85 then raise exception '85 cases perdantes attendues, % trouvées', v_p; end if;
+  if v_b <> 15 then raise exception '15 tickets d''or attendus, % trouvés', v_b; end if;
+  if v_p <> 100 then raise exception '100 cases perdantes attendues, % trouvées', v_p; end if;
   if v_sans > 0 then raise exception '% case(s) lot sans libellé', v_sans; end if;
-  raise notice '200 cases : 85 lots, 30 tickets d''or, 85 perdantes.';
+  raise notice '200 cases : 85 lots, 15 tickets d''or, 100 perdantes — 100 gagnantes pour 100 lots.';
 end;
 $$;

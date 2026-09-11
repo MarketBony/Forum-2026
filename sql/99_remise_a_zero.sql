@@ -8,7 +8,7 @@
 --      .\scripts\push-sql.ps1 -File sql\99_remise_a_zero.sql
 --
 --  ⚠️ CE QUE CE FICHIER NE FAIT PAS : il ne recompose pas la grille.
---  La nature des cases (85 lots / 30 tickets d'or / 85 perdantes) et
+--  La nature des cases (85 lots / 15 tickets d'or / 100 perdantes) et
 --  les libellés des lots sont conservés — c'est 18_lots.sql qui les
 --  pose, et le refaire ici obligerait à retirer les numéros au sort
 --  après chaque répétition.

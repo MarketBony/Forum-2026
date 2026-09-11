@@ -130,18 +130,16 @@ et il ne figure sur aucun tableau de bord.
 
 ## Le bingo
 
-> ⚠️ **Composition en cours de refonte.** La grille est passée à **200 cases**
-> (`17_grille_200.sql`) pour accueillir les **100 lots** du stock réel, mais seule
-> la *structure* est faite : les cases 101 à 200 sont encore toutes `perdante`.
-> La composition définitive attend l'arbitrage Bony sur le mode de remise des
-> **15 gros lots** du soir. Le tableau ci-dessous décrit donc l'état transitoire,
-> pas la cible.
-
 | Nature | Nombre | Effet |
 |---|---|---|
-| `perdante` | 150 | rien |
-| `lot` | 45 | un lot, code de retrait, remis au comptoir Bony |
-| `billet` | 5 | une place au grand tirage du soir |
+| `perdante` | 100 | rien |
+| `lot` | 85 | un lot, code de retrait, remis au **stand des lots** pendant le Forum |
+| `billet` | 15 | un **ticket d'or** : l'un des 15 gros lots, remis le soir sur scène |
+
+**100 cases gagnantes sur 200 — une chance sur deux — et un lot par case
+gagnante.** Les 15 tickets d'or valent chacun un gros lot : le tirage du soir ne
+désigne pas qui gagne, il désigne **qui gagne quoi**. Personne ne repart bredouille
+d'un ticket d'or.
 
 Un garage ne peut pas prendre plus de **3 cases** (`config.cases_max_garage`).
 Le plafond se lève en direct et ne se baisse jamais — baisser pénaliserait ceux
