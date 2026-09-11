@@ -1,112 +1,131 @@
 # Le Grand Bal des Points — Forum Pièces Bony 2026
 
 Portefeuille de points du Forum Pièces Bony, édition du **jeudi 17 septembre 2026**,
-Grande Halle d'Auvergne (Cournon-d'Auvergne).
+Grande Halle d'Auvergne (Cournon-d'Auvergne). Remplace les jetons de carton de
+l'édition précédente.
 
-Remplace les jetons de carton de l'édition précédente. Quatre profils :
-garage, animateur, fournisseur, équipe Bony.
+**En ligne :** https://forum-2026.bonyauto-mobile.workers.dev/
+
+> 📘 **Pour reprendre le projet, lire [`CONTEXTE.md`](CONTEXTE.md)** — l'histoire
+> complète, les décisions, la méthode, les pièges et ce qui reste à faire. Ce
+> README ne décrit que le fonctionnement courant.
+
+## Cinq profils, une seule porte
+
+| Profil | Entre avec | Peut faire |
+|---|---|---|
+| **Garage** | son code à 4 caractères | son solde, ses opérations, acheter une case |
+| **Animateur** | le code de son animation | lancer une partie, noter le résultat |
+| **Fournisseur** | le code de son stand | créditer une opération conclue |
+| **Accueil** | le code hôtesse | chercher parmi les 1 407 invités, lire un code |
+| **Équipe Bony** | le code direction | supervision, lots, corrections, projection |
+
+Tout le monde tape son code **dans le même champ** : `api_ouvrir` reconnaît
+elle-même de quelle porte il s'agit. Il n'y a pas d'écran « Équipe » à trouver.
 
 ## Architecture
 
 ```
-QR code  ->  forum-2026.bonyauto-mobile.workers.dev/?e=bal2026   (cette application, PWA)
-         ->  Supabase                                            (Postgres, plan gratuit)
+Navigateur (modules ES natifs, aucune compilation)
+   │  servi par Cloudflare Workers — ressources statiques, pas de code serveur
+   ▼
+Supabase ─┬─ PostgREST      appelle les fonctions api_* en RPC
+          └─ PostgreSQL 17  RLS active partout, AUCUNE policy
 ```
 
-L'application est **statique** : des modules JavaScript natifs, aucune étape de
-compilation. Cloudflare sert les fichiers, le navigateur parle directement aux
-fonctions `api_*` de la base. Aucun code serveur.
+L'application est **statique** : le navigateur parle directement aux fonctions
+`api_*` de la base. RLS est active sur toutes les tables avec zéro policy, donc
+les rôles publics ne peuvent rien lire ni écrire en direct — les 23 fonctions
+`security definer` sont les seules portes d'entrée.
 
-**Le site WordPress de Bony n'intervient pas.** Deux raisons : c'est un multisite
-géré par MotorK, donc ni plugin ni PHP possible, et son CSP (une unique directive
-`default-src` de 96 hôtes) interdit d'appeler Supabase depuis ses pages. Une page
-tremplin sur `bonyauto-mobile.com` avait été envisagée pour respecter le §4 du
-cahier des charges — « le participant arrive sur une page dédiée du site Bony » —
-puis écartée : le QR code mène directement à l'application. **Cet écart au cahier
-des charges est assumé.**
-
+**Le site WordPress de Bony n'intervient pas** : multisite géré par MotorK (ni
+plugin ni PHP) et un CSP qui interdit d'appeler Supabase depuis ses pages.
 L'hébergement séparé apporte en prime le service worker, donc le vrai mode hors
-ligne, impossible à l'intérieur d'une page WordPress qu'on ne contrôle pas.
+ligne.
 
-## Déploiement sur Cloudflare
+## Déploiement
 
-Le projet est déployé en **Worker avec ressources statiques** (le flux actuel de
-Cloudflare pour les sites statiques ; Pages reste possible mais n'évolue plus).
-Il n'y a aucun code serveur : `wrangler.jsonc` ne déclare que le dossier à servir.
+Déployé en **Worker avec ressources statiques** : `wrangler.jsonc` ne déclare que
+le dossier à servir, il n'y a aucun champ `main`. Chaque `git push` sur `main`
+redéploie ; retour arrière en un clic depuis l'historique Cloudflare.
 
-1. Cloudflare -> Create app -> Import a repository -> `MarketBony/Forum-2026`
-2. **Build command** : *laisser vide*
-3. **Deploy command** : `npx wrangler deploy` (valeur préremplie, à garder)
-4. **Builds for non-production branches** : coché, pour obtenir des URL de
-   prévisualisation sur les autres branches
-5. **Protect with Cloudflare Access** : NON sur la production — 400 participants
-   scannant un QR code ne peuvent pas franchir un portail d'authentification
+> ⚠️ **Après chaque push :** incrémenter `VERSION` dans `app/sw.js`, puis vérifier
+> la version réellement servie. Les builds Cloudflare ont déjà échoué en silence
+> deux fois.
 
-Chaque `git push` sur `main` redéploie. Retour arrière en un clic depuis l'historique
-des déploiements.
+```powershell
+(New-Object System.Net.WebClient).DownloadString(
+  'https://forum-2026.bonyauto-mobile.workers.dev/sw.js?t=' + (Get-Random)
+) -match "const VERSION = '([^']+)'" ; $Matches[1]
+```
 
 ## Base de données
 
-Les fichiers `sql/` sont numérotés et rejouables. Pour les envoyer :
-
-```
-.\scripts\push-sql.ps1 -File sql\01_schema.sql
-```
+Fichiers numérotés et rejouables. `.\scripts\push-sql.ps1 -File sql\01_schema.sql`
 
 | Fichier | Contenu |
 |---|---|
-| `01_schema.sql` | tables, contraintes, journal en ajout seul, verrouillage des accès |
-| `02_fonctions.sql` | les fonctions `api_*` — seule porte d'entrée des clients |
-| `03_donnees.sql` | animations, barèmes, stands, grille de 100 cases, garages |
-| `04_complements.sql` | liste des garages (cache hors ligne), export CSV, suivi des lots |
-| `05_inscription.sql` | recherche d'inscription, protégée par le code du QR code |
-| `06_bingo.sql` | nature des cases, deux modes de révélation, le grand tirage |
+| `01_schema.sql` | tables, journal en ajout seul, verrouillage des accès |
+| `02_fonctions.sql` | les fonctions `api_*` — seule porte d'entrée |
+| `03_donnees.sql` | animations, barèmes, stands, grille de 100 cases |
+| `04_complements.sql` | liste des garages, export CSV, suivi des lots |
+| `05_inscription.sql` | *(historique — `api_garages_invites` a été supprimée en 07)* |
+| `06_bingo.sql` | nature des cases, deux modes de révélation, grand tirage |
+| `07_acces.sql` | codes garage, profils, table des tentatives |
+| `08_frein.sql` | un code refusé devient un résultat, pour que le frein compte |
+| `09_accueil.sql` | le poste d'accueil : recherche et lecture des codes |
+| `10_garages.sql` | les 1 407 invités — **généré**, ne pas éditer à la main |
+| `11_recherche.sql` | `norm()` neutralise aussi la ponctuation |
+| `12_requete.sql` | « st » et « ste » développés côté requête seulement |
+| `13_porte.sql` | **la porte unique** et `verifier_portes()` |
+| `14_sante.sql` | `api_sante()`, la sonde de vie |
 | `99_remise_a_zero.sql` | purge après la répétition générale |
 
-## Vérifications
+## Vérifications — 74 contrôles
 
-```
-.\scripts\test-invariants.ps1
-.\scripts\test-bingo.ps1
-.\scripts\test-charge.ps1
-```
+À rejouer après **toute** modification SQL. Ils tournent contre la vraie base.
 
-Le premier prouve que la base refuse le double crédit, le double tirage sur une
-même case, le solde négatif et les dépassements de plafond. Le deuxième vérifie le
-bingo dans les deux modes de révélation et déroule le grand tirage jusqu'au gagnant.
-Le troisième mesure la tenue en charge.
-
-## Codes
-
-Stockés dans la table `config` et dans les tables `animations` / `stands`.
-**À changer avant l'événement.**
-
-| Usage | Code |
-|---|---|
-| Espace Bony | `9137` |
-| Animations | `1001` à `1004` |
-| Stands | `2001` à `2005` |
-| Code d'événement (dans le QR) | `bal2026` |
-
-Le QR code doit pointer vers :
-
-```
-https://forum-2026.bonyauto-mobile.workers.dev/?e=bal2026
+```powershell
+.\scripts\test-porte.ps1        # 32 : la porte unique, le frein, les collisions
+.\scripts\test-invariants.ps1   # 25 : double crédit, solde négatif, plafonds
+.\scripts\test-bingo.ps1        # 17 : les deux modes de révélation, le tirage
 ```
 
-Le paramètre `e` porte le code d'événement. Sans lui, la recherche d'inscription
-est refusée : c'est ce qui empêche d'aspirer la liste des garages invités de
-l'extérieur, sans être sur place.
+## Le jour J
 
-## Ce qui n'est pas dans ce dépôt
+```powershell
+.\scripts\diagnostic.ps1        # « est-ce la base, ou la couche devant ? »
+.\scripts\exporter-journal.ps1  # journal, soldes et lots en CSV — toutes les heures
+```
 
-`.env.local` contient les accès Supabase et **n'est pas versionné**. Seule la clé
-`publishable` apparaît dans `app/config.js` : elle est publique par nature et ne
-donne accès à aucune table, uniquement aux fonctions vérifiées.
+`diagnostic.ps1` interroge Postgres par l'API de management, qui **ne passe pas
+par PostgREST** : il répond donc même quand l'application est à l'arrêt. C'est ce
+qui permet de distinguer une base malade d'une couche API saturée — les deux
+donnent le même symptôme à l'écran.
+
+`exporter-journal.ps1` est la seule vraie protection des données de la soirée :
+une sauvegarde quotidienne est prise la nuit et ne contient rien du 17.
+
+## Dimensionnement
+
+Mesuré, pas supposé. À 20 128 lignes de journal (7× une vraie soirée) :
+
+| Appel | Coût en base | Fréquence |
+|---|---|---|
+| `api_etat` | 1,06 ms | 150 postes / 30 s |
+| `api_supervision` | 17,54 ms | 1 tablette / 10 s |
+| `api_accueil_chercher` | 1,30 ms | par frappe |
+
+Rafale simultanée : **800 requêtes, 0 échec, 314 req/s**. Charge attendue au pic :
+~20 req/s. Le pool PostgREST plafonne à **11 connexions** — c'est le vrai goulot,
+et il ne figure sur aucun tableau de bord.
+
+```powershell
+.\scripts\mesurer-charge.ps1    # coût unitaire, taille du pool, rythme d'une soirée
+.\scripts\trouver-plafond.ps1   # rafale montante jusqu'à la rupture
+```
 
 ## Le bingo
-
-La grille de 100 cases est le bingo. Trois natures de case :
 
 | Nature | Nombre | Effet |
 |---|---|---|
@@ -114,8 +133,8 @@ La grille de 100 cases est le bingo. Trois natures de case :
 | `lot` | 45 | un lot, code de retrait, remis au comptoir Bony |
 | `billet` | 5 | une place au grand tirage du soir |
 
-Les numéros sont figés dans `sql/06_bingo.sql`, donc reproductibles et vérifiables.
-Les libellés « Lot à définir » sont des marque-places à remplacer.
+Les numéros sont figés dans `sql/06_bingo.sql`, donc reproductibles et
+vérifiables. Les libellés « Lot à définir » sont des marque-places à remplacer.
 
 ### Deux modes de révélation, un seul réglage
 
@@ -123,28 +142,48 @@ Les libellés « Lot à définir » sont des marque-places à remplacer.
 update config set valeur = 'immediate' where cle = 'revelation';  -- ou 'differee'
 ```
 
-- **`immediate`** — le garage découvre à l'achat. C'est le ticket à gratter : il gagne,
-  donc il retourne chercher des points, donc il achète. La grille se vide visiblement,
-  ce qui crée l'urgence. Les billets qualifient pour le tirage du soir, ce qui donne une
-  raison de rester au cocktail.
-- **`differee`** — le garage achète à l'aveugle, rien ne se révèle. L'équipe Bony ouvre
-  tout le soir avec `api_reveler`, sur l'écran géant. Le suspense est collectif, mais la
-  boucle « je gagne, je rejoue » disparaît et les garages qui partent avant le cocktail
+- **`immediate`** — le garage découvre à l'achat. C'est le ticket à gratter : il
+  gagne, donc il retourne chercher des points, donc il achète. La grille se vide
+  visiblement, ce qui crée l'urgence.
+- **`differee`** — le garage achète à l'aveugle. L'équipe Bony ouvre tout le soir
+  avec `api_reveler`, sur l'écran géant. Le suspense est collectif, mais la boucle
+  « je gagne, je rejoue » disparaît et les garages qui partent avant le cocktail
   ne savent jamais.
 
-**Le mode se bascule jusqu'à la dernière minute**, y compris pendant la répétition
-générale : la mécanique d'achat est identique, seul le moment où `grille.revele_le` est
-renseigné change.
+**Le mode se bascule jusqu'à la dernière minute** : la mécanique d'achat est
+identique, seul le moment où `grille.revele_le` est renseigné change.
 
 ### Le grand tirage
 
-Écran de projection accessible depuis l'espace Bony, pensé pour un vidéoprojecteur en
-paysage et une lecture à dix mètres.
+Écran de projection accessible depuis l'espace Bony, pensé pour un vidéoprojecteur
+en paysage et une lecture à dix mètres.
 
 1. `api_tirage_ouvrir` photographie les billets vendus et révélés — la course est figée
 2. `api_tirage_manche` élimine environ la moitié des concurrents, à chaque appui
 3. quand il n'en reste qu'un, il est déclaré gagnant
 
-Chaque manche est enregistrée dans la table `tirage` : le tirage peut être rejoué et
-justifié, ce qui compte quand un lot est en jeu. `api_tirage_reset` efface tout et permet
-de recommencer, pour les répétitions.
+Chaque manche est enregistrée dans la table `tirage` : le tirage peut être rejoué
+et justifié, ce qui compte quand un lot est en jeu. `api_tirage_reset` efface tout.
+
+## Codes
+
+Stockés dans `config`, `animations` et `stands`. **Ce sont des codes de
+démonstration : à changer avant l'événement**, puis relancer `verifier_portes()`
+pour s'assurer qu'aucun ne heurte un code garage.
+
+| Usage | Code |
+|---|---|
+| Supervision Bony | `9137` |
+| Poste d'accueil | `4200` |
+| Animations | `1001` à `1004` |
+| Stands | `2001` à `2005` |
+
+## Ce qui n'est pas dans ce dépôt
+
+`.env.local` contient les accès Supabase et **n'est pas versionné**. Seule la clé
+`publishable` apparaît dans `app/config.js` : elle est publique par nature et ne
+donne accès à aucune table, uniquement aux fonctions vérifiées.
+
+`exports/` est ignoré : les exports contiennent les codes d'accès des garages.
+
+Le dépôt est **privé** et doit le rester.
