@@ -505,14 +505,102 @@ halle, le rendu sur téléphone étroit de la présentation : tout ce qui n'a pa
 
 ### Décisions attendues de Bony
 
+> **Mise à jour du 11 septembre 2026, deuxième passe.** Bony a fourni le fichier
+> fournisseurs/barèmes et l'état de stock. Les lignes 1, 3 et 5 ci-dessous sont
+> désormais réglées ; ce qui reste est listé en dessous.
+
 | # | Sujet | État |
 |---|---|---|
-| 1 | **Les 32 lots à nommer** | 13 décrits, 32 en « Lot à définir N » |
+| 1 | ~~Les 32 lots à nommer~~ | ✅ **100 lots réels**, issus de `stock forum.xlsx` |
 | 2 | **Mode de révélation** | `immediate` aujourd'hui ; `differee` possible en une ligne |
-| 3 | **Nombre de billets** | 5 sur 100 cases |
-| 4 | **Codes définitifs du personnel** | ceux en place sont des codes de démonstration |
-| 5 | **Barèmes et plafonds** | valeurs de départ cohérentes, jamais confrontées au terrain |
+| 3 | ~~Nombre de billets~~ | ✅ **30 tickets d'or** sur 200 cases, pour 15 gros lots |
+| 4 | **Codes définitifs du personnel** | ceux en place sont des codes de démonstration — 31 PIN |
+| 5 | ~~Barèmes et plafonds~~ | ✅ barème fournisseur **par catégorie**, 6 animations en 20/10/5/0 |
 | 6 | **Répétition sur place** | non planifiée — **c'est le point le plus important** |
+
+### Ce que l'événement distribue, arrêté le 11 septembre
+
+**100 lots**, valeur totale **3 580 € HT**, 31 références. Ils se gagnent de
+**deux façons distinctes** :
+
+| | Nombre | Comment | Où on le récupère |
+|---|---|---|---|
+| **Lots immédiats** | 85 | une case « lot » de la grille | au **stand des lots**, pendant le Forum, contre le code de retrait |
+| **Gros lots** | 15 | **tirage au sort du soir** | sur scène, au cocktail |
+
+Les 15 gros lots (1 696 € à eux seuls, dont le sac cuir Alpine à 379 €) **ne sont
+pas dans la grille**. La grille distribue **30 « tickets d'or »** — des cases qui
+ne disent pas ce qu'on gagne et qui qualifient pour le tirage. Trente pour quinze
+lots : moins, et le tirage n'en serait pas un.
+
+> ⚠️ **La mécanique du tirage à 15 gagnants reste à écrire.** `api_tirage_manche`
+> élimine aujourd'hui jusqu'à **un** seul gagnant. Il faudra l'arrêter à quinze,
+> et décider comment les 15 gros lots sont attribués aux 15 finalistes (ordre de
+> sortie ? choix du gagnant ?). **Arbitrage Bony en attente**, l'utilisateur a dit
+> « on verra ça après ».
+
+### Les fournisseurs : un barème par catégorie
+
+23 stands, 6 catégories, PIN `2001` à `2023`. Le barème n'est plus quatre nombres
+nus dans le front : il vient de `bareme_stand`, indexé sur la catégorie, et le
+représentant lit son propre vocabulaire.
+
+| Catégorie | Stands | 5 pts | 10 pts | 20 pts |
+|---|---|---|---|---|
+| CA | FAAB, IXELL, ACCESSOIRES, FACOM, SAM, NILFISK, SPM | 1 à 199 € | 200 à 699 € | 700 € et + |
+| ENTRETIEN USURE | MOTRIO, AGENT | 1 à 499 € | 500 à 999 € | 1 000 € et + |
+| HUILES | CASTROL, ELF | Passage | Contact | Commande |
+| SOLUTIONS | SIDEXA, WYZ, BARDHAL, FIDUCIAL, CHIMIREC | Passage | Contact | Commande |
+| GROS ÉQUIPEMENT | CISCAR, PROVAC, MATEXPERT, FILLON TECHNOLOGIE, EXADIS | Passage | Contact | Commande |
+| PNEUS | GOODYEAR, MICHELIN | 1 à 12 pneus | 13 à 24 pneus | 25 pneus et + |
+
+> Le document Word fusionne verticalement la cellule « Passage / Contact /
+> Commande » sur HUILES, SOLUTIONS et GROS ÉQUIPEMENT. Une extraction naïve du
+> `document.xml` lit les cellules de continuation comme **vides** et fait croire
+> que dix stands n'ont pas de barème. Lire les attributs `vMerge`.
+
+> `BARDHAL` et `BLAZZPOD` sont recopiés tels qu'écrits par Bony (il s'agit
+> probablement de *Bardahl* et *BlazePod*). Non corrigés faute de confirmation —
+> un nom de marque ne s'invente pas plus qu'une raison sociale.
+
+### Les 6 animations
+
+PIN `1001` à `1006`, coût de participation **2 points** chacune, échelle
+identique **20 / 10 / 5 / 0** : si un jeu rapportait plus, toute la halle ferait
+la queue au même endroit et les cinq autres animateurs regarderaient passer la
+journée.
+
+BASKET ARCADE · FLÉCHETTES · ATELIER PÉTANQUE · BORNE D'ARCADE · BLAZZPOD ·
+CORN HOLE
+
+> ⚠️ **Les seuils de BASKET ARCADE, BLAZZPOD et BORNE D'ARCADE sont des
+> marque-places.** Ces machines n'ont pas été vues. Il faut trois parties d'essai
+> par jeu à la répétition, sinon soit tout le monde fait 20, soit personne.
+
+> **Une animation rapporte net.** Elle coûte 2 points et rend ~9 en moyenne :
+> **+7 par partie**, et rien dans le code n'empêche un garage d'enchaîner le même
+> jeu toute la journée. Le seul frein réel est la file d'attente physique. Si la
+> répétition montre un jeu monopolisé, le remède est le même que pour les cases :
+> un plafond de parties par garage et par jeu, une clé de `config`, dix lignes.
+> **Proposé, non fait** — l'utilisateur ne l'a pas demandé.
+
+### L'économie des points — un modèle, pas une mesure
+
+| Source | Hypothèse | Points par garage |
+|---|---|---|
+| Bonus d'arrivée | | 10 |
+| Animations | 4 jouées sur 6, ~9 pts | ~36 |
+| Fournisseurs | 4 stands sur 23, ~10 pts | ~40 |
+| **Total** | × 150 garages = **~12 900 points émis** | **~86** |
+
+200 cases à 20 points ne coûtent que **4 000 points** : la demande vaut trois fois
+l'offre. D'où le **plafond de 3 cases par garage** (`config.cases_max_garage`),
+sans lequel la grille serait vidée en début d'après-midi. Le plafond **se lève**
+en direct et ne se baisse jamais — baisser pénaliserait ceux qui ont déjà acheté.
+
+> ⚠️ Ce tableau est un **modèle**. Aucune donnée de terrain de l'édition
+> précédente ne l'étaye. Le nombre de stands qu'un garage visite réellement est
+> la variable la plus incertaine, et c'est celle qui pèse le plus.
 
 ### Travaux techniques identifiés, non faits
 
