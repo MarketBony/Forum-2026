@@ -79,16 +79,19 @@ Fichiers numérotés et rejouables. `.\scripts\push-sql.ps1 -File sql\01_schema.
 | `12_requete.sql` | « st » et « ste » développés côté requête seulement |
 | `13_porte.sql` | **la porte unique** et `verifier_portes()` |
 | `14_sante.sql` | `api_sante()`, la sonde de vie |
+| `15_fournisseurs.sql` | les 23 stands réels et le **barème par catégorie** |
+| `16_animations.sql` | les 6 animations réelles et leurs barèmes |
+| `17_grille_200.sql` | la grille passe à **200 cases**, plafond par garage |
 | `99_remise_a_zero.sql` | purge après la répétition générale |
 
-## Vérifications — 74 contrôles
+## Vérifications — 104 contrôles
 
 À rejouer après **toute** modification SQL. Ils tournent contre la vraie base.
 
 ```powershell
-.\scripts\test-porte.ps1        # 32 : la porte unique, le frein, les collisions
-.\scripts\test-invariants.ps1   # 25 : double crédit, solde négatif, plafonds
-.\scripts\test-bingo.ps1        # 17 : les deux modes de révélation, le tirage
+.\scripts\test-porte.ps1        # 53 : la porte, le frein, les 31 PIN, les collisions
+.\scripts\test-invariants.ps1   # 27 : double crédit, solde négatif, plafonds, paliers
+.\scripts\test-bingo.ps1        # 24 : les deux modes, le tirage, 200 cases, plafond
 ```
 
 ## Le jour J
@@ -127,11 +130,26 @@ et il ne figure sur aucun tableau de bord.
 
 ## Le bingo
 
+> ⚠️ **Composition en cours de refonte.** La grille est passée à **200 cases**
+> (`17_grille_200.sql`) pour accueillir les **100 lots** du stock réel, mais seule
+> la *structure* est faite : les cases 101 à 200 sont encore toutes `perdante`.
+> La composition définitive attend l'arbitrage Bony sur le mode de remise des
+> **15 gros lots** du soir. Le tableau ci-dessous décrit donc l'état transitoire,
+> pas la cible.
+
 | Nature | Nombre | Effet |
 |---|---|---|
-| `perdante` | 50 | rien |
+| `perdante` | 150 | rien |
 | `lot` | 45 | un lot, code de retrait, remis au comptoir Bony |
 | `billet` | 5 | une place au grand tirage du soir |
+
+Un garage ne peut pas prendre plus de **3 cases** (`config.cases_max_garage`).
+Le plafond se lève en direct et ne se baisse jamais — baisser pénaliserait ceux
+qui ont déjà acheté :
+
+```sql
+update config set valeur = '0' where cle = 'cases_max_garage';  -- 0 = illimité
+```
 
 Les numéros sont figés dans `sql/06_bingo.sql`, donc reproductibles et
 vérifiables. Les libellés « Lot à définir » sont des marque-places à remplacer.
@@ -175,8 +193,13 @@ pour s'assurer qu'aucun ne heurte un code garage.
 |---|---|
 | Supervision Bony | `9137` |
 | Poste d'accueil | `4200` |
-| Animations | `1001` à `1004` |
-| Stands | `2001` à `2005` |
+| Animations | `1001` à `1006` |
+| Stands | `2001` à `2023` |
+
+Tous les PIN contiennent un `0` ou un `1`. Ce n'est pas un hasard :
+l'alphabet de génération des codes garage exclut `O`, `I`, `0` et `1`, donc un PIN
+qui contient l'un de ces deux chiffres **ne peut pas** heurter un code garage. La
+garantie est structurelle, et `test-porte.ps1` la vérifie au lieu de l'affirmer.
 
 ## Ce qui n'est pas dans ce dépôt
 

@@ -15,7 +15,7 @@ développeur, tutoie, demande des preuves chiffrées.
 correction doit être adossée à un chiffre obtenu sur la vraie base. « Ça devrait
 tenir » n'est pas une réponse ; un tableau de mesures en est une.
 
-**Rejouer les 74 tests après toute modification SQL.** Ils tournent contre la base
+**Rejouer les 104 tests après toute modification SQL.** Ils tournent contre la base
 de production, sans mock.
 
 ```powershell

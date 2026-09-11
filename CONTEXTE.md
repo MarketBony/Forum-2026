@@ -23,7 +23,7 @@
 | **En ligne** | https://forum-2026.bonyauto-mobile.workers.dev/ |
 | **Dépôt** | `MarketBony/Forum-2026` — **privé**, doit le rester |
 | **Coût** | 0 € (Cloudflare Workers gratuit + Supabase gratuit) |
-| **État** | Fonctionnel de bout en bout, 74 tests verts, en attente de décisions |
+| **État** | Fonctionnel de bout en bout, 104 tests verts, en attente de décisions |
 
 L'interlocuteur est **Bastien Fuziol** (`bastien.fuziol@bonyauto-mobile.com`),
 au service marketing. Technique sans être développeur : il comprend
@@ -423,8 +423,8 @@ n'était jamais parti. Depuis, la règle est : après chaque `git push`, incrém
 ) -match "const VERSION = '([^']+)'" ; $Matches[1]
 ```
 
-**Les tests tournent contre la vraie base.** Pas de mock. 74 contrôles :
-`test-porte.ps1` (32), `test-invariants.ps1` (25), `test-bingo.ps1` (17). À
+**Les tests tournent contre la vraie base.** Pas de mock. 104 contrôles :
+`test-porte.ps1` (53), `test-invariants.ps1` (27), `test-bingo.ps1` (24). À
 rejouer après **toute** modification SQL.
 
 **Le terrain de l'utilisateur l'emporte.** Exemple : j'avais proposé de passer la
@@ -545,10 +545,10 @@ justification chiffrée.
 .\scripts\push-sql.ps1 -File sql\01_schema.sql
 .\scripts\push-sql.ps1 -Query "select count(*) from garages" -Quiet
 
-# Les trois batteries de tests — 74 contrôles, à rejouer après tout changement SQL
-.\scripts\test-porte.ps1        # 32 : la porte unique, le frein, les collisions
-.\scripts\test-invariants.ps1   # 25 : double crédit, solde négatif, plafonds
-.\scripts\test-bingo.ps1        # 17 : les deux modes de révélation, le grand tirage
+# Les trois batteries de tests — 104 contrôles, à rejouer après tout changement SQL
+.\scripts\test-porte.ps1        # 53 : la porte, le frein, les 31 PIN, les collisions
+.\scripts\test-invariants.ps1   # 27 : double crédit, solde négatif, plafonds, paliers
+.\scripts\test-bingo.ps1        # 24 : les deux modes, le tirage, 200 cases, plafond
 
 # Serveur local (le service worker ne fonctionne pas depuis file://)
 .\scripts\serveur.ps1           # http://localhost:8123
