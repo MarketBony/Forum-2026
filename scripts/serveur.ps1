@@ -3,19 +3,26 @@
 #  serveur.ps1 — petit serveur statique pour tester l'application en
 #  local. Aucune dépendance : HttpListener est dans .NET.
 #
-#    .\scripts\serveur.ps1              (http://localhost:8123)
+#    .\scripts\serveur.ps1                          (http://localhost:8123)
 #    .\scripts\serveur.ps1 -Port 9000
+#    .\scripts\serveur.ps1 -Dossier presentation -Port 8125
 #
-#  Sert le dossier app\. Nécessaire parce que les modules ES et les
-#  service workers ne fonctionnent pas depuis file://.
+#  Sert le dossier app\ par défaut. Nécessaire parce que les modules ES
+#  et les service workers ne fonctionnent pas depuis file://.
+#
+#  -Dossier sert autre chose que l'application : les présentations, par
+#  exemple. Elles s'ouvrent très bien en double-cliquant le fichier, mais
+#  pas dans un navigateur piloté — et une présentation qu'on ne peut pas
+#  relire avant la réunion est une présentation qu'on découvre en même
+#  temps que la salle.
 #
 #  Le générateur de badges a le sien, scripts\serveur-badges.ps1 : il
 #  rend des services que celui-ci n'a pas à connaître.
 # =====================================================================
-param([int]$Port = 8123)
+param([int]$Port = 8123, [string]$Dossier = 'app')
 
 $ErrorActionPreference = 'Stop'
-$racine = (Resolve-Path (Join-Path $PSScriptRoot '..\app')).Path
+$racine = (Resolve-Path (Join-Path $PSScriptRoot (Join-Path '..' $Dossier))).Path
 
 $types = @{
   '.html' = 'text/html; charset=utf-8'

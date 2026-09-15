@@ -1,0 +1,998 @@
+<title>Le Grand Bal des Fournisseurs — réunion d'agents</title>
+
+<!-- =====================================================================
+     Présentation aux AGENTS — Forum Pièces Bony 2026
+     Réunion du matin, projetée sur grand écran dans une salle où
+     certains sont assis au fond.
+
+     CE QUI CHANGE PAR RAPPORT À presentation/direction.html :
+
+     1. TOUT EST PLUS GROS. La présentation à la direction se lisait à
+        un mètre sur un portable ; celle-ci se lit à dix mètres. Les
+        échelles typographiques sont montées d'un cran, et les maquettes
+        de téléphone passent de 238 à 320 px avec leurs textes internes
+        agrandis d'autant. Un écran de téléphone dessiné à 8 px n'existe
+        pas pour la moitié de la salle.
+
+     2. ON PARLE À DES GARAGISTES, PAS À DES DÉCIDEURS. Aucune
+        architecture, aucun chiffre de charge, aucun coût. Ce qu'ils
+        veulent savoir tient en trois questions : comment j'entre,
+        comment je gagne, qu'est-ce que je gagne.
+
+     3. AUCUN CODE D'ACCÈS N'APPARAÎT. Le code montré dans les maquettes
+        est « BAL1 » : il contient un 1, or l'alphabet des codes garage
+        exclut 0, 1, O et I. Il ne peut donc appartenir à personne, par
+        construction. Même précaution que dans la présentation direction.
+
+     4. ON NE DIT PAS OÙ SONT LES LOTS. La grille de démonstration est
+        volontairement générique ; aucun numéro de case gagnante réel
+        n'apparaît nulle part.
+     ===================================================================== -->
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=Petit+Formal+Script&family=Hanken+Grotesk:wght@400;500;600;700&display=swap">
+
+<style>
+:root{
+  --nuit:#1A0E22; --nuit-1:#241531; --nuit-2:#2E1B3E;
+  --or:#C5963C; --or-clair:#E6C77E; --or-pale:#EFD79A; --or-fonce:#9A6C26;
+  --terracotta:#D15B30; --terracotta-clair:#E68152;
+  --creme:#F1E7D2; --creme-2:#FAF4E7;
+  --vert-ok:#6FBE7E; --magenta:#B0286E;
+
+  --txt:#F1E7D2; --txt-2:rgba(241,231,210,.74); --txt-3:rgba(241,231,210,.48);
+  --filet:rgba(241,231,210,.10);
+
+  --serif:"Playfair Display",Georgia,"Times New Roman",serif;
+  --script:"Petit Formal Script","Segoe Script",cursive;
+  --sans:"Hanken Grotesk",-apple-system,system-ui,"Segoe UI",sans-serif;
+
+  --verre:linear-gradient(150deg, rgba(88,54,116,.46) 0%, rgba(44,25,58,.34) 100%);
+  --anneau:inset 0 1px 0 rgba(255,247,224,.22),
+           inset 0 0 0 .5px rgba(255,247,224,.14),
+           inset 0 -14px 28px -18px rgba(255,247,224,.16);
+  --ombre:0 1px 2px rgba(0,0,0,.24), 0 16px 44px -14px rgba(0,0,0,.6);
+  --sortie:cubic-bezier(.2,.8,.2,1);
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{
+  background:
+    radial-gradient(90% 60% at 50% -6%, rgba(247,120,70,.20) 0%, transparent 62%),
+    radial-gradient(70% 50% at 92% 34%, rgba(176,40,110,.15) 0%, transparent 66%),
+    radial-gradient(80% 55% at 4% 78%, rgba(143,18,171,.13) 0%, transparent 68%),
+    var(--nuit);
+  color:var(--txt);
+  font-family:var(--sans); font-size:16px; line-height:1.55;
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+  overflow:hidden;
+}
+
+/* --- décor d'ambiance, repris de l'application --------------------- */
+#decor{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+#decor .grain{
+  position:absolute;inset:0;opacity:.5;mix-blend-mode:overlay;
+  background-image:radial-gradient(rgba(255,255,255,.05) 1px, transparent 1px);
+  background-size:3px 3px;
+}
+.loupiotte{
+  position:absolute;border-radius:50%;
+  background:radial-gradient(circle at 34% 30%, #FFF6DE 0%, #F0C36A 42%, rgba(197,150,60,0) 72%);
+  filter:blur(.3px);
+  animation:respire var(--d,8s) ease-in-out var(--r,0s) infinite;
+}
+@keyframes respire{0%,100%{opacity:.30;transform:scale(1)}50%{opacity:.85;transform:scale(1.22)}}
+.braise{
+  position:absolute;bottom:-24px;border-radius:50%;
+  background:radial-gradient(circle, rgba(240,195,106,.85) 0%, rgba(209,91,48,0) 70%);
+  animation:monte var(--rd,22s) linear var(--rl,0s) infinite;
+}
+@keyframes monte{
+  0%{transform:translate(0,0) scale(.6);opacity:0}
+  12%{opacity:.55}
+  85%{opacity:.18}
+  100%{transform:translate(var(--dx,30px),-104vh) scale(1.1);opacity:0}
+}
+
+/* --- le diaporama --------------------------------------------------- */
+#deck{
+  position:relative;z-index:1;
+  height:100dvh;overflow-y:auto;overflow-x:hidden;
+  scroll-snap-type:y proximity;scroll-behavior:smooth;scrollbar-width:none;
+}
+#deck::-webkit-scrollbar{display:none}
+.dia{
+  scroll-snap-align:start;min-height:100dvh;width:100%;
+  display:flex;flex-direction:column;justify-content:center;
+  padding:clamp(24px,3.4vh,48px) clamp(24px,4.6vw,78px);position:relative;
+}
+.corps{width:100%;max-width:1320px;margin:0 auto}
+
+/* =====================================================================
+   TYPOGRAPHIE — montée d'un cran pour la projection
+
+   Les valeurs de la présentation direction sont entre parenthèses. La
+   salle est longue : ce qui se lit à un mètre ne se lit pas au fond.
+   ===================================================================== */
+.script{font-family:var(--script);font-size:clamp(30px,4vw,54px);line-height:1;color:var(--or-clair)}   /* (26-42) */
+.titre{
+  font-family:var(--serif);font-weight:700;
+  font-size:clamp(36px,6.2vw,82px);line-height:1.03;letter-spacing:-.02em;   /* (30-60) */
+  color:var(--creme-2);text-wrap:balance;margin-top:.1em;
+}
+.titre em{font-style:normal;color:var(--or-pale)}
+.chapo{
+  font-size:clamp(17px,1.5vw,24px);line-height:1.5;color:var(--txt-2);       /* (14.5-16.5) */
+  max-width:54ch;margin-top:clamp(12px,1.6vh,20px);text-wrap:pretty;
+}
+.deux .titre{font-size:clamp(31px,3.9vw,58px)}
+.deux .script{font-size:clamp(26px,3vw,42px)}
+.etiq{font-size:13px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--or);display:block}
+.num{font-family:var(--serif);font-size:15px;font-weight:700;letter-spacing:.22em;color:var(--txt-3);font-variant-numeric:tabular-nums}
+
+/* --- surface de verre ---------------------------------------------- */
+.verre{
+  position:relative;background:var(--verre);
+  backdrop-filter:blur(24px) saturate(2) brightness(1.06);
+  -webkit-backdrop-filter:blur(24px) saturate(2) brightness(1.06);
+  border-radius:22px;box-shadow:var(--ombre),var(--anneau);isolation:isolate;
+}
+.verre::after{
+  content:"";position:absolute;inset:0;z-index:1;border-radius:inherit;
+  padding:1.6px;pointer-events:none;mix-blend-mode:overlay;
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;
+  background:linear-gradient(135deg,rgba(255,255,255,0) 0%,rgba(255,255,255,.32) 30%,
+             rgba(255,255,255,.60) 62%,rgba(255,255,255,.13) 84%,rgba(255,255,255,0) 100%);
+}
+.verre>*{position:relative;z-index:2}
+
+/* --- couverture ------------------------------------------------------ */
+.couv{align-items:center;text-align:center}
+.couv .corps{max-width:1000px}
+.blason{width:52px;height:52px;fill:var(--or);opacity:.9;margin:0 auto clamp(18px,3vh,34px)}
+.couv .titre{font-size:clamp(46px,8.6vw,118px);line-height:1}
+.couv .script{font-size:clamp(34px,5.2vw,66px)}
+.souscouv{margin-top:clamp(20px,3vh,34px);font-size:clamp(17px,1.6vw,24px);color:var(--txt-2)}
+.regle{width:82px;height:1px;margin:clamp(22px,3.4vh,40px) auto;background:linear-gradient(90deg,transparent,var(--or),transparent)}
+.mention{font-size:15px;color:var(--txt-3);letter-spacing:.14em;text-transform:uppercase}
+
+.guirlande{position:absolute;top:0;left:0;right:0;height:74px;pointer-events:none;z-index:2}
+.guirlande svg{width:100%;height:74px;display:block}
+.guirlande .fil{fill:none;stroke:rgba(197,150,60,.42);stroke-width:1.2}
+.ampoule{
+  position:absolute;border-radius:50%;width:var(--t,8px);height:var(--t,8px);transform:translateX(-50%);
+  background:radial-gradient(circle at 36% 30%,var(--c1,#FFF3D6) 0%,var(--c2,#F0C36A) 55%,rgba(197,150,60,.1) 100%);
+  box-shadow:0 0 var(--g,7px) rgba(240,195,106,.7);
+  animation:scintille var(--dt,5s) ease-in-out var(--dl,0s) infinite;
+}
+.ampoule::before{content:"";position:absolute;left:50%;bottom:100%;width:1px;height:var(--p,8px);transform:translateX(-50%);background:rgba(197,150,60,.42)}
+@keyframes scintille{0%,100%{opacity:var(--f,.6)}50%{opacity:1}}
+
+/* --- grilles de contenu ---------------------------------------------- */
+.deux{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(30px,4vw,68px);align-items:center}
+.deux.penche{grid-template-columns:minmax(0,.86fr) minmax(0,1.14fr)}
+.deux.penche-g{grid-template-columns:minmax(0,1.14fr) minmax(0,.86fr)}
+
+.cartes{display:grid;gap:clamp(12px,1.3vw,20px);margin-top:clamp(18px,2.4vh,30px)}
+.c2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.c3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.c4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.carte{padding:clamp(16px,1.5vw,24px);display:flex;flex-direction:column;gap:9px}
+.carte h3{font-family:var(--sans);font-size:clamp(17px,1.35vw,22px);font-weight:600;color:var(--creme-2);line-height:1.28}
+.carte p{font-size:clamp(14.5px,1.1vw,18px);line-height:1.5;color:var(--txt-2)}
+
+.chiffre{
+  font-family:var(--serif);font-weight:700;letter-spacing:-.03em;
+  font-size:clamp(38px,4.6vw,72px);line-height:1;color:var(--or-pale);font-variant-numeric:tabular-nums;
+}
+.chiffre.sobre{color:var(--creme-2)}
+.chiffre.vert{color:var(--vert-ok)}
+.chiffre.terra{color:var(--terracotta-clair)}
+.legende{font-size:clamp(13.5px,1.05vw,17px);line-height:1.4;color:var(--txt-3);margin-top:8px}
+
+/* --- étapes numérotées ------------------------------------------------ */
+.etapes{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:clamp(10px,1.1vw,16px);margin-top:clamp(18px,2.6vh,32px)}
+.etape{padding:clamp(14px,1.4vw,22px);display:flex;flex-direction:column;gap:10px}
+.etape .rang{font-family:var(--serif);font-size:clamp(28px,2.6vw,40px);font-weight:700;line-height:1;color:var(--or);opacity:.6;font-variant-numeric:tabular-nums}
+.etape h3{font-family:var(--sans);font-size:clamp(16px,1.25vw,20px);font-weight:600;color:var(--creme-2);line-height:1.25}
+.etape p{font-size:clamp(13.5px,1.05vw,17px);line-height:1.45;color:var(--txt-2)}
+.etape .pts{font-size:clamp(13px,1vw,16px);font-weight:700;letter-spacing:.05em;color:var(--or-clair)}
+
+/* --- listes ----------------------------------------------------------- */
+.liste{display:flex;flex-direction:column;gap:clamp(11px,1.3vh,17px);margin-top:clamp(14px,2vh,22px)}
+.pt{display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:start}
+.pt i{width:9px;height:9px;border-radius:2px;margin-top:10px;background:var(--or);box-shadow:0 0 10px rgba(197,150,60,.6)}
+.pt i.terra{background:var(--terracotta);box-shadow:0 0 10px rgba(209,91,48,.55)}
+.pt i.vert{background:var(--vert-ok);box-shadow:0 0 10px rgba(111,190,126,.5)}
+.pt b{grid-column:2;display:block;font-size:clamp(17px,1.35vw,22px);font-weight:600;color:var(--creme-2)}
+.pt span{grid-column:2;display:block;font-size:clamp(14.5px,1.1vw,18px);line-height:1.48;color:var(--txt-2);margin-top:3px}
+
+/* --- barre de répartition --------------------------------------------- */
+.repart{display:flex;height:22px;border-radius:999px;overflow:hidden;margin-top:22px;box-shadow:inset 0 0 0 1px rgba(255,247,224,.12)}
+.repart span{display:block;height:100%}
+.repart .perdu{background:rgba(241,231,210,.14);flex:100}
+.repart .lot{background:linear-gradient(90deg,var(--or-fonce),var(--or));flex:85}
+.repart .billet{background:linear-gradient(90deg,var(--terracotta),var(--terracotta-clair));flex:15}
+.repart-lg{display:flex;gap:26px;flex-wrap:wrap;margin-top:14px;font-size:clamp(14px,1.05vw,17px);color:var(--txt-3)}
+.repart-lg i{display:inline-block;width:13px;height:13px;border-radius:3px;margin-right:9px;vertical-align:-1px}
+
+/* =====================================================================
+   MAQUETTES — 320 px au lieu de 238, et tous les textes internes
+   agrandis dans la même proportion. Un écran de téléphone dessiné à
+   8 px de corps n'existe pas pour quelqu'un assis au fond de la salle.
+   ===================================================================== */
+.scene{display:flex;gap:clamp(16px,2.2vw,34px);justify-content:center;align-items:flex-start;flex-wrap:wrap}
+.tel{
+  width:320px;flex:0 0 auto;border-radius:38px;padding:10px;
+  background:linear-gradient(160deg,#3A2B4A,#150C1C);
+  box-shadow:0 34px 80px -26px rgba(0,0,0,.85),
+             inset 0 1px 0 rgba(255,247,224,.16),0 0 0 1px rgba(255,247,224,.07);
+}
+.tel .ecr{
+  border-radius:29px;overflow:hidden;position:relative;aspect-ratio:9/17.4;
+  background:
+    radial-gradient(90% 60% at 50% -6%, rgba(247,120,70,.22) 0%, transparent 62%),
+    radial-gradient(70% 50% at 92% 34%, rgba(176,40,110,.16) 0%, transparent 66%),
+    var(--nuit);
+  padding:17px 15px;display:flex;flex-direction:column;gap:12px;
+  font-size:13px;line-height:1.4;
+}
+.tel .ecr>*{flex:none}
+.tel-lg{display:block;text-align:center;font-size:clamp(14px,1.1vw,17px);color:var(--txt-3);margin-top:14px}
+
+.m-barre{display:flex;align-items:center;gap:8px}
+.m-barre svg{width:15px;height:15px;fill:var(--or);opacity:.85;flex:0 0 auto}
+.m-barre b{font-size:10.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--txt-2)}
+.m-barre em{margin-left:auto;font-style:normal;font-size:11px;color:var(--or-clair)}
+
+.m-script{font-family:var(--script);font-size:23px;line-height:1;color:var(--or-clair)}
+.m-titre{font-family:var(--serif);font-weight:700;font-size:20px;line-height:1.08;letter-spacing:-.015em;color:var(--creme-2)}
+.m-sous{font-size:11.5px;line-height:1.45;color:var(--txt-3)}
+.m-etiq{font-size:9.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--txt-3)}
+
+.m-verre{
+  background:var(--verre);border-radius:16px;padding:14px;
+  box-shadow:0 1px 2px rgba(0,0,0,.24),0 10px 26px -12px rgba(0,0,0,.6),
+             inset 0 1px 0 rgba(255,247,224,.20),inset 0 0 0 .5px rgba(255,247,224,.12);
+}
+.m-champ{
+  border-radius:14px;background:rgba(241,231,210,.055);
+  box-shadow:inset 0 0 0 1px rgba(241,231,210,.09);
+  padding:14px;text-align:center;letter-spacing:.34em;font-size:19px;font-weight:600;color:var(--creme-2);
+}
+.m-champ.gauche{text-align:left;letter-spacing:0;font-size:12px;font-weight:400;color:var(--txt-3);padding:12px 13px}
+.m-bouton{
+  border-radius:999px;padding:12px;text-align:center;font-size:13.5px;font-weight:700;color:#2A1808;
+  background:linear-gradient(180deg,var(--or-pale),var(--or));
+  box-shadow:0 6px 20px -8px rgba(197,150,60,.75),inset 0 1px 0 rgba(255,255,255,.5);
+}
+.m-bouton.creux{background:rgba(241,231,210,.05);color:var(--txt-2);font-weight:600;box-shadow:inset 0 0 0 1px rgba(241,231,210,.14)}
+
+.m-solde{text-align:center;padding:17px 14px}
+.m-solde .nom{display:block;font-size:13px;font-weight:600;color:var(--creme-2)}
+.m-solde .ville{font-size:10.5px;color:var(--txt-3);margin-bottom:8px}
+.m-solde .gros{font-family:var(--serif);font-weight:700;font-size:54px;line-height:1;letter-spacing:-.03em;color:var(--or-pale);text-shadow:0 0 26px rgba(230,199,126,.35)}
+.m-solde .unite{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--txt-3);margin-top:4px}
+.m-rappel{margin-top:12px;padding-top:11px;border-top:1px solid var(--filet);font-size:10.5px;color:var(--txt-3);line-height:1.45}
+.m-rappel b{color:var(--or-clair);font-size:13.5px;letter-spacing:.14em}
+
+.m-groupe{background:var(--verre);border-radius:16px;overflow:hidden;box-shadow:inset 0 1px 0 rgba(255,247,224,.18),inset 0 0 0 .5px rgba(255,247,224,.10)}
+.m-rangee{display:flex;align-items:center;gap:10px;padding:11px 13px}
+.m-rangee+.m-rangee{border-top:1px solid var(--filet)}
+.m-rangee .p{flex:1;min-width:0}
+.m-rangee .n{display:block;font-size:12.5px;font-weight:600;color:var(--creme-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.m-rangee .d{display:block;font-size:10.5px;color:var(--txt-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.m-rangee .v{font-size:14px;font-weight:700;color:var(--or-clair);font-variant-numeric:tabular-nums}
+.m-rangee .v.vert{color:var(--vert-ok)}
+
+.m-grille{display:grid;grid-template-columns:repeat(10,1fr);gap:3.5px}
+.m-case{
+  aspect-ratio:1;border-radius:4px;display:flex;align-items:center;justify-content:center;
+  font-size:7.5px;font-weight:600;font-variant-numeric:tabular-nums;
+  background:rgba(241,231,210,.075);color:var(--txt-2);box-shadow:inset 0 0 0 .5px rgba(241,231,210,.05);
+}
+.m-case.prise{background:rgba(241,231,210,.022);color:var(--txt-3);opacity:.5;box-shadow:none}
+.m-case.vive{background:linear-gradient(180deg,var(--or-pale),var(--or));color:#2A1808;transform:scale(1.32);box-shadow:0 3px 10px -2px rgba(197,150,60,.8);z-index:2}
+
+.m-note{
+  position:relative;display:flex;align-items:center;gap:10px;padding:11px 13px 11px 17px;
+  background:var(--verre);border-radius:14px;
+  box-shadow:inset 0 1px 0 rgba(255,247,224,.18),inset 0 0 0 .5px rgba(255,247,224,.10);
+}
+.m-note::before{content:"";position:absolute;left:0;top:11px;bottom:11px;width:3px;border-radius:0 3px 3px 0;background:var(--accent,var(--or-clair))}
+.m-note .nl{flex:1;font-size:13px;font-weight:600;color:var(--creme-2)}
+.m-note .np{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--accent,var(--or-clair))}
+.m-note.gagne{--accent:var(--vert-ok)}
+.m-note.moyen{--accent:var(--or-clair)}
+.m-note.nul{--accent:rgba(241,231,210,.26)}
+.m-note.nul .np{color:var(--txt-3)}
+
+.m-revele{text-align:center;padding:24px 14px}
+.m-revele .rk{font-family:var(--script);font-size:26px;line-height:1;color:var(--or-clair)}
+.m-revele .rt{font-family:var(--serif);font-weight:700;font-size:23px;line-height:1.1;color:var(--or-pale);text-shadow:0 0 22px rgba(230,199,126,.35)}
+.m-revele .rlot{
+  margin-top:14px;padding:14px;border-radius:14px;background:var(--verre);
+  box-shadow:inset 0 1px 0 rgba(255,247,224,.20),inset 0 0 0 .5px rgba(255,247,224,.12);
+  font-family:var(--serif);font-size:15px;color:var(--creme-2);line-height:1.25;
+}
+.m-revele .rcode{font-family:var(--sans);font-size:20px;font-weight:700;letter-spacing:.2em;color:var(--or-pale);margin-top:9px}
+.m-revele .rnote{font-family:var(--sans);font-size:10px;color:var(--txt-3);line-height:1.45;margin-top:7px}
+.m-revele .rcase{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--txt-3);margin-top:13px}
+
+.m-toast{
+  position:absolute;left:15px;right:15px;bottom:15px;
+  background:var(--verre);border-radius:15px;padding:12px 14px;
+  box-shadow:0 10px 30px -10px rgba(0,0,0,.8),inset 0 1px 0 rgba(255,247,224,.22),inset 0 0 0 .5px rgba(255,247,224,.14);
+}
+.m-toast .tt{font-size:12.5px;font-weight:700;color:var(--or-pale)}
+.m-toast .tc{font-size:10.5px;color:var(--txt-2);line-height:1.4;margin-top:2px}
+
+/* --- déroulé de la journée -------------------------------------------- */
+.frise{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:clamp(12px,1.4vw,22px);margin-top:clamp(20px,3vh,34px)}
+.moment{padding:clamp(16px,1.6vw,24px);position:relative}
+.moment .h{font-family:var(--serif);font-size:clamp(24px,2.4vw,36px);font-weight:700;color:var(--or-pale);line-height:1;font-variant-numeric:tabular-nums}
+.moment h3{font-family:var(--sans);font-size:clamp(16px,1.2vw,20px);font-weight:600;color:var(--creme-2);margin-top:9px}
+.moment p{font-size:clamp(13.5px,1.05vw,17px);line-height:1.45;color:var(--txt-2);margin-top:5px}
+
+/* --- navigation -------------------------------------------------------- */
+#rail{position:fixed;right:clamp(10px,1.4vw,24px);top:50%;transform:translateY(-50%);z-index:20;display:flex;flex-direction:column;gap:10px}
+#rail button{width:11px;height:11px;padding:0;border:0;border-radius:50%;cursor:pointer;background:rgba(241,231,210,.18);transition:all .25s var(--sortie)}
+#rail button:hover{background:rgba(241,231,210,.42);transform:scale(1.25)}
+#rail button[aria-current="true"]{background:var(--or);box-shadow:0 0 12px rgba(197,150,60,.9);height:26px;border-radius:999px}
+#rail button:focus-visible{outline:2px solid var(--or-pale);outline-offset:3px}
+
+#pied{
+  position:fixed;left:clamp(20px,3vw,46px);bottom:clamp(14px,2.4vh,28px);z-index:20;
+  font-size:14px;letter-spacing:.16em;text-transform:uppercase;color:var(--txt-3);
+  font-variant-numeric:tabular-nums;pointer-events:none;
+}
+#pied b{color:var(--or);font-weight:700}
+
+.souris{
+  position:absolute;left:50%;bottom:clamp(20px,4vh,44px);transform:translateX(-50%);
+  font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:var(--txt-3);
+  display:flex;flex-direction:column;align-items:center;gap:9px;animation:flotte 2.6s ease-in-out infinite;
+}
+.souris i{display:block;width:1px;height:30px;background:linear-gradient(180deg,var(--or),transparent)}
+@keyframes flotte{0%,100%{opacity:.5;transform:translate(-50%,0)}50%{opacity:1;transform:translate(-50%,5px)}}
+
+.ap{opacity:0;transform:translateY(18px);transition:opacity .7s var(--sortie),transform .7s var(--sortie)}
+.dia.vue .ap{opacity:1;transform:none}
+.dia.vue .ap:nth-child(2){transition-delay:.07s}
+.dia.vue .ap:nth-child(3){transition-delay:.14s}
+.dia.vue .ap:nth-child(4){transition-delay:.21s}
+.dia.vue .ap:nth-child(5){transition-delay:.28s}
+
+@media (max-width:1240px){
+  .etapes{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .c4{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .frise{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:900px), (max-height:640px){
+  #deck{scroll-snap-type:none}
+  .dia{min-height:auto;padding:clamp(46px,7vh,76px) 22px}
+  .couv{min-height:100dvh}
+  .deux,.deux.penche,.deux.penche-g{grid-template-columns:1fr;gap:32px}
+  .etapes,.frise{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .c2,.c3,.c4{grid-template-columns:1fr}
+  #rail,.souris{display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  .ap{opacity:1;transform:none}
+  #deck{scroll-behavior:auto}
+}
+</style>
+
+<div id="decor" aria-hidden="true"><div class="grain"></div></div>
+
+<div id="deck">
+
+<!-- ================= 1 · COUVERTURE ================= -->
+<section class="dia couv" data-t="Couverture">
+  <div class="guirlande" aria-hidden="true">
+    <svg viewBox="0 0 1000 74" preserveAspectRatio="none">
+      <path class="fil" d="M 0 8 Q 92.5 34 185 6 Q 300 32 415 10 Q 512.5 38 610 5 Q 707.5 33 805 9 Q 902.5 34 1000 7"/>
+    </svg>
+    <div class="ampoules" aria-hidden="true"></div>
+  </div>
+  <div class="corps">
+    <svg class="blason ap" viewBox="0 0 62.09 63.05" aria-hidden="true"><path d="M57.36,24.68c-.41-.47-.85-.93-1.32-1.37.45-1.28.77-2.59.95-3.9.73-5.19-.63-10.07-3.84-13.76-3.16-3.64-7.73-5.64-12.86-5.64h-17.54l-4.05,22.05h23.55c3.27,0,6.34.86,8.89,2.49-3.14,5.81-9.41,9.71-15.66,9.71H5.25L0,63.05h36.5c12.26,0,23.64-9.97,25.36-22.22.86-6.09-.74-11.83-4.5-16.16h0ZM57.91,40.27c-1.46,10.36-11.06,18.78-21.4,18.78H4.81l3.76-20.81h26.92c7.41,0,14.74-4.34,18.74-11.08.04.04.08.09.11.13,2.99,3.44,4.25,8.04,3.56,12.98h0ZM53.04,18.85c-.09.64-.22,1.28-.39,1.92-3.04-1.78-6.62-2.71-10.39-2.71h-18.65l2.42-14.06h14.26c3.96,0,7.45,1.52,9.84,4.27,2.43,2.8,3.46,6.56,2.9,10.58h0Z"/></svg>
+    <div class="ap">
+      <div class="script">Le</div>
+      <h1 class="titre">Grand Bal<br>des Fournisseurs</h1>
+    </div>
+    <div class="regle ap"></div>
+    <p class="souscouv ap">
+      Cette année, les jetons tiennent dans votre téléphone.<br>
+      Jeudi 17 septembre · Grande Halle d'Auvergne
+    </p>
+    <p class="mention ap" style="margin-top:28px">Réunion d'agents</p>
+  </div>
+  <div class="souris" aria-hidden="true"><i></i>Faire défiler</div>
+</section>
+
+<!-- ================= 2 · CE QUI CHANGE ================= -->
+<section class="dia" data-t="Ce qui change">
+  <div class="corps">
+    <div class="ap">
+      <span class="num">01 — CE QUI CHANGE</span>
+      <div class="script" style="margin-top:14px">Plus de jetons</div>
+      <h2 class="titre">en carton. <em>Tout est dans<br>votre téléphone.</em></h2>
+    </div>
+    <p class="chapo ap">
+      Vous arrivez, vous tapez les quatre caractères de votre invitation, et votre
+      compte de points s'ouvre. Rien à installer, rien à créer, aucun mot de passe.
+      Vous gagnez des points toute la journée, et vous les dépensez sur une grille
+      où se cachent cent lots.
+    </p>
+    <div class="cartes c3">
+      <div class="verre carte ap">
+        <span class="etiq">Vous n'avez rien à faire</span>
+        <h3>Pas de compte à créer</h3>
+        <p>Votre code est déjà sur votre invitation. Il ouvre votre solde, et il le rouvre si vous fermez la page.</p>
+      </div>
+      <div class="verre carte ap">
+        <span class="etiq">Rien à perdre</span>
+        <h3>Vos points vous suivent</h3>
+        <p>Ils sont dans le téléphone, pas dans une poche. Impossible d'en faire tomber un sous une table.</p>
+      </div>
+      <div class="verre carte ap">
+        <span class="etiq">Toute la journée</span>
+        <h3>Votre solde en direct</h3>
+        <p>À chaque partie, à chaque stand, vous voyez le compte monter. Vous savez toujours où vous en êtes.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 3 · L'ENTRÉE ================= -->
+<section class="dia" data-t="L entrée">
+  <div class="corps deux penche">
+    <div>
+      <div class="ap">
+        <span class="num">02 — L'ENTRÉE</span>
+        <div class="script" style="margin-top:14px">Quatre caractères,</div>
+        <h2 class="titre">et c'est parti</h2>
+      </div>
+      <div class="liste ap">
+        <div class="pt"><i></i><b>Votre code est sur l'invitation</b>
+          <span>Quatre caractères, en gros. C'est votre clé, et elle ne sert qu'à vous.</span></div>
+        <div class="pt"><i></i><b>Vous l'avez perdu ?</b>
+          <span>L'accueil vous le redonne en trois secondes. Personne ne reste à la porte.</span></div>
+        <div class="pt"><i class="vert"></i><b>Dix points offerts en arrivant</b>
+          <span>Votre compte ne démarre pas à zéro : vous avez déjà de quoi commencer.</span></div>
+      </div>
+    </div>
+    <div class="scene ap">
+      <div>
+        <div class="tel">
+          <div class="ecr">
+            <div class="m-barre"><svg viewBox="0 0 62.09 63.05"><path d="M57.36,24.68c-.41-.47-.85-.93-1.32-1.37.45-1.28.77-2.59.95-3.9.73-5.19-.63-10.07-3.84-13.76-3.16-3.64-7.73-5.64-12.86-5.64h-17.54l-4.05,22.05h23.55c3.27,0,6.34.86,8.89,2.49-3.14,5.81-9.41,9.71-15.66,9.71H5.25L0,63.05h36.5c12.26,0,23.64-9.97,25.36-22.22.86-6.09-.74-11.83-4.5-16.16h0ZM57.91,40.27c-1.46,10.36-11.06,18.78-21.4,18.78H4.81l3.76-20.81h26.92c7.41,0,14.74-4.34,18.74-11.08.04.04.08.09.11.13,2.99,3.44,4.25,8.04,3.56,12.98h0ZM53.04,18.85c-.09.64-.22,1.28-.39,1.92-3.04-1.78-6.62-2.71-10.39-2.71h-18.65l2.42-14.06h14.26c3.96,0,7.45,1.52,9.84,4.27,2.43,2.8,3.46,6.56,2.9,10.58h0Z"/></svg><b>Forum Pièces 2026</b></div>
+            <div style="margin-top:18px">
+              <div class="m-script">Bienvenue au</div>
+              <div class="m-titre">Le Grand Bal<br>des Fournisseurs</div>
+              <div class="m-sous" style="margin-top:7px">Jeudi 17 septembre 2026 · Grande Halle d'Auvergne</div>
+            </div>
+            <div style="margin-top:18px;display:flex;flex-direction:column;gap:11px">
+              <span class="m-etiq">Votre code</span>
+              <div class="m-champ">BAL1</div>
+              <div class="m-bouton">Entrer</div>
+            </div>
+            <div class="m-sous" style="margin-top:13px">
+              Votre code figure sur l'invitation. Vous l'avez perdu ?
+              L'accueil vous le redonne en trois secondes.
+            </div>
+          </div>
+        </div>
+        <span class="tel-lg">L'écran d'entrée</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 4 · GAGNER DES POINTS ================= -->
+<section class="dia" data-t="Gagner des points">
+  <div class="corps">
+    <div class="ap">
+      <span class="num">03 — GAGNER</span>
+      <div class="script" style="margin-top:14px">Deux façons</div>
+      <h2 class="titre">de faire monter le compteur</h2>
+    </div>
+    <div class="cartes c2 ap" style="margin-top:clamp(20px,3vh,34px)">
+      <div class="verre carte">
+        <span class="etiq">Les six animations</span>
+        <h3 style="font-size:clamp(20px,1.7vw,27px)">Vous jouez, vous marquez</h3>
+        <p>Pétanque, corn hole, fléchettes, basket, Blazzpod et la borne d'arcade.
+           Deux points pour lancer une partie, et jusqu'à dix si vous réussissez.
+           <b style="color:var(--or-clair)">Un coup réussi, vous ne perdez rien ; un coup manqué, ça vous aura coûté deux points.</b></p>
+      </div>
+      <div class="verre carte">
+        <span class="etiq">Les vingt-trois stands</span>
+        <h3 style="font-size:clamp(20px,1.7vw,27px)">Vous discutez, vous marquez</h3>
+        <p>Chaque opération conclue sur un stand fournisseur vous rapporte des points —
+           jusqu'à vingt d'un coup. C'est là que les gros points se gagnent, et
+           c'est aussi pour ça que le Forum existe.</p>
+      </div>
+    </div>
+    <div class="cartes c4 ap">
+      <div class="verre carte" style="align-items:center;text-align:center">
+        <div class="chiffre vert">10</div><div class="legende">points à l'arrivée</div>
+      </div>
+      <div class="verre carte" style="align-items:center;text-align:center">
+        <div class="chiffre">6</div><div class="legende">animations</div>
+      </div>
+      <div class="verre carte" style="align-items:center;text-align:center">
+        <div class="chiffre">23</div><div class="legende">stands fournisseurs</div>
+      </div>
+      <div class="verre carte" style="align-items:center;text-align:center">
+        <div class="chiffre">20</div><div class="legende">points maximum<br>par opération</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 5 · LES ANIMATIONS ================= -->
+<section class="dia" data-t="Les animations">
+  <div class="corps deux penche-g">
+    <div>
+      <div class="ap">
+        <span class="num">04 — LES ANIMATIONS</span>
+        <div class="script" style="margin-top:14px">L'animateur</div>
+        <h2 class="titre">note, vous jouez</h2>
+      </div>
+      <p class="chapo ap">
+        Vous vous présentez, il vous retrouve dans la liste, il lance la partie.
+        Deux points sont débités. Vous jouez. Il note le résultat, et les points
+        tombent tout de suite sur votre compte.
+      </p>
+      <div class="liste ap">
+        <div class="pt"><i></i><b>Rien à saisir de votre côté</b>
+          <span>Vous donnez votre nom, c'est tout. Vous n'avez même pas à sortir votre téléphone.</span></div>
+        <div class="pt"><i class="terra"></i><b>Chaque jeu a sa limite</b>
+          <span>On ne peut pas camper devant une borne toute la journée : au bout de quelques parties,
+                il faut aller voir ailleurs. Il y a six jeux, et il en faut pour tout le monde.</span></div>
+      </div>
+    </div>
+    <div class="scene ap">
+      <div>
+        <div class="tel">
+          <div class="ecr">
+            <div class="m-barre"><svg viewBox="0 0 62.09 63.05"><path d="M57.36,24.68c-.41-.47-.85-.93-1.32-1.37.45-1.28.77-2.59.95-3.9.73-5.19-.63-10.07-3.84-13.76-3.16-3.64-7.73-5.64-12.86-5.64h-17.54l-4.05,22.05h23.55c3.27,0,6.34.86,8.89,2.49-3.14,5.81-9.41,9.71-15.66,9.71H5.25L0,63.05h36.5c12.26,0,23.64-9.97,25.36-22.22.86-6.09-.74-11.83-4.5-16.16h0ZM57.91,40.27c-1.46,10.36-11.06,18.78-21.4,18.78H4.81l3.76-20.81h26.92c7.41,0,14.74-4.34,18.74-11.08.04.04.08.09.11.13,2.99,3.44,4.25,8.04,3.56,12.98h0ZM53.04,18.85c-.09.64-.22,1.28-.39,1.92-3.04-1.78-6.62-2.71-10.39-2.71h-18.65l2.42-14.06h14.26c3.96,0,7.45,1.52,9.84,4.27,2.43,2.8,3.46,6.56,2.9,10.58h0Z"/></svg><b>Atelier pétanque</b><em>Retour</em></div>
+            <div style="margin-top:6px">
+              <div class="m-titre" style="font-size:17px">Garage des Volcans</div>
+              <div class="m-sous" style="margin-top:4px">Participation débitée. Sélectionnez le résultat.</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:9px;margin-top:6px">
+              <div class="m-note gagne"><span class="nl">Tir · 3 boules sur 3</span><span class="np">+10</span></div>
+              <div class="m-note moyen"><span class="nl">Tir · 2 boules sur 3</span><span class="np">+5</span></div>
+              <div class="m-note moyen"><span class="nl">Pointeur · 3 cerceaux</span><span class="np">+5</span></div>
+              <div class="m-note moyen"><span class="nl">Pointeur · 2 cerceaux</span><span class="np">+3</span></div>
+              <div class="m-note moyen"><span class="nl">Tir · 1 boule sur 3</span><span class="np">+2</span></div>
+              <div class="m-note nul"><span class="nl">Rien de marqué</span><span class="np">0</span></div>
+            </div>
+          </div>
+        </div>
+        <span class="tel-lg">L'écran de l'animateur, à la pétanque</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 6 · VOTRE ESPACE ================= -->
+<section class="dia" data-t="Votre espace">
+  <div class="corps deux penche">
+    <div>
+      <div class="ap">
+        <span class="num">05 — VOTRE ESPACE</span>
+        <div class="script" style="margin-top:14px">Votre solde,</div>
+        <h2 class="titre">et tout ce qui l'a fait</h2>
+      </div>
+      <p class="chapo ap">
+        Un seul écran : votre compte en gros, le bouton pour tenter un lot, et la liste
+        de tout ce que vous avez gagné dans la journée. Chaque ligne est datée et
+        nommée — vous pouvez toujours vérifier d'où vient un point.
+      </p>
+      <div class="liste ap">
+        <div class="pt"><i></i><b>Votre code reste affiché</b>
+          <span>Notez-le : il rouvre votre solde si vous fermez l'application ou changez de téléphone.</span></div>
+        <div class="pt"><i class="vert"></i><b>Un bouton, une action</b>
+          <span>« Tenter un lot ». C'est le seul geste que vous ferez sur ce téléphone.</span></div>
+      </div>
+    </div>
+    <div class="scene ap">
+      <div>
+        <div class="tel">
+          <div class="ecr">
+            <div class="m-barre"><svg viewBox="0 0 62.09 63.05"><path d="M57.36,24.68c-.41-.47-.85-.93-1.32-1.37.45-1.28.77-2.59.95-3.9.73-5.19-.63-10.07-3.84-13.76-3.16-3.64-7.73-5.64-12.86-5.64h-17.54l-4.05,22.05h23.55c3.27,0,6.34.86,8.89,2.49-3.14,5.81-9.41,9.71-15.66,9.71H5.25L0,63.05h36.5c12.26,0,23.64-9.97,25.36-22.22.86-6.09-.74-11.83-4.5-16.16h0ZM57.91,40.27c-1.46,10.36-11.06,18.78-21.4,18.78H4.81l3.76-20.81h26.92c7.41,0,14.74-4.34,18.74-11.08.04.04.08.09.11.13,2.99,3.44,4.25,8.04,3.56,12.98h0ZM53.04,18.85c-.09.64-.22,1.28-.39,1.92-3.04-1.78-6.62-2.71-10.39-2.71h-18.65l2.42-14.06h14.26c3.96,0,7.45,1.52,9.84,4.27,2.43,2.8,3.46,6.56,2.9,10.58h0Z"/></svg><b>Mon espace</b><em>Règles</em></div>
+            <div class="m-verre m-solde">
+              <div class="nom">Garage des Volcans</div>
+              <div class="ville">63000 Clermont-Ferrand</div>
+              <div class="gros">64</div>
+              <div class="unite">points</div>
+              <div class="m-rappel">Votre code <b>BAL1</b><br>Notez-le : il rouvre votre solde si vous changez de téléphone.</div>
+            </div>
+            <div class="m-bouton">Tenter un lot · 20 pts</div>
+            <span class="m-etiq">Mes opérations</span>
+            <div class="m-groupe">
+              <div class="m-rangee"><span class="p"><span class="n">Achat — MICHELIN</span><span class="d">15 h 12 · 13 à 24 pneus</span></span><span class="v vert">+10</span></div>
+              <div class="m-rangee"><span class="p"><span class="n">Atelier pétanque · tir 2 sur 3</span><span class="d">14 h 48</span></span><span class="v vert">+5</span></div>
+              <div class="m-rangee"><span class="p"><span class="n">Atelier pétanque · participation</span><span class="d">14 h 47</span></span><span class="v">−2</span></div>
+              <div class="m-rangee"><span class="p"><span class="n">Achat — FACOM</span><span class="d">11 h 30 · 200 à 699 €</span></span><span class="v vert">+10</span></div>
+              <div class="m-rangee"><span class="p"><span class="n">Bienvenue au Forum</span><span class="d">09 h 41</span></span><span class="v vert">+10</span></div>
+            </div>
+          </div>
+        </div>
+        <span class="tel-lg">Votre espace, en cours de journée</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 7 · LA GRILLE ================= -->
+<section class="dia" data-t="La grille">
+  <div class="corps deux penche-g">
+    <div>
+      <div class="ap">
+        <span class="num">06 — LA GRILLE</span>
+        <div class="script" style="margin-top:14px">Deux cents cases,</div>
+        <h2 class="titre">cent lots dessous</h2>
+      </div>
+      <p class="chapo ap">
+        Vingt points la case. Vous choisissez un numéro, vous appuyez, et vous savez
+        tout de suite. <b style="color:var(--or-pale)">Une case sur deux est gagnante</b> —
+        il y a exactement cent lots pour deux cents cases.
+      </p>
+      <div class="repart ap" aria-hidden="true">
+        <span class="lot"></span><span class="billet"></span><span class="perdu"></span>
+      </div>
+      <div class="repart-lg ap">
+        <span><i style="background:linear-gradient(90deg,var(--or-fonce),var(--or))"></i>85 lots à emporter</span>
+        <span><i style="background:linear-gradient(90deg,var(--terracotta),var(--terracotta-clair))"></i>15 tickets d'or</span>
+        <span><i style="background:rgba(241,231,210,.14)"></i>100 cases vides</span>
+      </div>
+      <div class="liste ap">
+        <div class="pt"><i class="terra"></i><b>Cinq cases par garage, pas plus</b>
+          <span>Il en faut pour tout le monde, et pour ceux qui arrivent en fin de journée.</span></div>
+      </div>
+    </div>
+    <div class="scene ap">
+      <div>
+        <div class="tel">
+          <div class="ecr">
+            <div class="m-barre"><svg viewBox="0 0 62.09 63.05"><path d="M57.36,24.68c-.41-.47-.85-.93-1.32-1.37.45-1.28.77-2.59.95-3.9.73-5.19-.63-10.07-3.84-13.76-3.16-3.64-7.73-5.64-12.86-5.64h-17.54l-4.05,22.05h23.55c3.27,0,6.34.86,8.89,2.49-3.14,5.81-9.41,9.71-15.66,9.71H5.25L0,63.05h36.5c12.26,0,23.64-9.97,25.36-22.22.86-6.09-.74-11.83-4.5-16.16h0ZM57.91,40.27c-1.46,10.36-11.06,18.78-21.4,18.78H4.81l3.76-20.81h26.92c7.41,0,14.74-4.34,18.74-11.08.04.04.08.09.11.13,2.99,3.44,4.25,8.04,3.56,12.98h0ZM53.04,18.85c-.09.64-.22,1.28-.39,1.92-3.04-1.78-6.62-2.71-10.39-2.71h-18.65l2.42-14.06h14.26c3.96,0,7.45,1.52,9.84,4.27,2.43,2.8,3.46,6.56,2.9,10.58h0Z"/></svg><b>La grille</b><em>Retour</em></div>
+            <div>
+              <div class="m-titre" style="font-size:17px">Choisissez votre case</div>
+              <div class="m-sous" style="margin-top:4px">20 points · il vous reste 3 cases</div>
+            </div>
+            <div class="m-grille" id="mgrille"></div>
+            <div class="m-sous" style="margin-top:2px">Les cases grisées sont déjà prises.</div>
+          </div>
+        </div>
+        <span class="tel-lg">La grille (les cent premières cases)</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 8 · LE VERDICT ================= -->
+<section class="dia" data-t="Le verdict">
+  <div class="corps deux">
+    <div>
+      <div class="ap">
+        <span class="num">07 — LE VERDICT</span>
+        <div class="script" style="margin-top:14px">Gagné ?</div>
+        <h2 class="titre">Le lot vous attend<br>au stand</h2>
+      </div>
+      <p class="chapo ap">
+        Un code de retrait s'affiche sur votre téléphone. Vous le présentez au stand
+        des lots, on vous remet le cadeau, et c'est réglé. Pas de ticket à garder,
+        pas de file à la sortie.
+      </p>
+      <div class="cartes c3 ap">
+        <div class="verre carte" style="align-items:center;text-align:center">
+          <div class="chiffre">100</div><div class="legende">lots à gagner</div>
+        </div>
+        <div class="verre carte" style="align-items:center;text-align:center">
+          <div class="chiffre sobre">1<span style="font-size:.55em"> sur </span>2</div><div class="legende">cases gagnantes</div>
+        </div>
+        <div class="verre carte" style="align-items:center;text-align:center">
+          <div class="chiffre terra">15</div><div class="legende">gros lots<br>remis le soir</div>
+        </div>
+      </div>
+    </div>
+    <div class="scene ap">
+      <div>
+        <div class="tel">
+          <div class="ecr">
+            <div class="m-barre"><svg viewBox="0 0 62.09 63.05"><path d="M57.36,24.68c-.41-.47-.85-.93-1.32-1.37.45-1.28.77-2.59.95-3.9.73-5.19-.63-10.07-3.84-13.76-3.16-3.64-7.73-5.64-12.86-5.64h-17.54l-4.05,22.05h23.55c3.27,0,6.34.86,8.89,2.49-3.14,5.81-9.41,9.71-15.66,9.71H5.25L0,63.05h36.5c12.26,0,23.64-9.97,25.36-22.22.86-6.09-.74-11.83-4.5-16.16h0ZM57.91,40.27c-1.46,10.36-11.06,18.78-21.4,18.78H4.81l3.76-20.81h26.92c7.41,0,14.74-4.34,18.74-11.08.04.04.08.09.11.13,2.99,3.44,4.25,8.04,3.56,12.98h0ZM53.04,18.85c-.09.64-.22,1.28-.39,1.92-3.04-1.78-6.62-2.71-10.39-2.71h-18.65l2.42-14.06h14.26c3.96,0,7.45,1.52,9.84,4.27,2.43,2.8,3.46,6.56,2.9,10.58h0Z"/></svg><b>Garage</b><em>Retour</em></div>
+            <div class="m-verre m-revele" style="margin-top:22px">
+              <div class="rk">Bravo,</div>
+              <div class="rt">c'est gagné !</div>
+              <div class="rlot">MINIATURE SYMBIOZ 1/43
+                <div class="rcode">4E199</div>
+                <div class="rnote">Code de retrait, à présenter au stand des lots</div>
+              </div>
+              <div class="rcase">Case n°37</div>
+            </div>
+            <div style="margin-top:auto;display:flex;flex-direction:column;gap:10px">
+              <div class="m-bouton">Retenter ma chance</div>
+              <div class="m-bouton creux">Revenir à mon solde</div>
+            </div>
+          </div>
+        </div>
+        <span class="tel-lg">Le verdict, à l'instant où vous appuyez</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 9 · LE TICKET D'OR ================= -->
+<section class="dia" data-t="Le ticket d or">
+  <div class="corps deux penche">
+    <div>
+      <div class="ap">
+        <span class="num">08 — LE TICKET D'OR</span>
+        <div class="script" style="margin-top:14px">Quinze cases</div>
+        <h2 class="titre">ne disent pas<br><em>ce qu'elles cachent</em></h2>
+      </div>
+      <p class="chapo ap">
+        Derrière chacune, un gros lot. Mais vous ne saurez lequel qu'au cocktail,
+        sur l'écran géant, quand les quinze noms seront annoncés un par un.
+      </p>
+      <div class="liste ap">
+        <div class="pt"><i class="terra"></i><b>Quinze tickets, quinze gros lots</b>
+          <span>Personne ne repart les mains vides : si vous décrochez un ticket, un gros lot est à vous.
+                Le soir ne décide pas qui gagne — il décide qui gagne quoi.</span></div>
+        <div class="pt"><i></i><b>Du sac cuir Alpine à l'avion en bois</b>
+          <span>Il y a de quoi attendre la fin de soirée.</span></div>
+        <div class="pt"><i class="vert"></i><b>Il faut être là</b>
+          <span>La révélation se fait sur scène, au cocktail. C'est le seul moment où l'on saura.</span></div>
+      </div>
+    </div>
+    <div class="scene ap">
+      <div>
+        <div class="tel">
+          <div class="ecr">
+            <div class="m-barre"><svg viewBox="0 0 62.09 63.05"><path d="M57.36,24.68c-.41-.47-.85-.93-1.32-1.37.45-1.28.77-2.59.95-3.9.73-5.19-.63-10.07-3.84-13.76-3.16-3.64-7.73-5.64-12.86-5.64h-17.54l-4.05,22.05h23.55c3.27,0,6.34.86,8.89,2.49-3.14,5.81-9.41,9.71-15.66,9.71H5.25L0,63.05h36.5c12.26,0,23.64-9.97,25.36-22.22.86-6.09-.74-11.83-4.5-16.16h0ZM57.91,40.27c-1.46,10.36-11.06,18.78-21.4,18.78H4.81l3.76-20.81h26.92c7.41,0,14.74-4.34,18.74-11.08.04.04.08.09.11.13,2.99,3.44,4.25,8.04,3.56,12.98h0ZM53.04,18.85c-.09.64-.22,1.28-.39,1.92-3.04-1.78-6.62-2.71-10.39-2.71h-18.65l2.42-14.06h14.26c3.96,0,7.45,1.52,9.84,4.27,2.43,2.8,3.46,6.56,2.9,10.58h0Z"/></svg><b>Garage</b><em>Retour</em></div>
+            <div class="m-verre m-revele" style="margin-top:22px">
+              <div class="rk">Vous avez</div>
+              <div class="rt">un gros lot !</div>
+              <div class="rlot">Ticket d'or
+                <div class="rnote" style="margin-top:8px">L'un des quinze gros lots vous revient. Il est déjà sous cette case ;
+                  il se révélera ce soir sur l'écran géant — <b style="color:var(--or-clair)">il faut être là</b>.</div>
+              </div>
+              <div class="rcase">Case n°62</div>
+            </div>
+            <div class="m-toast">
+              <div class="tt">Ticket d'or !</div>
+              <div class="tc">Un des quinze gros lots vous revient — rendez-vous au tirage de ce soir</div>
+            </div>
+          </div>
+        </div>
+        <span class="tel-lg">Ce que vous verrez si vous tombez dessus</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 10 · LA JOURNÉE ================= -->
+<section class="dia" data-t="La journée">
+  <div class="corps">
+    <div class="ap">
+      <span class="num">09 — LE DÉROULÉ</span>
+      <div class="script" style="margin-top:14px">Une journée,</div>
+      <h2 class="titre">quatre temps</h2>
+    </div>
+    <div class="frise">
+      <div class="verre moment ap">
+        <div class="h">Matin</div>
+        <h3>Vous arrivez</h3>
+        <p>L'accueil vous remet votre badge. Vous tapez votre code, vous avez dix points.</p>
+      </div>
+      <div class="verre moment ap">
+        <div class="h">Journée</div>
+        <h3>Vous jouez, vous discutez</h3>
+        <p>Les six animations, les vingt-trois stands. Le compteur monte.</p>
+      </div>
+      <div class="verre moment ap">
+        <div class="h">Au fil</div>
+        <h3>Vous tentez la grille</h3>
+        <p>Vingt points la case, cinq cases. Les lots se retirent au stand, tout de suite.</p>
+      </div>
+      <div class="verre moment ap">
+        <div class="h">Le soir</div>
+        <h3>Le cocktail, et l'écran géant</h3>
+        <p>Les quinze gros lots sont révélés un par un. C'est le moment à ne pas manquer.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 11 · À RETENIR ================= -->
+<section class="dia" data-t="À retenir">
+  <div class="corps">
+    <div class="ap">
+      <span class="num">10 — À RETENIR</span>
+      <div class="script" style="margin-top:14px">Si vous ne retenez</div>
+      <h2 class="titre">que trois choses</h2>
+    </div>
+    <div class="etapes ap" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+      <div class="verre etape">
+        <div class="rang">1</div>
+        <h3>Votre code est sur l'invitation</h3>
+        <p>Quatre caractères. Apportez-la, ou retenez-le. L'accueil dépanne, mais ça vous fera gagner du temps.</p>
+      </div>
+      <div class="verre etape">
+        <div class="rang">2</div>
+        <h3>Jouez, mais passez sur les stands</h3>
+        <p>Les animations font plaisir ; ce sont les stands qui remplissent le compteur. Vingt points l'opération.</p>
+        <span class="pts">C'est là que ça se joue</span>
+      </div>
+      <div class="verre etape">
+        <div class="rang">3</div>
+        <h3>Restez pour le cocktail</h3>
+        <p>Les quinze gros lots ne se remettent que sur scène, le soir. Un ticket d'or ne sert à rien si vous êtes parti.</p>
+        <span class="pts">Le moment à ne pas manquer</span>
+      </div>
+    </div>
+    <p class="chapo ap" style="margin-top:clamp(22px,3vh,36px);max-width:68ch">
+      Et si quelque chose ne marche pas : l'équipe Bony est sur place toute la journée,
+      au stand des lots. Personne ne restera bloqué devant un écran.
+    </p>
+  </div>
+</section>
+
+<!-- ================= 12 · CLÔTURE ================= -->
+<section class="dia couv" data-t="Rendez-vous">
+  <div class="corps">
+    <div class="ap">
+      <div class="script">À jeudi</div>
+      <h2 class="titre">Grande Halle<br>d'Auvergne</h2>
+    </div>
+    <div class="regle ap"></div>
+    <p class="souscouv ap">
+      Jeudi 17 septembre 2026 · Cournon-d'Auvergne<br>
+      Toute la journée, puis cocktail dînatoire et grand tirage.
+    </p>
+    <p class="mention ap" style="margin-top:30px">Forum Pièces Bony 2026 · Le Grand Bal des Fournisseurs</p>
+  </div>
+</section>
+
+</div>
+
+<nav id="rail" aria-label="Navigation entre les diapositives"></nav>
+<div id="pied"><b id="ici">01</b> / <span id="total">12</span></div>
+
+<script>
+(function(){
+  'use strict';
+  var doux = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* --- décor : loupiottes et braises -------------------------------- */
+  var decor = document.getElementById('decor');
+  var LOUPIOTTES = [
+    [7,5,5,7,0],[19,10,3,8.5,1.4],[31,4,4,6.2,2.6],[44,9,3,9,.8],
+    [56,5,5,7.5,3.1],[68,11,3,8,1.9],[81,4,4,6.8,2.2],[92,9,3,9.4,.5],
+    [4,34,3,10,1.1],[96,41,3,9.2,2.8],[12,88,3,8.8,3.4],[88,92,4,7.8,1.6]
+  ];
+  var BRAISES = [
+    [10,6,19,0,42],[23,4,24,3.5,-32],[36,5,17,7,54],[48,6,22,1.5,-48],
+    [59,4,26,9,36],[70,5,18,4.5,-26],[82,6,23,11,58],[93,4,20,2.5,-42]
+  ];
+  if(!doux){
+    var html = '';
+    LOUPIOTTES.forEach(function(l){
+      html += '<span class="loupiotte" style="left:'+l[0]+'%;top:'+l[1]+'%;width:'+l[2]+'px;height:'+l[2]+'px;--d:'+l[3]+'s;--r:'+l[4]+'s"></span>';
+    });
+    BRAISES.forEach(function(b){
+      html += '<span class="braise" style="left:'+b[0]+'%;width:'+b[1]+'px;height:'+b[1]+'px;--rd:'+b[2]+'s;--rl:'+b[3]+'s;--dx:'+b[4]+'px"></span>';
+    });
+    decor.insertAdjacentHTML('afterbegin', html);
+  }
+
+  /* --- guirlande : ampoules posées le long du fil ------------------- */
+  var appuis = [{x:0,y:8},{x:185,y:6},{x:415,y:10},{x:610,y:5},{x:805,y:9},{x:1000,y:7}];
+  var creux = [26,22,28,24,25];
+  var segs = appuis.slice(0,-1).map(function(a,i){
+    var b = appuis[i+1];
+    return {a:a, b:b, cx:(a.x+b.x)/2, cy:Math.max(a.y,b.y)+creux[i]};
+  });
+  function pointSur(s,t){
+    var u = 1-t;
+    return {x:u*u*s.a.x + 2*u*t*s.cx + t*t*s.b.x, y:u*u*s.a.y + 2*u*t*s.cy + t*t*s.b.y};
+  }
+  var teintes = [['#FFF3D6','#F0C36A'],['#FFE9B0','#E0A23C'],['#FFD9A0','#D98A33'],
+                 ['#FFFFFF','#F1E7D2'],['#FFE0C0','#E6824A'],['#FFEFC4','#E9B24A']];
+  var places = [[.34,.68],[.32,.74],[.42],[.36,.72],[.48]];
+  var tailles=[7,9,6,8,7,9,6,8], pendus=[6,12,4,10,15,7,13,5],
+      halos=[5,8,4,7,9,5,8,4], plancher=[.6,.72,.52,.64,.76,.56,.68,.6],
+      durees=[4.8,6.4,4.2,5.6,7,5,6,4.6];
+  var k = 0, amp = '';
+  places.forEach(function(liste,s){
+    liste.forEach(function(t){
+      var p = pointSur(segs[s], t), c = teintes[k % teintes.length], i = k % tailles.length;
+      amp += '<span class="ampoule" style="left:'+(p.x/1000*100).toFixed(2)+'%;top:'+(p.y+pendus[i]).toFixed(1)+'px;'
+           + '--t:'+tailles[i]+'px;--p:'+pendus[i]+'px;--g:'+halos[i]+'px;--c1:'+c[0]+';--c2:'+c[1]+';'
+           + '--f:'+plancher[i]+';--dt:'+durees[i]+'s;--dl:'+((k*0.37)%3).toFixed(2)+'s"></span>';
+      k++;
+    });
+  });
+  var boite = document.querySelector('.guirlande .ampoules');
+  if(boite) boite.innerHTML = amp;
+
+  /* --- la grille de démonstration -----------------------------------
+     RÉPARTITION FIXE ET FICTIVE. On ne montre JAMAIS les vrais numéros
+     gagnants : la présentation est faite le matin même, devant ceux qui
+     vont jouer. Ces cases « prises » ne sont qu'un décor plausible. */
+  var mg = document.getElementById('mgrille');
+  if(mg){
+    var prises = [3,7,12,18,19,24,29,31,33,40,42,47,51,55,58,60,63,66,70,74,
+                  77,79,83,86,88,91,94,97,99,5,14,26,36,44,52,68,72,81,90,96];
+    var cases = '';
+    for(var n = 1; n <= 100; n++){
+      var cl = 'm-case' + (n === 37 ? ' vive' : (prises.indexOf(n) >= 0 ? ' prise' : ''));
+      cases += '<span class="' + cl + '">' + n + '</span>';
+    }
+    mg.innerHTML = cases;
+  }
+
+  /* --- navigation ---------------------------------------------------- */
+  var deck = document.getElementById('deck');
+  var dias = Array.prototype.slice.call(deck.querySelectorAll('.dia'));
+  var rail = document.getElementById('rail');
+  var ici = document.getElementById('ici');
+  document.getElementById('total').textContent = String(dias.length).padStart(2,'0');
+
+  dias.forEach(function(d, i){
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.setAttribute('aria-label', (i+1) + '. ' + (d.dataset.t || ''));
+    b.addEventListener('click', function(){
+      d.scrollIntoView({behavior: doux ? 'auto' : 'smooth', block:'start'});
+    });
+    rail.appendChild(b);
+  });
+  var puces = Array.prototype.slice.call(rail.children);
+
+  var obs = new IntersectionObserver(function(entrees){
+    entrees.forEach(function(e){
+      if(!e.isIntersecting) return;
+      e.target.classList.add('vue');
+      var i = dias.indexOf(e.target);
+      if(i < 0) return;
+      ici.textContent = String(i+1).padStart(2,'0');
+      puces.forEach(function(p, j){ p.setAttribute('aria-current', j === i ? 'true' : 'false'); });
+    });
+  }, {root: deck, threshold: 0.18});
+  dias.forEach(function(d){ obs.observe(d); });
+  dias[0].classList.add('vue');
+
+  /* La télécommande d'un vidéoprojecteur envoie PageUp / PageDown, et
+     certaines envoient les flèches. Les deux sont gérées, plus l'espace :
+     on ne veut pas découvrir en réunion que le clicker ne fait rien. */
+  function vers(i){
+    if(i < 0 || i >= dias.length) return;
+    dias[i].scrollIntoView({behavior: doux ? 'auto' : 'smooth', block:'start'});
+  }
+  function courante(){
+    for(var j = 0; j < puces.length; j++){
+      if(puces[j].getAttribute('aria-current') === 'true') return j;
+    }
+    return 0;
+  }
+  document.addEventListener('keydown', function(ev){
+    var i = courante();
+    if(ev.key === 'ArrowDown' || ev.key === 'ArrowRight' || ev.key === 'PageDown' || ev.key === ' '){
+      ev.preventDefault(); vers(i+1);
+    } else if(ev.key === 'ArrowUp' || ev.key === 'ArrowLeft' || ev.key === 'PageUp'){
+      ev.preventDefault(); vers(i-1);
+    } else if(ev.key === 'Home'){ ev.preventDefault(); vers(0); }
+    else if(ev.key === 'End'){ ev.preventDefault(); vers(dias.length-1); }
+  });
+})();
+</script>

@@ -6,6 +6,12 @@
       "runtimeExecutable": "powershell",
       "runtimeArgs": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "scripts/serveur.ps1"],
       "port": 8123
+    },
+    {
+      "name": "presentations",
+      "runtimeExecutable": "powershell",
+      "runtimeArgs": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "scripts/serveur.ps1", "-Dossier", "presentation", "-Port", "8125"],
+      "port": 8125
     }
   ]
 }

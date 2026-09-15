@@ -1143,6 +1143,30 @@ recopier à la main sur le nouveau poste : URL, `SUPABASE_PROJECT_REF`,
   direction Bony, à la charte de l'application, avec les cinq interfaces en
   maquette. Publié en artefact privé. **Ne contient volontairement aucun code
   d'accès** : une présentation se partage.
+- **`presentation/agents.html`** — 12 diapositives pour la réunion d'agents du
+  matin, projetées sur grand écran. Même charte, mais **tout est monté d'un
+  cran** : les échelles typographiques et les maquettes de téléphone, qui
+  passent de 238 à 320 px avec leurs textes internes agrandis d'autant. Ce qui
+  se lit à un mètre sur un portable ne se lit pas au fond d'une salle de
+  réunion. Six maquettes d'écran : entrée, animateur, espace garage, grille,
+  verdict, ticket d'or.
+
+  On y parle à des garagistes : aucune architecture, aucun chiffre de charge,
+  aucun coût. Trois questions, et rien d'autre — comment j'entre, comment je
+  gagne, qu'est-ce que je gagne.
+
+  **Aucun code d'accès, et aucun numéro de case réel.** Le code montré dans les
+  maquettes est `BAL1` : il contient un 1, or l'alphabet des codes garage exclut
+  0, 1, O et I — il ne peut donc appartenir à personne, par construction. La
+  grille de démonstration est un décor plausible, pas la vraie répartition : la
+  présentation se donne le matin même, devant ceux qui vont jouer.
+
+  Les flèches, PageUp/PageDown et l'espace naviguent : on ne veut pas découvrir
+  en réunion que la télécommande du vidéoprojecteur ne fait rien.
+
+  `wrangler.jsonc` ne sert que `app/` : les présentations ne sont **jamais
+  déployées**. Elles s'ouvrent en double-cliquant le fichier, ou par
+  `.\scripts\serveur.ps1 -Dossier presentation -Port 8125`.
 - **`maquette-grand-bal-points.html`** — la maquette cliquable d'origine, à la
   racine. Historique, plus maintenue.
 - **`exports/`** — sortie de `exporter-journal.ps1`, **ignorée par git** (contient
