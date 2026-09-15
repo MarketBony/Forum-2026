@@ -67,12 +67,21 @@ declare
 begin
   a := _exige_role(p_jeton, array['admin']);
 
-  -- « authenticator » est le rôle par lequel PostgREST se connecte :
-  -- compter ses sessions, c'est compter le pool. Les autres connexions
-  -- (sauvegardes, tableau de bord Supabase, ce script) ne le consomment
-  -- pas et ne doivent donc pas être mêlées au compte.
+  -- « authenticator » est le rôle par lequel PostgREST se connecte.
+  --
+  -- ⚠️ PIÈGE MESURÉ LE 15 SEPTEMBRE, PENDANT LA SIMULATION.
+  -- Compter SES SESSIONS ne mesure PAS l'occupation. Après la montée en
+  -- charge, les 11 connexions sont restées ouvertes — toutes à l'état
+  -- « idle » — parce qu'un pool ne rend pas ses connexions : il grandit
+  -- jusqu'à son plafond et les garde. Le voyant affichait donc 11/11 et
+  -- « critique » en permanence, alors que tout répondait en 105 ms.
+  -- C'était exactement le défaut qu'on reproche au tableau de bord
+  -- Supabase : un rouge permanent qui ne veut plus rien dire.
+  --
+  -- Ce qui mesure vraiment l'occupation, c'est le nombre de connexions
+  -- EN TRAIN DE TRAVAILLER. v_pool reste rendu, mais à titre indicatif.
   select count(*) filter (where usename = 'authenticator'),
-         count(*) filter (where state = 'active'),
+         count(*) filter (where usename = 'authenticator' and state = 'active'),
          count(*) filter (where wait_event_type = 'Lock'),
          count(*) filter (where state = 'idle in transaction')
     into v_pool, v_actives, v_verrous, v_bloquees
@@ -81,8 +90,10 @@ begin
   select setting::int into v_max from pg_settings where name = 'max_connections';
 
   return jsonb_build_object(
-    -- le goulot, et sa borne
-    'pool',            v_pool,
+    -- le goulot : ce sont les connexions QUI TRAVAILLENT qui comptent,
+    -- pas celles que le pool garde ouvertes en réserve.
+    'pool',            v_actives,
+    'pool_ouvertes',   v_pool,
     'pool_max',        11,
     'connexions_max',  v_max,
     -- les deux signaux de blocage : ils doivent rester à zéro

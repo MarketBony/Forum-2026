@@ -128,7 +128,11 @@ jamais obtenu de connexion n'y figurent pas : une saturation de pool y est
 structurellement invisible.
 
 **Le pool PostgREST plafonne à 11 connexions.** C'est le vrai goulot, et il ne
-figure sur aucun tableau de bord.
+figure sur aucun tableau de bord. **Mais compter ses connexions ne mesure PAS son
+occupation** : un pool ne rend jamais ses connexions, il grandit jusqu'à son
+plafond et les garde `idle`. Mesuré le 15 septembre, la console affichait
+« 11/11 · critique » en permanence pendant que tout répondait en 105 ms.
+L'occupation, c'est `state = 'active'` **parmi** les connexions `authenticator`.
 
 **Une grille CSS à deux colonnes avec trois enfants** place le troisième en
 colonne 1 : déclarer `grid-column` explicitement.

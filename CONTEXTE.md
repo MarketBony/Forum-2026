@@ -516,6 +516,17 @@ halle, le rendu sur téléphone étroit de la présentation : tout ce qui n'a pa
   l'heure écoulée — vérifier `stats_reset` avant de conclure. Et les requêtes qui
   n'obtiennent jamais de connexion n'y figurent **pas** : une saturation de pool y
   est structurellement invisible.
+- ⚠️ **COMPTER LES CONNEXIONS DU POOL NE MESURE PAS SON OCCUPATION.** Mesuré le
+  15 septembre pendant la simulation : après la montée en charge, les 11
+  connexions `authenticator` restent ouvertes — **toutes à l'état `idle`** —
+  parce qu'un pool ne rend pas ses connexions, il grandit jusqu'à son plafond et
+  les garde. Le voyant de la console affichait donc « 11/11 · critique » en
+  permanence pendant que tout répondait en 105 ms : exactement le défaut qu'on
+  reproche au tableau de bord Supabase, un rouge permanent qui ne veut plus rien
+  dire. Ce qui mesure l'occupation, c'est `state = 'active'` **parmi** les
+  connexions `authenticator`. `api_sante_detail()` rend les deux : `pool` (celles
+  qui travaillent) et `pool_ouvertes` (la réserve).
+
 - **Realtime est `UNHEALTHY` sur notre projet.** On ne s'en sert pas, aucun impact.
   Illustration du principe : le tableau de bord désigne le symptôme, jamais la
   cause.

@@ -558,8 +558,15 @@ function bandeSante() {
   const lignes = [
     mesure('Réponse', h.rtt, 'ms', pRtt, ton(pRtt),
            'Aller-retour complet depuis cet appareil, wifi compris. Le seul chiffre qui voit le réseau de la halle.'),
+    // Ce sont les connexions QUI TRAVAILLENT, pas celles que le pool
+    // garde ouvertes. Mesuré le 15 septembre : après la montée en charge
+    // les 11 restent ouvertes et inactives, et compter le total affichait
+    // « 11/11 critique » en permanence pendant que tout répondait en
+    // 105 ms — le rouge permanent qui ne veut plus rien dire.
     mesure('Pool PostgREST', `${h.pool}/${pool}`, '', pPool, ton(pPool),
-           `Connexions ouvertes sur ${pool}. Au plafond, les téléphones suivants n'obtiennent rien du tout.`),
+           `Connexions en train de travailler, sur ${pool}.`
+           + (h.pool_ouvertes != null ? ` ${h.pool_ouvertes} ouvertes en réserve.` : '')
+           + ' Au plafond, les téléphones suivants attendent.'),
     mesure('Verrous en attente', h.verrous, '', pVerrous, h.verrous === 0 ? 'ok' : ton(Math.max(pVerrous, 0.6)),
            'Requêtes qui attendent qu\'une autre lâche un verrou. Doit rester à zéro.'),
     mesure('Transactions bloquées', h.bloquees, '', pBloq, h.bloquees === 0 ? 'ok' : ton(Math.max(pBloq, 0.6)),
