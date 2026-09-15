@@ -258,11 +258,17 @@ update public.garages g
  where g.id in ($listeSql);
 "@ | Out-Null
 
+# Le PIN est LU EN BASE, jamais recopie : les 31 PIN du personnel ont
+# change le 15 septembre et un banc de charge qui les ecrit en dur
+# mesure alors zero connexion en croyant mesurer une saturation.
+$pinAnim = (Sql "select code_pin from animations where nom='BASKET ARCADE'").data[0].code_pin
+if (-not $pinAnim) { throw "PIN d'animation introuvable en base." }
+
 $corpsAnim = @()
 $connectes = 0
 for ($i = 0; $i -lt 8; $i++) {
   $jt = (([guid]::NewGuid().ToString('N')) + ([guid]::NewGuid().ToString('N')))
-  $co = Post "$base/rest/v1/rpc/api_connexion" @{ p_jeton = $jt; p_pin = '1001' }
+  $co = Post "$base/rest/v1/rpc/api_connexion" @{ p_jeton = $jt; p_pin = $pinAnim }
   if ($co.ok) { $connectes++ }
   $corpsAnim += (@{ p_jeton = $jt; p_garage = $cibles[$i]; p_animation = $idAnim; p_cle = '@@CLE@@' } | ConvertTo-Json -Compress)
 }

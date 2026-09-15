@@ -146,6 +146,17 @@ export const lire = {
   garages:     ()       => appel('api_garages_liste', { p_jeton: jeton() }, { delaiMs: 25000 }),
   journal:     ()       => appel('api_journal_complet', { p_jeton: jeton() }, { delaiMs: 30000 }),
   lots:        ()       => appel('api_lots', { p_jeton: jeton() }),
+  // La santé est chronométrée DANS LE NAVIGATEUR : le temps rendu inclut
+  // le wifi de la halle, qui est le risque le plus probable de la soirée
+  // et que nul compteur côté base ne voit. Une base à 2 ms derrière un
+  // wifi à 3 secondes est une base en panne, du point de vue d'un
+  // garagiste qui attend son solde.
+  sante:       async ()  => {
+    const t0 = performance.now();
+    const d = await appel('api_sante_detail', { p_jeton: jeton() });
+    d.rtt = Math.round(performance.now() - t0);
+    return d;
+  },
   tirage:      ()       => appel('api_tirage_etat', { p_jeton: jeton() }),
   // Poste d'accueil : le seul endroit où un code de garage est lisible
   accueilChercher: (q) => appel('api_accueil_chercher', { p_jeton: jeton(), p_q: q }),

@@ -86,16 +86,31 @@ $codeGarage = $g.code
 Write-Output ("  Garage temoin : {0} ({1}) - aucun appareil" -f $codeGarage, $g.nom)
 Sql "delete from tentatives" | Out-Null
 
+
+# --- les PIN du personnel, LUS EN BASE --------------------------------
+#  Jamais recopies ici. Les 31 PIN ont change le 15 septembre (decision
+#  n°4) et une batterie qui les ecrit en dur tombe ce jour-la en
+#  annoncant une panne applicative qui n'existe pas. On vise les memes
+#  entites qu'avant — la premiere animation, le stand FAAB — mais par
+#  leur NOM, pas par leur secret.
+$pinAdm   = (Sql "select valeur from config where cle='pin_admin'").data[0].valeur
+$pinAcc   = (Sql "select valeur from config where cle='pin_accueil'").data[0].valeur
+$pinAnim  = (Sql "select code_pin from animations where nom='BASKET ARCADE'").data[0].code_pin
+$pinStand = (Sql "select code_pin from stands where nom='FAAB'").data[0].code_pin
+if (-not $pinAdm -or -not $pinAcc -or -not $pinAnim -or -not $pinStand) {
+  throw "PIN introuvables en base : pousser sql\24_pins.sql d'abord."
+}
+
 # --- 1. les cinq profils passent par le meme appel ---------------------
 Write-Output ''
 Write-Output '-- 1. Les cinq profils, un seul appel -------------------------------'
 
 $cas = @(
   @{ libelle = 'Garage';      code = $codeGarage; porte = 'garage';    role = $null },
-  @{ libelle = 'Animateur';   code = '1001';      porte = 'personnel'; role = 'animateur' },
-  @{ libelle = 'Fournisseur'; code = '2001';      porte = 'personnel'; role = 'fournisseur' },
-  @{ libelle = 'Accueil';     code = '4200';      porte = 'personnel'; role = 'accueil' },
-  @{ libelle = 'Equipe Bony'; code = '9137';      porte = 'personnel'; role = 'admin' }
+  @{ libelle = 'Animateur';   code = $pinAnim;    porte = 'personnel'; role = 'animateur' },
+  @{ libelle = 'Fournisseur'; code = $pinStand;   porte = 'personnel'; role = 'fournisseur' },
+  @{ libelle = 'Accueil';     code = $pinAcc;     porte = 'personnel'; role = 'accueil' },
+  @{ libelle = 'Equipe Bony'; code = $pinAdm;     porte = 'personnel'; role = 'admin' }
 )
 foreach ($c in $cas) {
   $r = Ouvrir $(if ($c.porte -eq "garage") { $JG } else { Jeton }) $c.code
@@ -154,16 +169,19 @@ foreach ($v in $variantes) {
   Verdict ("Saisie tolerante : [{0}]" -f $v) ($r.ok -and $r.data.porte -eq 'garage') `
           ("porte={0} {1}" -f $(if ($r.data) { $r.data.porte } else { '' }), $r.code)
 }
-$r = Ouvrir (Jeton) '10-01'
+# Le tiret est insere DANS le PIN reel, pas dans un PIN recopie : ce
+# test verifie la normalisation de saisie, pas la valeur du secret.
+$avecTiret = $pinAnim.Substring(0,2) + '-' + $pinAnim.Substring(2)
+$r = Ouvrir (Jeton) $avecTiret
 Verdict 'Un PIN avec tiret passe aussi' ($r.ok -and $r.data.role -eq 'animateur') `
-        ("role={0}" -f $(if ($r.data) { $r.data.role } else { '' }))
+        ("saisi [{0}] -> role={1}" -f $avecTiret, $(if ($r.data) { $r.data.role } else { '' }))
 
 # --- 5. les 0 et les 1 survivent --------------------------------------
 Write-Output ''
 Write-Output '-- 5. Les 0 et les 1 des PIN survivent ------------------------------'
 # C'est le piege de l'unification : l'alphabet des codes garage exclut 0
 # et 1 pour eviter la confusion avec O et I. Les filtrer a l'entree
-# viderait « 1001 » et « 4200 ».
+# viderait les PIN qui en contiennent.
 # La liste est LUE EN BASE et non recopiee ici. Une liste en dur avait
 # fige 11 PIN : les 6 animations et les 23 stands arrives ensuite
 # n'auraient jamais ete essayes, et le test serait reste vert en ne
@@ -211,7 +229,7 @@ Verdict 'Un jeton trop court leve une exception' ((-not $r.ok) -and $r.code -eq 
 # --- 7. api_connexion garde son contrat -------------------------------
 Write-Output ''
 Write-Output '-- 7. L ancienne porte du personnel garde son contrat ---------------'
-$r = Rpc 'api_connexion' @{ p_jeton = (Jeton); p_pin = '1001' }
+$r = Rpc 'api_connexion' @{ p_jeton = (Jeton); p_pin = $pinAnim }
 Verdict 'api_connexion fonctionne toujours' ($r.ok -and $r.data.role -eq 'animateur') `
         ("role={0}" -f $(if ($r.data) { $r.data.role } else { '' }))
 $r = Rpc 'api_connexion' @{ p_jeton = (Jeton); p_pin = 'ZZZZ' }

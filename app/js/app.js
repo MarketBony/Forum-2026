@@ -31,6 +31,7 @@ const S = {
   lots: null,
   tirage: null,       // etat du grand tirage du soir
   panne: null,        // derniere panne de chargement, affichee plutot qu'avalee
+  sante: null,        // sonde de sante de la base, bande d'etat de la supervision
   cleEnCours: null,     // clé d'idempotence de l'opération en cours
   envoi: false,         // garde anti-double-appui
   horsLigne: !navigator.onLine,
@@ -486,6 +487,75 @@ function vueFournisseur() {
     </div>`;
 }
 
+// --- la bande d'état : la santé de la base, en haut de la supervision --
+//
+//  Cinq voyants, dans l'ordre où ils annoncent une catastrophe. Chacun
+//  répond à une question qu'on se pose dans la halle, pas à une métrique
+//  d'ingénieur.
+//
+//  Le premier — la RÉPONSE — est mesuré dans le navigateur, aller-retour
+//  compris. C'est le seul qui voit le wifi, et le wifi est le risque le
+//  plus probable de la soirée. Les quatre autres viennent de la base.
+//
+//  Le POOL est le voyant à surveiller : 11 connexions, plafond dur.
+//  Au-delà, les téléphones suivants n'obtiennent RIEN — pas une erreur
+//  lente, pas une file : rien. Et ces requêtes-là ne figurent même pas
+//  dans les statistiques de Supabase, puisqu'elles n'ont jamais obtenu
+//  de connexion. C'est l'angle mort que cette bande existe pour couvrir.
+//
+//  Les seuils sont volontairement PESSIMISTES : mieux vaut un orange
+//  pour rien qu'un vert le soir où ça lâche.
+function voyant(nom, valeur, unite, etat, detail) {
+  return `<div class="voyant ${etat}" title="${esc(detail || '')}">
+      <span class="vv">${esc(String(valeur))}${unite ? `<i>${esc(unite)}</i>` : ''}</span>
+      <span class="vn">${esc(nom)}</span>
+      <span class="vjauge"><b></b></span>
+    </div>`;
+}
+
+function bandeSante() {
+  const h = S.sante;
+  if (!h) {
+    return `<div class="bande-sante attente">
+      <div class="voyant neutre"><span class="vv">…</span>
+        <span class="vn">Santé de la base</span><span class="vjauge"><b></b></span></div>
+    </div>`;
+  }
+  const seuil = (v, vert, orange) => v <= vert ? 'ok' : (v <= orange ? 'tiede' : 'chaud');
+  const pool = h.pool_max || 11;
+
+  const voyants = [
+    // Le vécu réel, wifi compris. 400 ms : on ne sent rien. 1,2 s : on
+    // commence à tapoter l'écran. Au-delà, on croit que c'est cassé.
+    voyant('Réponse', h.rtt, 'ms', seuil(h.rtt, 400, 1200),
+           'Aller-retour complet depuis ce téléphone, wifi compris.'),
+    // Le vrai goulot.
+    voyant('Pool', `${h.pool}/${pool}`, '', seuil(h.pool, Math.floor(pool * 0.6), pool - 3),
+           `Connexions PostgREST. Au plafond de ${pool}, les téléphones suivants n'obtiennent rien.`),
+    // Les deux signaux de blocage : zéro, toujours.
+    voyant('Verrous', h.verrous, '', h.verrous === 0 ? 'ok' : (h.verrous <= 2 ? 'tiede' : 'chaud'),
+           'Requêtes en attente d\'un verrou. Doit rester à zéro.'),
+    voyant('Bloquées', h.bloquees, '', h.bloquees === 0 ? 'ok' : (h.bloquees === 1 ? 'tiede' : 'chaud'),
+           'Transactions ouvertes qui n\'avancent plus, et tiennent leurs verrous.'),
+    // L'intégrité. Si celui-ci s'allume, on arrête tout.
+    voyant('Écarts', h.ecarts, '', h.ecarts === 0 ? 'ok' : 'chaud',
+           'Écarts entre un solde affiché et la somme de son journal.'),
+  ].join('');
+
+  const alerte = h.ecarts > 0 ? 'Écart entre un solde et son journal — arrêter les écritures et exporter le journal'
+               : h.bloquees > 1 ? 'Des transactions sont bloquées : la base n\'est pas chargée, elle est coincée'
+               : h.pool >= pool - 2 ? 'Le pool PostgREST est presque plein — les téléphones vont commencer à ne plus répondre'
+               : h.rtt >= 1200 ? 'Réponse très lente : regarder le wifi avant de soupçonner la base'
+               : null;
+
+  return `<div class="bande-sante">
+      ${voyants}
+      <div class="vrythme">${h.ecritures_min} écriture${h.ecritures_min > 1 ? 's' : ''} la dernière minute ·
+        ${h.ecritures_10min} sur dix minutes · relevé à ${esc(h.heure)}</div>
+      ${alerte ? `<div class="valerte">${esc(alerte)}</div>` : ''}
+    </div>`;
+}
+
 // --- supervision Bony (§12, §18) --------------------------------------
 function vueAdmin() {
   const s = S.sup;
@@ -493,6 +563,7 @@ function vueAdmin() {
   return `<div class="ecran">
       ${barre('Supervision Bony', null, `<button class="lien" data-a="quitter">Quitter</button>`)}
       ${bandeauReseau()}
+      ${bandeSante()}
       <div class="entete">
         <div class="script">Le Forum</div>
         <h1 class="titre">en un coup d'œil</h1>
@@ -1066,9 +1137,16 @@ function rendre(garderFocus) {
   // les surfaces principales de l'écran, dans l'ordre d'importance et
   // plafonné : la chaîne de filtres est coûteuse, on ne la met pas
   // partout. Jamais sur les écrans animateur et fournisseur.
+  // UN SEUL ÉLÉMENT VERRÉ, pas quatre. Le commentaire en tête de
+  // verre.js disait déjà « réservée à UN élément par écran » ; le code en
+  // verrait quatre, et chaque rendu détruisait puis recréait autant de
+  // couches filtrées — à chaque sondage, donc toutes les 30 secondes sur
+  // un téléphone, toutes les 10 sur la tablette. Le verre est une note de
+  // grâce : la quatrième ne se voit pas et se paie quand même.
   if (avecDecor) {
-    const candidats = $$('.solde, .fiche, .duo, .revele .rlot, .indic.large, .groupe');
-    candidats.slice(0, 4).forEach((el) => verre.verrer(el));
+    const cible = $('.solde') || $('.fiche') || $('.duo')
+               || $('.revele .rlot') || $('.indic.large') || $('.groupe');
+    if (cible && verre.verrer(cible)) verre.sonder();
   }
 
   if (garderFocus && idChamp) {
@@ -1129,6 +1207,11 @@ function sessionMorte(e) {
 async function chargerSupervision() {
   try { S.sup = await api.lire.supervision(); S.panne = null; }
   catch (e) { if (!sessionMorte(e)) S.panne = e.detail || e.message; }
+  // La sonde de santé est chargée À PART et ne fait jamais échouer la
+  // supervision : si elle tombe, on veut quand même le tableau de bord.
+  // Un voyant muet vaut mieux qu'un écran vide.
+  try { S.sante = await api.lire.sante(); }
+  catch { S.sante = null; }
 }
 
 async function chargerAccueil() {

@@ -696,6 +696,65 @@ body.service .bouton.creux {
 .revele.attente .rt { color:var(--creme-2); text-shadow:none }
 
 /* =====================================================================
+   La bande d'état — la santé de la base, en haut de la supervision
+   Elle doit se lire en une seconde, d'un coup d'œil, sans rien cliquer :
+   c'est son seul rôle. Cinq voyants, une couleur chacun, et une jauge
+   qui se remplit pour qu'on voie la tendance sans lire le chiffre.
+   ===================================================================== */
+.bande-sante {
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(88px,1fr));
+  gap:var(--e2); margin:0 0 var(--e5);
+}
+.voyant {
+  position:relative; padding:var(--e2) var(--e3) 10px;
+  border-radius:var(--r1); background:var(--surface-plate);
+  display:flex; flex-direction:column; gap:2px; min-width:0;
+}
+.voyant .vv {
+  font-family:var(--serif); font-size:clamp(17px,2.4vw,23px); font-weight:700;
+  line-height:1.05; color:var(--creme-2); white-space:nowrap;
+}
+.voyant .vv i { font-style:normal; font-size:.6em; color:var(--txt-3); margin-left:2px }
+.voyant .vn {
+  font-size:10px; letter-spacing:.07em; text-transform:uppercase;
+  color:var(--txt-3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+/* La jauge est un simple filet en bas : elle donne la couleur sur toute
+   la largeur du voyant, donc lisible du coin de l'œil sans viser. */
+.voyant .vjauge {
+  position:absolute; left:var(--e3); right:var(--e3); bottom:6px;
+  height:3px; border-radius:var(--r-plein); background:rgba(241,231,210,.1); overflow:hidden;
+}
+.voyant .vjauge b { display:block; height:100%; width:100%; border-radius:inherit; transition:background .5s }
+.voyant.ok    .vjauge b { background:var(--vert-ok) }
+.voyant.tiede .vjauge b { background:var(--or) }
+.voyant.chaud .vjauge b { background:var(--terracotta-clair) }
+.voyant.neutre .vjauge b { background:rgba(241,231,210,.18) }
+.voyant.chaud .vv { color:var(--terracotta-clair) }
+/* Un voyant chaud respire : sur une tablette posée sur un coin de table,
+   au milieu du bruit, une couleur fixe ne se remarque pas. */
+.voyant.chaud { animation:voyantChaud 1.8s ease-in-out infinite }
+@keyframes voyantChaud {
+  0%, 100% { box-shadow:inset 0 0 0 1px rgba(230,129,82,.35) }
+  50%      { box-shadow:inset 0 0 0 1px rgba(230,129,82,.85), 0 0 18px -4px rgba(209,91,48,.5) }
+}
+.vrythme {
+  grid-column:1 / -1; font-size:11px; color:var(--txt-3);
+  padding:0 var(--e1); line-height:1.4;
+}
+.valerte {
+  grid-column:1 / -1; padding:var(--e2) var(--e3); border-radius:var(--r1);
+  background:rgba(209,91,48,.16); color:var(--terracotta-clair);
+  font-size:12.5px; font-weight:600; line-height:1.35;
+  box-shadow:inset 0 0 0 1px rgba(209,91,48,.4);
+}
+.bande-sante.attente .voyant { opacity:.5 }
+
+@media (prefers-reduced-motion:reduce) {
+  .voyant.chaud { animation:none; box-shadow:inset 0 0 0 1px rgba(230,129,82,.8) }
+}
+
+/* =====================================================================
    Écran de projection du grand tirage
    Destiné à un vidéoprojecteur, en paysage, lu à dix mètres.
    ===================================================================== */
@@ -710,7 +769,7 @@ body.service .bouton.creux {
   min-height:100dvh; display:flex; flex-direction:column;
   align-items:center; justify-content:center; gap:var(--e6);
   padding:var(--e7) var(--e6); text-align:center;
-  width:100%; max-width:1400px; margin:0 auto;
+  width:100%; max-width:1700px; margin:0 auto;
   /* L'éclat d'or déborde volontairement de sa boîte pour ne pas se
      couper net sur les bords. `clip` le laisse déborder SANS créer de
      zone défilable — `hidden` aurait fait apparaître une barre
@@ -828,8 +887,8 @@ body.service .bouton.creux {
      en trois lignes de 14 px, illisibles du fond de la salle. Quatre
      colonnes larges tiennent 15 cartes en 4 rangées et laissent au nom
      la place de s'écrire en entier. */
-  display:grid; grid-template-columns:repeat(auto-fit,minmax(clamp(210px,24vw,300px),1fr));
-  gap:var(--e2); width:100%; max-width:1340px;
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(clamp(210px,20vw,360px),1fr));
+  gap:var(--e3); width:100%; max-width:1600px;
   max-height:0; overflow:hidden; opacity:0;
   transition:max-height .9s var(--sortie), opacity .9s ease;
 }
@@ -853,11 +912,11 @@ body.service .bouton.creux {
   font-family:var(--serif); font-size:12px; color:var(--or-fonce);
 }
 .ptkgar {
-  font-size:clamp(15px,1.5vw,22px); font-weight:700; color:var(--creme-2);
+  font-size:clamp(15px,1.5vw,28px); font-weight:700; color:var(--creme-2);
   line-height:1.18; padding-right:3.2em;
 }
 .ptklot {
-  font-size:clamp(11px,.95vw,14px); font-weight:600; letter-spacing:.05em;
+  font-size:clamp(11px,.95vw,17px); font-weight:600; letter-spacing:.05em;
   text-transform:uppercase; color:var(--or-clair); margin-top:2px; line-height:1.25;
 }
 
@@ -865,6 +924,7 @@ body.service .bouton.creux {
    lignes vides (« revient à » et le nom) doivent DISPARAÎTRE et pas
    seulement se vider : leur min-height creusait un trou de 80 px entre
    le titre et le récapitulatif. */
+.revelation.fini { justify-content:center }
 .revelation.fini .pscene { flex:0 0 auto; gap:var(--e2) }
 .revelation.fini .ptlot {
   font-family:var(--serif); font-size:clamp(24px,3.4vw,44px);

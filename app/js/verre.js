@@ -163,12 +163,100 @@ export function poserFiltre(echelle = 42, aberration = 1.4) {
   return true;
 }
 
+/* =====================================================================
+   L'APPAREIL TRANCHE LUI-MÊME
+   ---------------------------------------------------------------------
+   Compter les cœurs ne dit RIEN du coût réel. Un Pixel 10 Pro annonce
+   8 cœurs et 12 Go et ramait ; un iPhone SE, plus modeste sur le papier,
+   ne bronchait pas — parce que WebKit et Blink ne rastérisent pas cette
+   chaîne de filtres de la même façon. Aucun seuil matériel écrit à
+   l'avance ne peut départager ces deux-là.
+   On mesure donc, sur l'appareil, ce qu'il en coûte VRAIMENT : un étalon
+   de frames sans verre, une mesure avec, et il décide. Le verdict est
+   retenu pour la session — on ne remesure pas à chaque écran.
+   Le seuil est RELATIF à l'étalon, parce qu'un écran 120 Hz vise 8 ms et
+   un 60 Hz 16,7 : un seuil en millisecondes absolues punirait le premier
+   et laisserait passer le second.
+   ===================================================================== */
+const CLE_VERDICT = 'gbf-verre-verdict';
+const SEUIL_RAPPORT = 1.6;   // 60 % plus lent que sans verre
+const SEUIL_PLANCHER = 20;   // …et au-delà de 20 ms/frame, sinon on ne
+                             // punit pas un appareil déjà fluide
+// Le verdict mémorisé est relu DÈS LE CHARGEMENT DU MODULE, et pas dans
+// sonder(). Sinon verreLiquidePossible() répond « oui » au tout premier
+// rendu, le verre est posé, et il faut le retirer après coup : l'appareil
+// lent paie quand même la première rastérisation, et l'écran cligne.
+let verdict = null;          // null = pas encore mesuré
+try {
+  const memo = localStorage.getItem('gbf-verre-verdict');
+  if (memo) verdict = memo === 'ok';
+} catch {}
+
+/** Médiane du temps entre frames pendant que `pendant` s'exécute. */
+function mesurerFrames(nb, pendant) {
+  return new Promise((res) => {
+    const t = []; let prec = performance.now();
+    function tic(now) {
+      t.push(now - prec); prec = now;
+      if (pendant) pendant(t.length);
+      if (t.length < nb) requestAnimationFrame(tic);
+      else { t.sort((a, b) => a - b); res(t[Math.floor(t.length / 2)]); }
+    }
+    requestAnimationFrame(tic);
+  });
+}
+
+/**
+ * Mesure une fois, puis retire le verre si l'appareil peine. Silencieux :
+ * un garagiste n'a pas à savoir pourquoi son téléphone est plus fluide.
+ */
+export async function sonder() {
+  if (verdict !== null) {
+    if (!verdict) retirer();     // ceinture : rien ne doit rester posé
+    return verdict;
+  }
+
+  const vitres = [...document.querySelectorAll('.vitre')];
+  if (!vitres.length) return true;                 // rien à mesurer encore
+
+  const bouger = (i) => vitres.forEach((v) => {
+    v.style.transform = `translateZ(0) scale(${1 + (i % 2) * 0.0001})`;
+  });
+
+  vitres.forEach((v) => { v.dataset.f = v.style.filter; v.style.filter = 'none'; });
+  const etalon = await mesurerFrames(24, bouger);
+  vitres.forEach((v) => { v.style.filter = v.dataset.f; delete v.dataset.f; });
+  const avec = await mesurerFrames(32, bouger);
+  vitres.forEach((v) => { v.style.transform = ''; });
+
+  verdict = !(avec > etalon * SEUIL_RAPPORT && avec > SEUIL_PLANCHER);
+  try { localStorage.setItem(CLE_VERDICT, verdict ? 'ok' : 'lent'); } catch {}
+  if (!verdict) retirer();
+  // Laissé lisible depuis la console : c'est la seule façon de savoir sur
+  // le téléphone de quelqu'un d'autre pourquoi le verre ne s'affiche pas.
+  window.__verre = { etalon: +etalon.toFixed(1), avec: +avec.toFixed(1), garde: verdict };
+  return verdict;
+}
+
+/** Retire tout le verre déjà posé, et empêche d'en reposer. */
+export function retirer() {
+  document.querySelectorAll('.vitre').forEach((v) => v.remove());
+  document.querySelectorAll('.verre-liquide').forEach((e) => e.classList.remove('verre-liquide'));
+}
+
+/** Remet le verre en jeu — dépannage, depuis la console. */
+export function reessayer() {
+  try { localStorage.removeItem(CLE_VERDICT); } catch {}
+  verdict = null;
+}
+
 /**
  * Le filtre est-il utilisable ? Firefox ne sait pas composer filter:url()
  * avec backdrop-filter, et on n'impose rien à qui demande moins de
  * mouvement ou à une machine visiblement modeste.
  */
 export function verreLiquidePossible() {
+  if (verdict === false) return false;
   const ff = /firefox/i.test(navigator.userAgent);
   const peuDeMouvement = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const petiteMachine = (navigator.hardwareConcurrency || 4) <= 2

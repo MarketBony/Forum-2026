@@ -93,6 +93,21 @@ update garages set solde = (select coalesce(sum(delta),0) from journal where gar
 }
 Write-Output ("  6 garages dotes de 210 points chacun.")
 
+
+# --- les PIN du personnel, LUS EN BASE --------------------------------
+#  Jamais recopies ici. Les 31 PIN ont change le 15 septembre (decision
+#  n°4) et une batterie qui les ecrit en dur tombe ce jour-la en
+#  annoncant une panne applicative qui n'existe pas. On vise les memes
+#  entites qu'avant — la premiere animation, le stand FAAB — mais par
+#  leur NOM, pas par leur secret.
+$pinAdm   = (Sql "select valeur from config where cle='pin_admin'").data[0].valeur
+$pinAcc   = (Sql "select valeur from config where cle='pin_accueil'").data[0].valeur
+$pinAnim  = (Sql "select code_pin from animations where nom='BASKET ARCADE'").data[0].code_pin
+$pinStand = (Sql "select code_pin from stands where nom='FAAB'").data[0].code_pin
+if (-not $pinAdm -or -not $pinAcc -or -not $pinAnim -or -not $pinStand) {
+  throw "PIN introuvables en base : pousser sql\24_pins.sql d'abord."
+}
+
 # =====================================================================
 Write-Output ''
 Write-Output '=== MODE IMMEDIAT : le garage decouvre a l achat ==================='
@@ -150,7 +165,7 @@ Verdict 'La nature est bien deja fixee en base (rien de tire au moment du soir)'
 
 # --- revelation collective -------------------------------------------
 $telAdm = Jeton
-Rpc 'api_connexion' @{ p_jeton = $telAdm; p_pin = '9137' } | Out-Null
+Rpc 'api_connexion' @{ p_jeton = $telAdm; p_pin = $pinAdm } | Out-Null
 $rev = Rpc 'api_reveler' @{ p_jeton = $telAdm }
 Verdict 'Revelation collective par l equipe Bony' `
         (($rev.ok) -and ($rev.data.restantes -eq 0)) `

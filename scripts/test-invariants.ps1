@@ -102,6 +102,21 @@ $dupont = $gA.id; $dupuy = $gB.id; $vidal = $gC.id
 Write-Output ("  Garages temoins : {0} ({1}), {2} ({3}), {4} ({5})" -f `
                $gA.nom, $gA.code, $gB.nom, $gB.code, $gC.nom, $gC.code)
 
+
+# --- les PIN du personnel, LUS EN BASE --------------------------------
+#  Jamais recopies ici. Les 31 PIN ont change le 15 septembre (decision
+#  n°4) et une batterie qui les ecrit en dur tombe ce jour-la en
+#  annoncant une panne applicative qui n'existe pas. On vise les memes
+#  entites qu'avant — la premiere animation, le stand FAAB — mais par
+#  leur NOM, pas par leur secret.
+$pinAdm   = (Sql "select valeur from config where cle='pin_admin'").data[0].valeur
+$pinAcc   = (Sql "select valeur from config where cle='pin_accueil'").data[0].valeur
+$pinAnim  = (Sql "select code_pin from animations where nom='BASKET ARCADE'").data[0].code_pin
+$pinStand = (Sql "select code_pin from stands where nom='FAAB'").data[0].code_pin
+if (-not $pinAdm -or -not $pinAcc -or -not $pinAnim -or -not $pinStand) {
+  throw "PIN introuvables en base : pousser sql\24_pins.sql d'abord."
+}
+
 # =====================================================================
 Write-Output ''
 Write-Output '=== 1. Un portefeuille par garage, partage entre ses telephones ====='
@@ -122,7 +137,7 @@ Verdict 'Les deux telephones voient le meme portefeuille' `
 Write-Output ''
 Write-Output '=== 2. Double clic animateur : un seul mouvement de points =========='
 $telAnim = Jeton
-$anim = Rpc 'api_connexion' @{ p_jeton = $telAnim; p_pin = '1001' }
+$anim = Rpc 'api_connexion' @{ p_jeton = $telAnim; p_pin = $pinAnim }
 Verdict 'Connexion animateur par code PIN' `
         ($anim.data.role -eq 'animateur') ('role = ' + $anim.data.role + ', animation = ' + $anim.data.libelle)
 
@@ -171,7 +186,7 @@ Verdict 'Le solde n a pas bouge et la case reste libre' `
 Write-Output ''
 Write-Output '=== 4. Garde-fous fournisseur (anti-inflation de points) ============'
 $telF = Jeton
-$four = Rpc 'api_connexion' @{ p_jeton = $telF; p_pin = '2001' }
+$four = Rpc 'api_connexion' @{ p_jeton = $telF; p_pin = $pinStand }
 Verdict 'Connexion fournisseur par code PIN' `
         ($four.data.role -eq 'fournisseur') ('role = ' + $four.data.role + ', stand = ' + $four.data.libelle)
 
@@ -285,7 +300,7 @@ $ec = (Sql "select count(*)::int as n from verifier_soldes()").data[0].n
 Verdict 'Aucun ecart sur aucun garage' ($ec -eq 0) ('garages en ecart = ' + $ec)
 
 $telAdm = Jeton
-Rpc 'api_connexion' @{ p_jeton = $telAdm; p_pin = '9137' } | Out-Null
+Rpc 'api_connexion' @{ p_jeton = $telAdm; p_pin = $pinAdm } | Out-Null
 $s = (Rpc 'api_supervision' @{ p_jeton = $telAdm }).data
 Verdict 'La supervision Bony repond et se recoupe' `
         ($s.ecarts_solde -eq 0) `
