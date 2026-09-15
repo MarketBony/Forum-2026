@@ -184,12 +184,15 @@ begin
                'gros_lot',     t.gros_lot,
                'garage',       t.nom,
                'ville',        t.ville,
+               'decroche_a',   t.decroche_a,
                'code_retrait', t.code_retrait,
                'remis',        t.remis)
              order by t.gros_lot_ordre)
       from (
         select gr.numero, gr.gros_lot, gr.gros_lot_ordre, gr.code_retrait, gr.remis,
                g.nom, g.ville,
+               -- l'heure sert au suivi côté Bony : « décroché à 15h40 »
+               to_char(gr.achete_le at time zone 'Europe/Paris', 'HH24:MI') as decroche_a,
                case when gr.garage_id is null then null
                     else row_number() over (partition by (gr.garage_id is not null)
                                             order by gr.gros_lot_ordre) end as rang

@@ -211,7 +211,9 @@ function vueParticipant() {
   const g = e.garage;
   return guirlande() + `
     <div class="ecran">
-      ${barre('Mon espace', null, '<button class="lien" data-a="rafraichir">Actualiser</button>')}
+      ${barre('Mon espace', null,
+        `<button class="lien" data-a="rafraichir">Actualiser</button>
+         <button class="lien" data-a="quitter">Quitter</button>`)}
       ${bandeauReseau()}
       <div class="surface solde">
         <div class="gnom">${esc(g.nom)}</div>
@@ -557,6 +559,7 @@ function vueAdmin() {
         <p class="etiq">Le soir, au cocktail</p>
         <div class="pile">
           <button class="bouton" data-a="projection">Grand tirage au sort</button>
+          <button class="bouton creux" data-a="tickets">Les tickets d'or en détail</button>
         </div>
         <p class="sous">${s.billets_vendus} ticket${s.billets_vendus > 1 ? 's' : ''} d'or
           décroché${s.billets_vendus > 1 ? 's' : ''} sur 15. Chaque ticket porte déjà son gros
@@ -656,6 +659,88 @@ function vueAccueilHotesse() {
           <span class="valeur"><b>${esc(d.heure)}</b></span></div>`).join('')}</div>
     </div>` : ''}
   </div>`;
+}
+
+// --- les tickets d'or en détail, pour l'équipe Bony -------------------
+//
+//  L'écran de projection est fait pour la salle ; celui-ci est fait pour
+//  le comptoir. Il répond à trois questions qu'on se pose vraiment le
+//  jour J : qui détient quoi, qui n'est pas encore sorti, et qui est
+//  déjà reparti avec son lot.
+//
+//  ⚠️ IL NOMME LES GROS LOTS AVANT LA RÉVÉLATION. C'est voulu — Bony
+//  prépare sa soirée — mais c'est le seul écran de l'application qui
+//  vend la mèche. À ne pas montrer à un garage, ni projeter par erreur.
+function vueTickets() {
+  const t = S.tirage;
+  if (!t) return `<div class="ecran">${barre("Tickets d'or", 'admin')}
+    <p class="chargement">Chargement…</p></div>`;
+
+  const tous = t.tickets || [];
+  const pris = tous.filter((k) => k.rang);
+  const libres = tous.filter((k) => !k.rang);
+  const remis = pris.filter((k) => k.remis).length;
+
+  // Deux lignes différentes pour deux questions différentes. Sur un
+  // ticket décroché on cherche QUI ; sur un ticket libre on cherche
+  // QUELLE CASE — répéter « pas encore décroché » quinze fois sous un
+  // titre qui le dit déjà ne renseigne personne.
+  const ligne = (k) => k.rang ? `
+    <div class="lot">
+      <span class="principal">
+        <span class="lnom">${esc(k.garage)}</span>
+        <span class="ldetail">Case n°${k.numero} · ${esc(k.gros_lot)}${
+          k.ville ? ' · ' + esc(k.ville) : ''}${
+          k.decroche_a ? ' · décroché à ' + esc(k.decroche_a) : ''}${
+          k.code_retrait ? ' · code <b>' + esc(k.code_retrait) + '</b>' : ''}</span>
+      </span>
+      ${k.remis
+        ? '<span class="lremis">Remis</span>'
+        : `<span class="cachet billet">${k.rang}</span>`}
+    </div>` : `
+    <div class="lot">
+      <span class="principal">
+        <span class="lnom" style="color:var(--txt-2)">Case n°${k.numero}</span>
+        <span class="ldetail">${esc(k.gros_lot)}</span>
+      </span>
+      <span class="cachet">—</span>
+    </div>`;
+
+  return `<div class="ecran">
+      ${barre("Tickets d'or", 'admin')}
+      ${bandeauReseau()}
+      <div class="entete">
+        <div class="script">Les quinze</div>
+        <h1 class="titre">tickets d'or</h1>
+        <p class="sous">${t.revele
+          ? 'Révélés. Le chiffre à droite est l\'ordre de passage sur scène.'
+          : 'Pas encore révélés. Les garages ne savent pas ce qu\'ils ont gagné.'}</p>
+      </div>
+      <div class="indics">
+        <div class="indic"><div class="iv">${pris.length} / 15</div><div class="il">Décrochés</div></div>
+        <div class="indic"><div class="iv">${remis}</div><div class="il">Gros lots déjà remis</div></div>
+      </div>
+      ${libres.length > 0 ? `<div class="bandeau"><i></i>${libres.length} ticket${
+        libres.length > 1 ? 's' : ''} encore dans la grille — ${libres.length > 1 ? 'ils seront passés' : 'il sera passé'
+        } en silence pendant la révélation</div>` : ''}
+      <div class="section">
+        <p class="etiq">Décrochés · dans l'ordre de passage</p>
+        <div class="groupe">
+          ${pris.length ? pris.map(ligne).join('')
+                        : '<p class="vide">Aucun ticket d\'or décroché pour le moment.</p>'}
+        </div>
+      </div>
+      ${libres.length ? `<div class="section">
+        <p class="etiq">Encore dans la grille</p>
+        <div class="groupe">${libres.map(ligne).join('')}</div>
+      </div>` : ''}
+      <div class="section">
+        <div class="pile">
+          <button class="bouton creux" data-a="projection">Écran de projection</button>
+          <button class="bouton creux" data-a="admin">Retour à la supervision</button>
+        </div>
+      </div>
+    </div>`;
 }
 
 // --- écran de projection : la révélation des tickets d'or (§11) -------
@@ -952,6 +1037,7 @@ const VUES = {
   fournisseur: vueFournisseur,
   admin: vueAdmin,
   lots: vueLots,
+  tickets: vueTickets,
   projection: vueProjection,
   accueil_hotesse: vueAccueilHotesse,
 };
@@ -963,7 +1049,7 @@ function rendre(garderFocus) {
   // Verre allégé, sans flou : les seuls écrans animateur et fournisseur,
   // ceux qui tournent cinq heures dans une main.
   const avecDecor = ['accueil', 'espace', 'grille', 'revelation',
-                     'projection', 'admin', 'lots',
+                     'projection', 'admin', 'lots', 'tickets',
                      'accueil_hotesse'].includes(S.vue);
   const enService = ['animateur', 'fournisseur'].includes(S.vue);
   document.body.classList.toggle('decore', avecDecor);
@@ -1067,10 +1153,38 @@ async function agir(a, el) {
       if (await chargerEtat()) { rendre(); toast('Solde à jour', `<b>${S.etat.garage.solde}</b> points`); }
       else toast('Pas de réseau', 'Le solde affiché est celui de la dernière consultation.', 'attente');
       return;
-    case 'quitter':
-      api.definirRole(null); api.oublierAppareil();
-      S.r = null; S.cible = null; S.vue = 'accueil'; S.q = ''; S.code = '';
+    // ---------------- se déconnecter ----------------
+    //
+    //  PIÈGE PAYÉ ICI, ET IL EST INVISIBLE. On effaçait le JETON en même
+    //  temps que le rôle. Or api_entrer ne compte l'appareil dans le
+    //  plafond QUE si le jeton n'est pas déjà rattaché au garage :
+    //
+    //      if not exists (select 1 from appareils
+    //                      where jeton = p_jeton and garage_id = v_g.id)
+    //
+    //  Un jeton neuf à chaque retour, c'est donc une ligne d'appareil de
+    //  plus à chaque aller-retour — et une place prise ne se rend pas
+    //  (le journal la référence). Au sixième, le garage se retrouve
+    //  enfermé DEHORS avec un « Ce garage a déjà 6 appareils connectés ».
+    //  C'est pour cette raison que l'écran garage n'avait pas de bouton.
+    //
+    //  On garde donc le jeton : c'est l'identité de l'APPAREIL, pas celle
+    //  de la session. Seul le rôle s'efface, et le même téléphone qui
+    //  ressaisit le même code retombe sur sa propre ligne.
+    //
+    //  La file d'attente hors ligne n'est pas vidée non plus : des points
+    //  attribués sur un stand sans réseau doivent partir même si
+    //  l'animateur a quitté son écran entre-temps.
+    case 'quitter': {
+      // Le garage, lui, confirme : son solde est derrière ce bouton, et
+      // un pouce qui glisse dans le bruit ne doit pas le lui fermer.
+      if (S.r && S.r.role === 'garage' &&
+          !confirm('Fermer votre espace ? Il se rouvre avec votre code à 4 caractères.')) return;
+      api.definirRole(null);
+      S.r = null; S.etat = null; S.cible = null;
+      S.vue = 'accueil'; S.q = ''; S.code = '';
       return rendre();
+    }
 
     // ---------------- la porte unique ----------------
     case 'entrer': {
@@ -1259,6 +1373,15 @@ async function agir(a, el) {
         await chargerSupervision(); rendre();
         toast('Cases révélées', `${r.revelees} case${r.revelees > 1 ? 's' : ''} ouverte${r.revelees > 1 ? 's' : ''}`);
       } catch (e) { toast('Impossible', e.detail || e.message, 'negatif'); }
+      return;
+    }
+    case 'tickets': {
+      S.vue = 'tickets'; rendre();
+      // On recharge à chaque entrée : c'est l'écran qu'on rouvre pour
+      // vérifier qu'un lot vient d'être remis, il ne doit jamais montrer
+      // l'état d'il y a dix minutes.
+      try { S.tirage = await api.lire.tirage(); rendre(); }
+      catch (e) { toast('Impossible', e.detail || e.message, 'negatif'); }
       return;
     }
     case 'projection': {

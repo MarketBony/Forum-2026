@@ -89,7 +89,7 @@ décrochés dans la grille jouent un grand tirage sur l'écran géant.
 | **Animateur** | le code de son animation | chercher un garage, lancer une partie, noter le résultat |
 | **Fournisseur** | le code de son stand | chercher un garage, créditer une opération |
 | **Accueil** | le code hôtesse | chercher parmi les 1 407 invités, **lire un code**, voir le compteur d'arrivées |
-| **Équipe Bony** | le code direction | supervision, remise des lots, corrections, écran de projection |
+| **Équipe Bony** | le code direction | supervision, remise des lots, corrections, **détail des tickets d'or**, écran de projection |
 
 L'accueil ne voit **ni les soldes ni le journal** : c'est du personnel d'extra,
 deux pouvoirs et pas un de plus.
@@ -186,6 +186,19 @@ et le signale en rouge s'il devient non nul.
 > `appareils_garage_coherent`). Une place d'appareil prise ne se rend pas. C'est
 > pour cela que `appareils_max` est passé à **6**.
 
+> ⚠️ **ET C'EST POURQUOI SE DÉCONNECTER N'EFFACE PAS LE JETON.** `api_entrer` ne
+> compte l'appareil dans le plafond que si son jeton n'est pas *déjà* rattaché au
+> garage. Un jeton neuf à chaque retour, c'est donc une ligne de plus à chaque
+> aller-retour — et au sixième, le garage se retrouve enfermé dehors avec un
+> « Ce garage a déjà 6 appareils connectés ». Le bouton « Quitter » n'oublie donc
+> que le **rôle** ; le jeton, qui est l'identité de l'appareil et non celle de la
+> session, reste. `oublierAppareil()` existe toujours mais n'est plus appelé :
+> c'est un outil de dépannage, pas un geste d'utilisateur.
+>
+> Mesuré le 15 septembre : **six allers-retours d'affilée sur le même téléphone,
+> jeton inchangé, une seule ligne d'appareil, et le bonus d'arrivée versé une
+> seule fois** (la clé `inscription:<garage>` tient l'idempotence).
+
 ### L'idempotence, partout
 
 Toute écriture porte une `cle_idem` unique, générée par le client et **jamais
@@ -255,7 +268,7 @@ de Node, pas de `npm install`, un `git push` suffit. 138 Ko en 10 fichiers.
 | `app/index.html` | la coquille, 33 lignes |
 | `app/config.js` | URL, clé publique, rythmes de sondage, libellés de l'événement |
 | `app/js/api.js` | les appels RPC, la file d'attente hors ligne, le cache des garages |
-| `app/js/app.js` | ~1 130 lignes, toutes les vues et toutes les actions |
+| `app/js/app.js` | toutes les vues et toutes les actions |
 | `app/js/verre.js` | le verre liquide (filtre SVG de réfraction) |
 | `app/app.css` | la charte complète |
 | `app/sw.js` | service worker, coquille hors ligne — **`VERSION` à incrémenter à chaque déploiement** |

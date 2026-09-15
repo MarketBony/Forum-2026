@@ -52,6 +52,17 @@ export function definirRole(r) {
   else localStorage.removeItem(CLE_ROLE);
 }
 
+// ⚠️ NE PLUS APPELER CECI POUR UNE SIMPLE DÉCONNEXION.
+//
+//  Effacer le jeton fabrique un appareil NEUF au retour, et api_entrer
+//  ne compte l'appareil dans le plafond que si son jeton n'est pas déjà
+//  rattaché au garage. Chaque aller-retour prenait donc une place sur
+//  les six — places qu'on ne peut pas rendre, puisque le journal les
+//  référence. Au sixième, le garage restait dehors.
+//
+//  Se déconnecter, c'est oublier le RÔLE (definirRole(null)), pas
+//  l'appareil. Cette fonction ne sert plus qu'à repartir vraiment de
+//  zéro sur un téléphone — dépannage, jamais un geste d'utilisateur.
 export function oublierAppareil() {
   localStorage.removeItem(CLE_JETON);
   localStorage.removeItem(CLE_ROLE);
