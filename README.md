@@ -90,6 +90,22 @@ Fichiers numérotés et rejouables. `.\scripts\push-sql.ps1 -File sql\01_schema.
 | `21_personnel.sql` | exposants (5 par stand), animateurs (1 par jeu), 2 hôtesses |
 | `99_remise_a_zero.sql` | purge après la répétition générale |
 
+## ⚠️ Une seule URL
+
+**`https://forum-2026.bonyauto-mobile.workers.dev/`**
+
+Une `forum-2026.theo-labonne.workers.dev` a existé : le tout premier
+déploiement, jamais mis à jour, dont le nom ne résout plus. Mais son **service
+worker survit dans les navigateurs qui l'ont connue** et continue de servir la
+coquille d'origine depuis le cache, avec les vraies données de Supabase
+par-dessous — une application qui a l'air de marcher et qui a trois mois de
+retard. Signature imparable : la supervision annonce « / 100 » au lieu de
+« / 200 ».
+
+Pour en sortir : effacer les données du site sur l'ancienne URL, désinstaller
+l'application si elle a été ajoutée à l'écran d'accueil, repartir de la bonne.
+**À vérifier sur tous les téléphones de l'équipe avant le Forum.**
+
 ## Vérifications — 109 contrôles
 
 À rejouer après **toute** modification SQL. Ils tournent contre la vraie base.

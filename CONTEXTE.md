@@ -31,7 +31,7 @@
 | **Où** | Grande Halle d'Auvergne, Cournon-d'Auvergne |
 | **Public** | 1 407 garages invités ; **212 personnes inscrites au Forum**, 320 annoncées |
 | **Remplace** | Les jetons en carton de l'édition précédente |
-| **En ligne** | https://forum-2026.bonyauto-mobile.workers.dev/ |
+| **En ligne** | https://forum-2026.bonyauto-mobile.workers.dev/ — **et rien d'autre**, voir §10 |
 | **Dépôt** | `MarketBony/Forum-2026` — **privé**, doit le rester |
 | **Coût** | 0 € (Cloudflare Workers gratuit + Supabase gratuit) |
 | **État** | Fonctionnel de bout en bout, 109 tests verts, en attente de décisions |
@@ -506,6 +506,46 @@ halle, le rendu sur téléphone étroit de la présentation : tout ce qui n'a pa
 - **Realtime est `UNHEALTHY` sur notre projet.** On ne s'en sert pas, aucun impact.
   Illustration du principe : le tableau de bord désigne le symptôme, jamais la
   cause.
+
+### Le déploiement
+
+- ⚠️ **IL N'Y A QU'UNE SEULE URL : `forum-2026.bonyauto-mobile.workers.dev`.**
+  Une `forum-2026.theo-labonne.workers.dev` a existé — le tout premier
+  déploiement du projet, fait sur le sous-domaine Cloudflare personnel avant que
+  l'intégration Git ne soit posée sur le compte Bony. **Elle n'a jamais reçu une
+  seule mise à jour** et son nom ne résout plus. Elle n'apparaît dans aucun
+  commit : `wrangler.jsonc` n'a jamais désigné que le worker `forum-2026`.
+
+- ⚠️ **ET ELLE SURVIT DANS LES NAVIGATEURS QUI L'ONT CONNUE.** C'est le piège,
+  et il est vicieux : `app/sw.js` a installé un service worker sur cette
+  origine-là. Le domaine est mort, mais le navigateur sert toujours la coquille
+  depuis son cache — **pendant que les appels RPC, eux, partent directement chez
+  Supabase et rendent des données parfaitement à jour**. On obtient donc une
+  application qui a l'air de marcher, avec les vrais chiffres du jour, dans
+  l'habillage et la mécanique du premier commit.
+
+  Symptômes vus le 15 septembre 2026, sur la supervision : cartes plates à
+  bordure au lieu des surfaces éclairées, libellés en CAPITALES, aucune
+  guirlande ni dégradé de fond, et surtout **« 12 / 100 » là où la base compte
+  200 cases**. Ce « / 100 » est écrit en dur dans `2d8781c` et nulle part
+  ailleurs : c'est la signature qui date la version affichée à coup sûr.
+
+  **Comment en sortir** : ouvrir l'ancienne URL, « Effacer les données du site »
+  (c'est ce qui tue le service worker), désinstaller l'application si elle a été
+  ajoutée à l'écran d'accueil, puis repartir de la bonne URL.
+
+  **À faire sur tous les téléphones de l'équipe avant le Forum.** Un animateur
+  qui garde la vieille coquille aurait l'ancien barème, pas de ticket d'or, et
+  une grille annoncée à 100 cases — avec les vraies données dessous, donc sans
+  rien qui l'alerte.
+
+- **Le tableau de bord Supabase compte comme « erreur » tout refus voulu.**
+  Après un passage des 109 tests, il affiche ~70 erreurs Postgres : ce sont les
+  `CASE_DEJA_PRISE` du test de concurrence (7 refus sur 8 achats simultanés =
+  le test réussit), les `permission denied` qui prouvent que la clé publique ne
+  lit aucune table, les plafonds qui plafonnent, le trigger d'inaltérabilité qui
+  refuse un DELETE. **Zéro panne là-dedans.** Illustration du principe déjà noté
+  plus haut : le tableau de bord désigne le symptôme, jamais la cause.
 
 ### L'application
 
