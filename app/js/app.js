@@ -505,53 +505,96 @@ function vueFournisseur() {
 //
 //  Les seuils sont volontairement PESSIMISTES : mieux vaut un orange
 //  pour rien qu'un vert le soir où ça lâche.
-function voyant(nom, valeur, unite, etat, detail) {
-  return `<div class="voyant ${etat}" title="${esc(detail || '')}">
-      <span class="vv">${esc(String(valeur))}${unite ? `<i>${esc(unite)}</i>` : ''}</span>
-      <span class="vn">${esc(nom)}</span>
-      <span class="vjauge"><b></b></span>
+//  LA FORME : une console d'instruments, pas un tableau de chiffres.
+//
+//  Chaque mesure est une LIGNE — libellé à gauche, barre au milieu, chiffre
+//  à droite — parce qu'on ne compare pas ces cinq grandeurs entre elles :
+//  on regarde, pour chacune, à quelle distance du rouge elle est. Une
+//  barre horizontale dit ça d'un coup d'œil ; cinq tuiles carrées, non.
+//
+//  La barre est graduée en douze crans plutôt que continue. C'est le seul
+//  parti pris purement graphique : un remplissage lisse se lit comme une
+//  barre de chargement, une rangée de crans se lit comme un instrument, et
+//  on voit le pas bouger même quand la valeur change peu.
+//
+//  charge() rend une fraction de 0 à 1 : la distance parcourue vers le
+//  point de rupture. C'est ce qui permet de mettre sur la même échelle des
+//  millisecondes, un nombre de connexions et un compte de verrous.
+function crans(part, etat) {
+  const N = 12, pleins = Math.min(N, Math.max(part > 0 ? 1 : 0, Math.round(part * N)));
+  let out = '';
+  for (let i = 0; i < N; i++) out += `<i class="${i < pleins ? 'on' : ''}"></i>`;
+  return `<span class="cran ${etat}">${out}</span>`;
+}
+
+function mesure(nom, valeur, unite, part, etat, detail) {
+  return `<div class="mes ${etat}" title="${esc(detail || '')}">
+      <span class="mn">${esc(nom)}</span>
+      ${crans(part, etat)}
+      <span class="mv">${esc(String(valeur))}${unite ? `<i>${esc(unite)}</i>` : ''}</span>
     </div>`;
 }
 
 function bandeSante() {
   const h = S.sante;
   if (!h) {
-    return `<div class="bande-sante attente">
-      <div class="voyant neutre"><span class="vv">…</span>
-        <span class="vn">Santé de la base</span><span class="vjauge"><b></b></span></div>
+    return `<div class="console attente">
+      <div class="ctitre"><span class="cpuce"></span>État de la base de données</div>
+      <div class="mes neutre"><span class="mn">Relevé en cours</span>
+        ${crans(0, 'neutre')}<span class="mv">…</span></div>
     </div>`;
   }
-  const seuil = (v, vert, orange) => v <= vert ? 'ok' : (v <= orange ? 'tiede' : 'chaud');
   const pool = h.pool_max || 11;
+  const ton = (p) => p < 0.55 ? 'ok' : (p < 0.8 ? 'tiede' : 'chaud');
+  // Fraction du chemin vers la rupture, bornée à 1.
+  const part = (v, rupture) => Math.min(1, Math.max(0, v / rupture));
 
-  const voyants = [
-    // Le vécu réel, wifi compris. 400 ms : on ne sent rien. 1,2 s : on
-    // commence à tapoter l'écran. Au-delà, on croit que c'est cassé.
-    voyant('Réponse', h.rtt, 'ms', seuil(h.rtt, 400, 1200),
-           'Aller-retour complet depuis ce téléphone, wifi compris.'),
-    // Le vrai goulot.
-    voyant('Pool', `${h.pool}/${pool}`, '', seuil(h.pool, Math.floor(pool * 0.6), pool - 3),
-           `Connexions PostgREST. Au plafond de ${pool}, les téléphones suivants n'obtiennent rien.`),
-    // Les deux signaux de blocage : zéro, toujours.
-    voyant('Verrous', h.verrous, '', h.verrous === 0 ? 'ok' : (h.verrous <= 2 ? 'tiede' : 'chaud'),
-           'Requêtes en attente d\'un verrou. Doit rester à zéro.'),
-    voyant('Bloquées', h.bloquees, '', h.bloquees === 0 ? 'ok' : (h.bloquees === 1 ? 'tiede' : 'chaud'),
-           'Transactions ouvertes qui n\'avancent plus, et tiennent leurs verrous.'),
-    // L'intégrité. Si celui-ci s'allume, on arrête tout.
-    voyant('Écarts', h.ecarts, '', h.ecarts === 0 ? 'ok' : 'chaud',
-           'Écarts entre un solde affiché et la somme de son journal.'),
+  const pRtt     = part(h.rtt, 2000);       // 2 s : on croit que c'est cassé
+  const pPool    = part(h.pool, pool);      // le plafond dur
+  const pVerrous = part(h.verrous, 5);
+  const pBloq    = part(h.bloquees, 3);
+  const pEcarts  = h.ecarts > 0 ? 1 : 0;    // binaire : zéro, ou on arrête tout
+
+  const lignes = [
+    mesure('Réponse', h.rtt, 'ms', pRtt, ton(pRtt),
+           'Aller-retour complet depuis cet appareil, wifi compris. Le seul chiffre qui voit le réseau de la halle.'),
+    mesure('Pool PostgREST', `${h.pool}/${pool}`, '', pPool, ton(pPool),
+           `Connexions ouvertes sur ${pool}. Au plafond, les téléphones suivants n'obtiennent rien du tout.`),
+    mesure('Verrous en attente', h.verrous, '', pVerrous, h.verrous === 0 ? 'ok' : ton(Math.max(pVerrous, 0.6)),
+           'Requêtes qui attendent qu\'une autre lâche un verrou. Doit rester à zéro.'),
+    mesure('Transactions bloquées', h.bloquees, '', pBloq, h.bloquees === 0 ? 'ok' : ton(Math.max(pBloq, 0.6)),
+           'Transactions ouvertes qui n\'avancent plus et tiennent leurs verrous.'),
+    mesure('Soldes ↔ journal', h.ecarts, '', pEcarts, pEcarts ? 'chaud' : 'ok',
+           'Écarts entre un solde affiché et la somme de son journal. Zéro, toujours.'),
   ].join('');
 
-  const alerte = h.ecarts > 0 ? 'Écart entre un solde et son journal — arrêter les écritures et exporter le journal'
+  // LA SANTÉ GLOBALE est la PIRE des cinq, pas leur moyenne. Une moyenne
+  // noierait un écart de solde sous quatre voyants verts — or c'est
+  // précisément le seul cas où il faut tout arrêter.
+  const pires = [pRtt, pPool, pVerrous, pBloq, pEcarts];
+  const pire = Math.max(...pires);
+  const sante = Math.round((1 - pire) * 100);
+  const tonGlobal = ton(pire);
+  const verdict = tonGlobal === 'ok' ? 'Tout va bien'
+                : tonGlobal === 'tiede' ? 'Sous tension — à surveiller'
+                : 'Critique — agir maintenant';
+
+  const alerte = h.ecarts > 0 ? 'Un solde ne correspond plus à son journal — arrêter les écritures et exporter le journal'
                : h.bloquees > 1 ? 'Des transactions sont bloquées : la base n\'est pas chargée, elle est coincée'
-               : h.pool >= pool - 2 ? 'Le pool PostgREST est presque plein — les téléphones vont commencer à ne plus répondre'
-               : h.rtt >= 1200 ? 'Réponse très lente : regarder le wifi avant de soupçonner la base'
+               : h.pool >= pool - 2 ? 'Le pool est presque plein — les téléphones vont commencer à ne plus répondre'
+               : h.rtt >= 1200 ? 'Réponse très lente : regarder le wifi de la halle avant de soupçonner la base'
                : null;
 
-  return `<div class="bande-sante">
-      ${voyants}
-      <div class="vrythme">${h.ecritures_min} écriture${h.ecritures_min > 1 ? 's' : ''} la dernière minute ·
-        ${h.ecritures_10min} sur dix minutes · relevé à ${esc(h.heure)}</div>
+  return `<div class="console">
+      <div class="ctitre"><span class="cpuce ${tonGlobal}"></span>État de la base de données
+        <span class="cheure">${esc(h.heure)}</span></div>
+      ${lignes}
+      <div class="cglobal ${tonGlobal}">
+        <div class="cgt"><span>Santé globale</span><b>${sante}<i>%</i></b></div>
+        <div class="cgb"><span style="width:${sante}%"></span></div>
+        <div class="cgv">${verdict} · ${h.ecritures_min} écriture${h.ecritures_min > 1 ? 's' : ''}
+          la dernière minute, ${h.ecritures_10min} sur dix</div>
+      </div>
       ${alerte ? `<div class="valerte">${esc(alerte)}</div>` : ''}
     </div>`;
 }

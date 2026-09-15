@@ -30,6 +30,15 @@ param(
   # EXPOSANT : tout le fichier est du personnel de stand, on rattache aux
   #            stands et pas aux garages.
   [ValidateSet('AUTO', 'EXPOSANT')][string]$Categorie = 'AUTO',
+  # Deux societes homonymes en base, le script REFUSE de choisir : rien
+  # dans le listing ne les departage, et attribuer a quelqu'un le code
+  # d'un autre garage est la pire erreur possible. Cet interrupteur ne
+  # lui fait pas deviner : il lui fait creer un TROISIEME compte, au nom
+  # de l'inscrit, avec son propre code. Arbitrage de Bastien du
+  # 15 septembre : « si homonyme on cree le compte de l'inscrit, et y'aura
+  # un doublon dans la base au cas ou un deuxieme garage a le meme nom
+  # dans un lieu different ».
+  [switch]$CreerHomonymes,
   [switch]$Appliquer
 )
 
@@ -213,6 +222,7 @@ if ($Categorie -eq 'EXPOSANT') {
 $rows = @(); $ecartes = 0; $doublons = @(); $reportees = 0
 $nouvelles = @{}      # nom normalisé -> société à créer
 $aArbitrer = @()
+$homonymesCrees = @()
 $vus = @{}
 $derniereRaison = ''
 
@@ -305,9 +315,14 @@ for ($n = 1; $n -lt $lignes.Count; $n++) {
   $g = $null; $via = ''
   if (@($cands).Count -eq 1) {
     $g = $cands[0]; $via = 'nom'
-  } elseif (@($cands).Count -gt 1) {
+  } elseif (@($cands).Count -gt 1 -and -not $CreerHomonymes) {
     $aArbitrer += "$raison  ->  " + (($cands | ForEach-Object { "$($_.nom) ($($_.ville)) $($_.code)" }) -join '   |   ')
     continue
+  } elseif (@($cands).Count -gt 1) {
+    # -CreerHomonymes : on ne choisit toujours pas parmi les existants.
+    # On laisse $g a null pour tomber dans la branche « societe creee »
+    # plus bas, qui fabrique un compte neuf avec un code neuf.
+    $homonymesCrees += "$raison  ->  nouveau compte (les " + @($cands).Count + " existants sont laisses intacts)"
   } elseif ($idBony) {
     $premier = ($idBony -split '[^A-Z0-9]')[0]
     if ($parRef.ContainsKey($premier)) { $g = $parRef[$premier]; $via = "id $premier -> $($g.nom)" }
@@ -357,6 +372,9 @@ foreach ($k in ($parVia.Keys | Sort-Object)) { Write-Output ("    {0,-32} {1}" -
 Write-Output '  ------------------------------------------------------------'
 Write-Output ("  Societes a creer en base .............. {0}" -f $nouvelles.Count)
 Write-Output ("  A ARBITRER (homonymes en base) ........ {0}" -f $aArbitrer.Count)
+if (@($homonymesCrees).Count -gt 0) {
+  Write-Output ("  Homonymes : nouveaux comptes crees .... {0}" -f @($homonymesCrees).Count)
+}
 if ($aArbitrer.Count) {
   Write-Output ''
   Write-Output '  Ces lignes ne seront PAS importees : deux societes portent le meme'

@@ -696,62 +696,117 @@ body.service .bouton.creux {
 .revele.attente .rt { color:var(--creme-2); text-shadow:none }
 
 /* =====================================================================
-   La bande d'état — la santé de la base, en haut de la supervision
-   Elle doit se lire en une seconde, d'un coup d'œil, sans rien cliquer :
-   c'est son seul rôle. Cinq voyants, une couleur chacun, et une jauge
-   qui se remplit pour qu'on voie la tendance sans lire le chiffre.
+   La console — l'état de la base, en haut de la supervision
+
+   UNE CONSOLE D'INSTRUMENTS, PAS UN TABLEAU DE CHIFFRES. Une première
+   version alignait cinq tuiles carrées : illisible, parce qu'on ne
+   compare pas des millisecondes à un nombre de verrous. Ce qu'on veut
+   savoir, pour chacune, c'est À QUELLE DISTANCE DU ROUGE elle est — et
+   ça, une barre horizontale le dit d'un coup d'œil.
+
+   Les barres sont graduées en douze crans plutôt que continues. C'est le
+   seul parti pris purement graphique : un remplissage lisse se lit comme
+   une barre de chargement, une rangée de crans se lit comme un
+   instrument — et on voit le pas bouger même quand la valeur change peu.
+
+   La charte tient : nuit, or, terracotta. Rien de neuf, rien de vert
+   fluorescent. Le vert-ok de la charte ne sert qu'aux crans allumés.
    ===================================================================== */
-.bande-sante {
-  display:grid; grid-template-columns:repeat(auto-fit,minmax(88px,1fr));
-  gap:var(--e2); margin:0 0 var(--e5);
+.console {
+  background:var(--surface-plate); border-radius:var(--r2);
+  padding:var(--e3) var(--e4) var(--e4);
+  margin:0 0 var(--e5);
+  box-shadow:inset 0 1px 0 var(--reflet), var(--ombre-1);
 }
-.voyant {
-  position:relative; padding:var(--e2) var(--e3) 10px;
-  border-radius:var(--r1); background:var(--surface-plate);
-  display:flex; flex-direction:column; gap:2px; min-width:0;
+
+/* Le titre dit CE QUE C'EST : sans lui, cinq barres sur un écran de
+   supervision ne veulent rien dire pour qui n'a pas écrit le code. */
+.ctitre {
+  display:flex; align-items:center; gap:var(--e2);
+  font-size:10.5px; letter-spacing:.16em; text-transform:uppercase;
+  color:var(--txt-3); margin-bottom:var(--e3);
 }
-.voyant .vv {
-  font-family:var(--serif); font-size:clamp(17px,2.4vw,23px); font-weight:700;
-  line-height:1.05; color:var(--creme-2); white-space:nowrap;
+.ctitre .cheure {
+  margin-left:auto; letter-spacing:.08em;
+  font-variant-numeric:tabular-nums; color:rgba(241,231,210,.34);
 }
-.voyant .vv i { font-style:normal; font-size:.6em; color:var(--txt-3); margin-left:2px }
-.voyant .vn {
-  font-size:10px; letter-spacing:.07em; text-transform:uppercase;
-  color:var(--txt-3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+/* La puce reprend la couleur de la santé globale : le titre lui-même
+   devient un voyant, avant même qu'on lise une seule barre. */
+.cpuce { width:7px; height:7px; border-radius:50%; background:var(--txt-3); flex:none }
+.cpuce.ok    { background:var(--vert-ok);         box-shadow:0 0 8px rgba(111,190,126,.7) }
+.cpuce.tiede { background:var(--or);              box-shadow:0 0 8px rgba(197,150,60,.7) }
+.cpuce.chaud { background:var(--terracotta-clair); box-shadow:0 0 10px rgba(230,129,82,.9);
+               animation:pouls 1.6s ease-in-out infinite }
+@keyframes pouls { 0%,100% { opacity:1 } 50% { opacity:.35 } }
+
+/* Une mesure = une ligne. Le libellé cale à gauche, le chiffre à droite
+   en chiffres tabulaires pour que la colonne ne danse pas à chaque
+   relevé, et les crans occupent tout l'espace entre les deux. */
+.mes {
+  display:grid; grid-template-columns:minmax(0,10.5em) 1fr auto;
+  align-items:center; gap:var(--e3);
+  padding:5px 0; font-size:12px;
 }
-/* La jauge est un simple filet en bas : elle donne la couleur sur toute
-   la largeur du voyant, donc lisible du coin de l'œil sans viser. */
-.voyant .vjauge {
-  position:absolute; left:var(--e3); right:var(--e3); bottom:6px;
-  height:3px; border-radius:var(--r-plein); background:rgba(241,231,210,.1); overflow:hidden;
+.mes .mn { color:var(--txt-2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+.mes .mv {
+  font-family:var(--serif); font-size:15px; font-weight:700; color:var(--creme-2);
+  font-variant-numeric:tabular-nums; white-space:nowrap; text-align:right; min-width:3.4em;
 }
-.voyant .vjauge b { display:block; height:100%; width:100%; border-radius:inherit; transition:background .5s }
-.voyant.ok    .vjauge b { background:var(--vert-ok) }
-.voyant.tiede .vjauge b { background:var(--or) }
-.voyant.chaud .vjauge b { background:var(--terracotta-clair) }
-.voyant.neutre .vjauge b { background:rgba(241,231,210,.18) }
-.voyant.chaud .vv { color:var(--terracotta-clair) }
-/* Un voyant chaud respire : sur une tablette posée sur un coin de table,
-   au milieu du bruit, une couleur fixe ne se remarque pas. */
-.voyant.chaud { animation:voyantChaud 1.8s ease-in-out infinite }
-@keyframes voyantChaud {
-  0%, 100% { box-shadow:inset 0 0 0 1px rgba(230,129,82,.35) }
-  50%      { box-shadow:inset 0 0 0 1px rgba(230,129,82,.85), 0 0 18px -4px rgba(209,91,48,.5) }
+.mes .mv i { font-style:normal; font-size:.62em; color:var(--txt-3); margin-left:2px }
+.mes.chaud .mv { color:var(--terracotta-clair) }
+
+/* Les crans. Ils s'étirent pour occuper la largeur disponible : sur un
+   téléphone étroit ils se resserrent, ils ne débordent jamais. */
+.cran { display:flex; gap:2px; min-width:0 }
+.cran i {
+  flex:1 1 0; min-width:2px; height:9px; border-radius:1px;
+  background:rgba(241,231,210,.09);
+  transition:background .45s var(--sortie);
 }
-.vrythme {
-  grid-column:1 / -1; font-size:11px; color:var(--txt-3);
-  padding:0 var(--e1); line-height:1.4;
+.cran.ok    i.on { background:var(--vert-ok) }
+.cran.tiede i.on { background:var(--or) }
+.cran.chaud i.on { background:var(--terracotta-clair) }
+
+/* La santé globale : la PIRE des cinq mesures, jamais leur moyenne. Une
+   moyenne noierait un écart de solde sous quatre barres vertes — or
+   c'est précisément le seul cas où il faut tout arrêter. */
+.cglobal { margin-top:var(--e3); padding-top:var(--e3); border-top:1px solid var(--filet) }
+.cgt {
+  display:flex; align-items:baseline; justify-content:space-between;
+  font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--txt-3);
 }
+.cgt b {
+  font-family:var(--serif); font-size:26px; letter-spacing:-.01em;
+  color:var(--creme-2); font-variant-numeric:tabular-nums;
+}
+.cgt b i { font-style:normal; font-size:.5em; color:var(--txt-3); margin-left:1px }
+.cglobal.chaud .cgt b { color:var(--terracotta-clair) }
+.cgb {
+  height:5px; border-radius:var(--r-plein); margin:6px 0 5px;
+  background:rgba(241,231,210,.09); overflow:hidden;
+}
+/* La barre globale est un dégradé : elle part du terracotta et va vers
+   l'or puis le vert, donc sa couleur de POINTE dit l'état sans qu'on
+   lise le pourcentage. */
+.cgb span {
+  display:block; height:100%; border-radius:inherit;
+  background:linear-gradient(90deg,var(--terracotta) 0%,var(--or) 45%,var(--vert-ok) 100%);
+  transition:width .8s var(--sortie);
+}
+.cglobal.tiede .cgb span { background:linear-gradient(90deg,var(--terracotta) 0%,var(--or) 100%) }
+.cglobal.chaud .cgb span { background:var(--terracotta-clair) }
+.cgv { font-size:11px; color:var(--txt-3); line-height:1.4 }
+
 .valerte {
-  grid-column:1 / -1; padding:var(--e2) var(--e3); border-radius:var(--r1);
+  margin-top:var(--e3); padding:var(--e2) var(--e3); border-radius:var(--r1);
   background:rgba(209,91,48,.16); color:var(--terracotta-clair);
   font-size:12.5px; font-weight:600; line-height:1.35;
   box-shadow:inset 0 0 0 1px rgba(209,91,48,.4);
 }
-.bande-sante.attente .voyant { opacity:.5 }
+.console.attente .mes { opacity:.45 }
 
 @media (prefers-reduced-motion:reduce) {
-  .voyant.chaud { animation:none; box-shadow:inset 0 0 0 1px rgba(230,129,82,.8) }
+  .cpuce.chaud { animation:none }
 }
 
 /* =====================================================================
