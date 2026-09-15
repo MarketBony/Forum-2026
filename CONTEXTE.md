@@ -566,6 +566,16 @@ halle, le rendu sur téléphone étroit de la présentation : tout ce qui n'a pa
 - **Le tableau de bord admin doit se recharger en y revenant**, sinon un lot que
   Bony vient de remettre reste affiché comme « à remettre » jusqu'au sondage
   suivant, et l'équipe doute de l'outil.
+- ⚠️ **UN `catch {}` VIDE IMMOBILISE UN ÉCRAN POUR TOUJOURS.**
+  `chargerSupervision()` et `chargerAccueil()` avalaient toute erreur sans un
+  mot. Quand l'appareil disparaît de la base — remise à zéro, purge des
+  appareils par une batterie de tests, rôle réattribué — l'appel échoue, la
+  donnée reste nulle, et l'écran affiche « Chargement… » indéfiniment : pas de
+  message, pas de bouton, pas d'issue. **Constaté sur un vrai téléphone le
+  15 septembre.** Les trois chargeurs passent désormais par `sessionMorte()`
+  (qui renvoie à l'écran de code) et retiennent toute autre panne dans `S.panne`,
+  que `ecranAttente()` affiche avec « Réessayer ». Un « Chargement… » qui ne
+  finit jamais est le pire des états : il ne dit rien et n'offre rien.
 - **Une grille CSS à deux colonnes avec trois enfants** place le troisième en
   colonne 1. Déclarer `grid-column` explicitement.
 

@@ -30,6 +30,7 @@ const S = {
   codeZoom: null,       // code affiché en très grand
   lots: null,
   tirage: null,       // etat du grand tirage du soir
+  panne: null,        // derniere panne de chargement, affichee plutot qu'avalee
   cleEnCours: null,     // clé d'idempotence de l'opération en cours
   envoi: false,         // garde anti-double-appui
   horsLigne: !navigator.onLine,
@@ -488,7 +489,7 @@ function vueFournisseur() {
 // --- supervision Bony (§12, §18) --------------------------------------
 function vueAdmin() {
   const s = S.sup;
-  if (!s) return `<div class="ecran">${barre('Supervision Bony')}<p class="chargement">Chargement…</p></div>`;
+  if (!s) return ecranAttente('Supervision Bony', null);
   return `<div class="ecran">
       ${barre('Supervision Bony', null, `<button class="lien" data-a="quitter">Quitter</button>`)}
       ${bandeauReseau()}
@@ -673,8 +674,7 @@ function vueAccueilHotesse() {
 //  vend la mèche. À ne pas montrer à un garage, ni projeter par erreur.
 function vueTickets() {
   const t = S.tirage;
-  if (!t) return `<div class="ecran">${barre("Tickets d'or", 'admin')}
-    <p class="chargement">Chargement…</p></div>`;
+  if (!t) return ecranAttente("Tickets d'or", 'admin');
 
   const tous = t.tickets || [];
   const pris = tous.filter((k) => k.rang);
@@ -1095,12 +1095,63 @@ async function chargerEtat() {
   }
 }
 
+// ---------------------------------------------------------------------
+//  Une session peut mourir sous les pieds de l'écran
+//
+//  PIÈGE PAYÉ, ET IL IMMOBILISAIT LA TABLETTE BONY. chargerSupervision()
+//  et chargerAccueil() avalaient TOUTE erreur dans un `catch {}` vide.
+//  Quand l'appareil disparaît de la base — remise à zéro, purge des
+//  appareils par une batterie de tests, rôle réattribué — l'appel échoue,
+//  S.sup reste nul, et l'écran affiche « Chargement… » POUR TOUJOURS :
+//  pas de message, pas de bouton, pas d'issue. Vu sur un vrai téléphone
+//  le 15 septembre.
+//
+//  Les trois chargeurs réagissent donc pareil désormais : une session
+//  morte renvoie à l'écran de code, et toute autre panne est retenue
+//  dans S.panne pour que l'écran puisse le dire et proposer de
+//  réessayer. Un « Chargement… » qui ne finit jamais est le pire des
+//  états : il ne dit rien et n'offre rien.
+// ---------------------------------------------------------------------
+const SESSION_MORTE = ['APPAREIL_INCONNU', 'APPAREIL_SANS_GARAGE',
+                       'JETON_INVALIDE', 'ROLE_INSUFFISANT'];
+
+function sessionMorte(e) {
+  if (e instanceof api.ErreurApi && SESSION_MORTE.includes(e.code)) {
+    api.definirRole(null);
+    S.r = null; S.sup = null; S.etat = null; S.accueil = null;
+    S.lots = null; S.tirage = null; S.panne = null;
+    S.vue = 'accueil';
+    return true;
+  }
+  return false;
+}
+
 async function chargerSupervision() {
-  try { S.sup = await api.lire.supervision(); } catch {}
+  try { S.sup = await api.lire.supervision(); S.panne = null; }
+  catch (e) { if (!sessionMorte(e)) S.panne = e.detail || e.message; }
 }
 
 async function chargerAccueil() {
-  try { S.accueil = await api.lire.accueilEtat(); } catch {}
+  try { S.accueil = await api.lire.accueilEtat(); S.panne = null; }
+  catch (e) { if (!sessionMorte(e)) S.panne = e.detail || e.message; }
+}
+
+// Écran d'attente honnête : soit ça charge, soit ça a échoué et on le
+// dit, avec de quoi s'en sortir.
+function ecranAttente(titre, retour) {
+  if (!S.panne) {
+    return `<div class="ecran">${barre(titre, retour)}
+      <p class="chargement">Chargement…</p></div>`;
+  }
+  return `<div class="ecran">${barre(titre, retour)}
+    <div class="entete">
+      <h1 class="titre">Rien n'est arrivé</h1>
+      <p class="sous">${esc(S.panne)}</p>
+    </div>
+    <div class="pile">
+      <button class="bouton" data-a="reessayer">Réessayer</button>
+      <button class="bouton creux" data-a="quitter">Ressaisir mon code</button>
+    </div></div>`;
 }
 
 let minuteurSondage = null;
@@ -1153,6 +1204,19 @@ async function agir(a, el) {
       if (await chargerEtat()) { rendre(); toast('Solde à jour', `<b>${S.etat.garage.solde}</b> points`); }
       else toast('Pas de réseau', 'Le solde affiché est celui de la dernière consultation.', 'attente');
       return;
+    // Relance le chargement de l'écran courant après une panne. Le
+    // bouton n'existe que sur ecranAttente, donc uniquement là où un
+    // chargement a échoué.
+    case 'reessayer': {
+      S.panne = null; rendre();
+      if (S.vue === 'admin')        { await chargerSupervision(); return rendre(); }
+      if (S.vue === 'accueil_hotesse') { await chargerAccueil();  return rendre(); }
+      if (S.vue === 'tickets')      return agir('tickets');
+      if (S.vue === 'lots')         return agir('lots');
+      if (S.vue === 'espace')       { await chargerEtat();        return rendre(); }
+      return rendre();
+    }
+
     // ---------------- se déconnecter ----------------
     //
     //  PIÈGE PAYÉ ICI, ET IL EST INVISIBLE. On effaçait le JETON en même
@@ -1353,8 +1417,11 @@ async function agir(a, el) {
       return;
     }
     case 'lots': {
-      try { S.lots = await api.lire.lots(); S.vue = 'lots'; rendre(); }
-      catch (e) { toast('Impossible', e.detail || e.message, 'negatif'); }
+      try { S.lots = await api.lire.lots(); S.panne = null; S.vue = 'lots'; rendre(); }
+      catch (e) {
+        if (!sessionMorte(e)) S.panne = e.detail || e.message;
+        rendre(); toast('Impossible', e.detail || e.message, 'negatif');
+      }
       return;
     }
     // ---------------- poste d'accueil ----------------
@@ -1380,8 +1447,11 @@ async function agir(a, el) {
       // On recharge à chaque entrée : c'est l'écran qu'on rouvre pour
       // vérifier qu'un lot vient d'être remis, il ne doit jamais montrer
       // l'état d'il y a dix minutes.
-      try { S.tirage = await api.lire.tirage(); rendre(); }
-      catch (e) { toast('Impossible', e.detail || e.message, 'negatif'); }
+      try { S.tirage = await api.lire.tirage(); S.panne = null; rendre(); }
+      catch (e) {
+        if (!sessionMorte(e)) S.panne = e.detail || e.message;
+        rendre(); toast('Impossible', e.detail || e.message, 'negatif');
+      }
       return;
     }
     case 'projection': {
