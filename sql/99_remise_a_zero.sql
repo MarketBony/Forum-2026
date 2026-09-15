@@ -25,7 +25,7 @@
 --  aurait échoué en bloc (toute la transaction annulée) et la grille
 --  serait restée pleine des achats de la répétition — sans que rien
 --  n'avertisse, sinon un HTTP 400 au milieu d'une sortie bavarde.
---  Il ne purgeait pas non plus les tentatives ni le tirage.
+--  Il ne purgeait pas non plus les tentatives ni le drapeau du tirage.
 --  ---------------------------------------------------------------
 -- =====================================================================
 
@@ -60,9 +60,11 @@ delete from public.appareils;
 --    épuisé ses essais pendant la répétition resterait bloqué le 17.
 delete from public.tentatives;
 
--- 6. Le grand tirage, et le drapeau qui dit qu'il a été ouvert.
-delete from public.tirage;
-update public.config set valeur = 'non' where cle = 'tirage_ouvert';
+-- 6. Le grand tirage. Il n'y a plus de manches à purger depuis
+--    sql/23_grand_tirage.sql : le soir est une révélation, pas un
+--    tirage. Seul le drapeau retombe, et les codes de retrait des
+--    tickets d'or partent avec la grille au point 3.
+update public.config set valeur = 'non' where cle = 'tirage_revele';
 
 commit;
 
@@ -73,7 +75,8 @@ select
   (select count(*) from public.journal)                             as lignes_journal,
   (select count(*) from public.appareils)                           as appareils,
   (select count(*) from public.tentatives)                          as tentatives,
-  (select count(*) from public.tirage)                              as tirage,
+  (select coalesce((select valeur from public.config where cle = 'tirage_revele'), 'non'))
+                                                                    as tirage_revele,
   (select count(*) from public.garages where solde <> 0)            as garages_avec_solde,
   (select count(*) from public.grille where garage_id is not null)  as cases_jouees,
   (select count(*) from public.verifier_soldes())                   as ecarts,

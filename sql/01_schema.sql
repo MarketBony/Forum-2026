@@ -1,5 +1,5 @@
 -- =====================================================================
---  Forum Pièces Bony 2026 — « Le Grand Bal des Points »
+--  Forum Pièces Bony 2026 — « Le Grand Bal des Fournisseurs »
 --  01 — Schéma : tables, contraintes, index, verrouillage des accès
 --
 --  Principes non négociables encodés ici :

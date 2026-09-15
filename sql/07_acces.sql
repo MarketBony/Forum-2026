@@ -37,7 +37,9 @@ on conflict (cle) do nothing;
 update public.grille
    set garage_id = null, journal_id = null, achete_le = null, revele_le = null,
        code_retrait = null, remis = false, remis_le = null;
-delete from public.tirage;
+-- La table tirage a disparu avec sql/23_grand_tirage.sql : le soir est
+-- une revelation, pas un tirage. Seul le drapeau retombe.
+update public.config set valeur='non' where cle='tirage_revele';
 alter table public.journal disable trigger journal_pas_de_modif;
 delete from public.journal;
 alter table public.journal enable trigger journal_pas_de_modif;

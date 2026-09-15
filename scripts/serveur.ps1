@@ -8,6 +8,9 @@
 #
 #  Sert le dossier app\. Nécessaire parce que les modules ES et les
 #  service workers ne fonctionnent pas depuis file://.
+#
+#  Le générateur de badges a le sien, scripts\serveur-badges.ps1 : il
+#  rend des services que celui-ci n'a pas à connaître.
 # =====================================================================
 param([int]$Port = 8123)
 

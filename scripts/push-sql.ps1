@@ -54,7 +54,17 @@ try {
         -ContentType 'application/json' `
         -Body $bytes -TimeoutSec 120 -UseBasicParsing
   if (-not $Quiet) { Write-Output ("   OK  HTTP " + [int]$r.StatusCode) }
-  if ($r.Content) { Write-Output $r.Content }
+  # PIÈGE DÉJÀ PAYÉ. $r.Content décode les octets selon l'en-tête de la
+  # réponse, et Supabase n'annonce pas toujours son charset : « Autos
+  # République » revenait en « Autos RÃ©publique ». Inoffensif tant
+  # qu'on ne fait que regarder, mais le générateur de badges lit cette
+  # sortie — et aurait imprimé le mojibake sur les badges. On décode
+  # les octets bruts en UTF-8, toujours.
+  if ($r.RawContentStream) {
+    Write-Output ([Text.Encoding]::UTF8.GetString($r.RawContentStream.ToArray()))
+  } elseif ($r.Content) {
+    Write-Output $r.Content
+  }
 } catch {
   $code = 'n/a'
   if ($_.Exception.Response) { $code = [int]$_.Exception.Response.StatusCode }

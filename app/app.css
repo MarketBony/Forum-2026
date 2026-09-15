@@ -1,5 +1,5 @@
 /* =====================================================================
-   Le Grand Bal des Points — feuille de style
+   Le Grand Bal des Fournisseurs — feuille de style
    ---------------------------------------------------------------------
    Charte issue de la page d'invitation du Grand Bal des Fournisseurs.
    Mono-thème assumé : l'application vit dans une halle, le soir.
@@ -699,10 +699,24 @@ body.service .bouton.creux {
    Écran de projection du grand tirage
    Destiné à un vidéoprojecteur, en paysage, lu à dix mètres.
    ===================================================================== */
+/* PIÈGE PAYÉ ICI. #app est un flex en colonne, et des marges latérales
+   AUTO sur un enfant de flex annulent l'étirement : la boîte cesse de
+   prendre la largeur de l'écran et prend celle de son CONTENU. Le
+   récapitulatif en grille faisait alors 1 248 px sur un écran de 857,
+   l'écran débordait vers la droite et le titre partait de travers —
+   sans rien casser, donc sans rien signaler. `width:100%` borne le
+   calcul, et `max-width` continue de faire son travail au-delà. */
 .projection {
   min-height:100dvh; display:flex; flex-direction:column;
   align-items:center; justify-content:center; gap:var(--e6);
-  padding:var(--e7) var(--e6); text-align:center; max-width:1400px; margin:0 auto;
+  padding:var(--e7) var(--e6); text-align:center;
+  width:100%; max-width:1400px; margin:0 auto;
+  /* L'éclat d'or déborde volontairement de sa boîte pour ne pas se
+     couper net sur les bords. `clip` le laisse déborder SANS créer de
+     zone défilable — `hidden` aurait fait apparaître une barre
+     horizontale, ce qui est exactement ce qu'on veut éviter sur un
+     écran de projection. */
+  overflow-x:clip;
 }
 .projection .pscript { font-family:var(--script); font-size:clamp(34px,5vw,64px); color:var(--or-clair); line-height:1 }
 .projection .ptitre {
@@ -711,22 +725,153 @@ body.service .bouton.creux {
   text-shadow:0 0 60px rgba(230,199,126,.3); text-wrap:balance;
 }
 .projection .pinfo { font-size:clamp(15px,1.6vw,22px); color:var(--txt-2) }
-.pcourse { display:flex; flex-wrap:wrap; gap:var(--e3); justify-content:center; max-width:1200px }
-.pbillet {
-  padding:var(--e3) var(--e5); border-radius:var(--r-plein);
-  background:var(--surface); box-shadow:var(--ombre-1);
-  font-size:clamp(15px,1.8vw,26px); font-weight:600; color:var(--creme-2);
-  transition:opacity .5s var(--sortie), transform .5s var(--sortie), filter .5s;
-}
-.pbillet .pnum { color:var(--or); font-family:var(--serif); margin-right:.5em }
-.pbillet.sorti { opacity:.22; filter:grayscale(1); transform:scale(.92) }
-.pbillet.gagnant {
-  background:linear-gradient(180deg,var(--or-pale),var(--or));
-  color:#231402; transform:scale(1.12);
-  box-shadow:0 10px 50px -8px rgba(197,150,60,.8);
-}
 .pactions { display:flex; gap:var(--e3); flex-wrap:wrap; justify-content:center }
 .pactions .bouton { width:auto; min-width:220px }
+
+/* ---------------------------------------------------------------------
+   La révélation des tickets d'or
+   Lue à dix mètres, au vidéoprojecteur, dans une salle qui dîne. Deux
+   lignes seulement portent l'information : le LOT, puis le GARAGE. Tout
+   le reste est du décor et doit s'effacer devant elles.
+   --------------------------------------------------------------------- */
+.projection.revelation { justify-content:space-between; gap:var(--e5) }
+.pscene {
+  flex:1; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:var(--e3); width:100%;
+}
+/* LA HIÉRARCHIE EST INVERSÉE PAR RAPPORT À L'INTUITION, et c'est voulu.
+   Le lot est le SUJET de la phrase, pas sa chute : il s'annonce en
+   étiquette, capitales espacées, taille modeste. Le nom du garage est la
+   chute, et c'est lui que la salle cherche — il prend toute la place.
+   Une première version faisait l'inverse : on lisait le lot de loin et
+   il fallait plisser les yeux pour voir qui avait gagné. */
+.ptlot {
+  font-weight:700; font-size:clamp(17px,2.4vw,34px);
+  line-height:1.2; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--or-clair); text-wrap:balance; max-width:26ch; min-height:1.2em;
+}
+.ptlot.entre { animation:lotEntre .6s var(--sortie) both }
+@keyframes lotEntre {
+  from { opacity:0; transform:translateY(14px) }
+  to   { opacity:1; transform:none }
+}
+/* « revient à » — la charnière. Elle part AVEC le lot : pendant que la
+   roulette tourne, la phrase est déjà posée et seule la fin manque. */
+.ptvers {
+  font-family:var(--script); font-size:clamp(20px,2.6vw,34px);
+  color:var(--txt-2); opacity:0; line-height:1;
+}
+.ptvers.entre { animation:fondu .6s ease both }
+@keyframes fondu { from { opacity:0 } to { opacity:1 } }
+
+/* Le nom et son éclat, empilés. Le halo est DERRIÈRE, jamais sur le
+   texte : une lueur portée sur des lettres de 100 px empâte les
+   contreformes et le nom devient une tache à dix mètres. */
+.ptnom { position:relative; display:flex; align-items:center; justify-content:center;
+         width:100%; min-height:1.15em; font-size:clamp(40px,7.6vw,118px) }
+.ptgarage {
+  position:relative; z-index:1;
+  font-family:var(--serif); font-weight:700; font-size:1em;
+  line-height:1.08; color:var(--creme-2); text-wrap:balance;
+}
+/* Pendant la roulette : le nom défile, en retrait. Il ne doit pas être
+   lisible au point qu'on essaie de le lire — c'est du mouvement, pas de
+   l'information. */
+.ptgarage.roule { color:var(--or-clair); opacity:.5; filter:blur(.6px) }
+.nomme .ptgarage { animation:nomTombe .55s cubic-bezier(.18,.9,.3,1.2) both }
+@keyframes nomTombe {
+  0%   { opacity:.5; transform:scale(.9) }
+  100% { opacity:1; transform:none }
+}
+/* L'éclat : un halo d'or qui s'ouvre derrière le nom et s'efface. C'est
+   le seul effet de la page, il dure une demi-seconde et ne laisse rien
+   d'allumé en permanence. */
+.pthalo {
+  position:absolute; inset:-40% -10%; z-index:0; opacity:0; pointer-events:none;
+  background:radial-gradient(ellipse at center,
+    rgba(239,215,154,.5) 0%, rgba(197,150,60,.24) 38%, transparent 70%);
+}
+.pthalo.eclate { animation:eclat .9s ease-out both }
+@keyframes eclat {
+  0%   { opacity:0; transform:scale(.55) }
+  35%  { opacity:1; transform:scale(1.02) }
+  100% { opacity:0; transform:scale(1.25) }
+}
+.ptdetail { font-size:clamp(14px,1.5vw,22px); color:var(--txt-2); min-height:1.2em }
+
+/* Pendant le spectacle, les boutons de service s'effacent : sur un écran
+   géant, « Rejouer l'animation » au milieu d'une annonce de lot fait
+   amateur. Ils restent cliquables, et reviennent au survol pour celui
+   qui tient la souris — et en clair une fois le spectacle terminé. */
+.revelation:not(.fini) .pactions { opacity:.18; transition:opacity .4s ease }
+.revelation:not(.fini) .pactions:hover { opacity:1 }
+
+/* Les pastilles : où on en est, sans chiffre à lire. */
+.ppastilles { display:flex; gap:var(--e2); flex-wrap:wrap; justify-content:center }
+.ppast {
+  width:10px; height:10px; border-radius:var(--r-plein);
+  background:rgba(241,231,210,.18); transition:background .4s, transform .4s var(--sortie);
+}
+.ppast.vu { background:var(--or); transform:scale(1.35) }
+
+/* Le récapitulatif : masqué pendant le spectacle, il ne prend sa place
+   qu'à la fin. Une carte déjà révélée s'y allume au passage — la salle
+   voit le tableau se remplir sans qu'on le lui explique. */
+/* LES QUINZE CARTES DOIVENT TENIR D'UN SEUL COUP À L'ÉCRAN. Une barre de
+   défilement interne, sur un vidéoprojecteur, veut dire que la moitié de
+   la salle ne verra jamais son nom — et personne ne va faire défiler
+   depuis le fond de la salle. Colonnes étroites et cartes compactes :
+   à 1 280 px on tient en 3 rangées, à 1 920 en 2. Le `overflow-y` reste
+   en dernier recours, il ne doit jamais se déclencher. */
+.pgrille {
+  /* Quatre colonnes, pas six : à six, « Carrosserie Desmartin » se coupe
+     en trois lignes de 14 px, illisibles du fond de la salle. Quatre
+     colonnes larges tiennent 15 cartes en 4 rangées et laissent au nom
+     la place de s'écrire en entier. */
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(clamp(210px,24vw,300px),1fr));
+  gap:var(--e2); width:100%; max-width:1340px;
+  max-height:0; overflow:hidden; opacity:0;
+  transition:max-height .9s var(--sortie), opacity .9s ease;
+}
+.revelation.fini .pgrille { max-height:64vh; overflow-y:auto; opacity:1 }
+/* LA LUEUR D'OR AUTOUR DE CHAQUE CARTE A ÉTÉ RETIRÉE. À une carte elle
+   faisait joli ; à quinze côte à côte elle bavait d'une carte sur
+   l'autre, le fond violet virait au jaune sale et les noms passaient
+   derrière un voile. Un filet d'or sur le bord gauche dit la même chose
+   — « celle-ci est sortie » — sans rien salir.
+   Et la hiérarchie est la même que sur la scène : le GARAGE d'abord,
+   le lot en dessous. C'est le nom qu'on cherche dans ce tableau. */
+.ptk {
+  position:relative; padding:var(--e2) var(--e3); border-radius:var(--r1);
+  background:var(--surface-plate); border-left:3px solid transparent;
+  opacity:.28; transition:opacity .5s ease, border-color .5s ease, background .5s ease;
+  text-align:left;
+}
+.ptk.vu { opacity:1; border-left-color:var(--or); background:var(--surface) }
+.ptknum {
+  position:absolute; top:var(--e2); right:var(--e3);
+  font-family:var(--serif); font-size:12px; color:var(--or-fonce);
+}
+.ptkgar {
+  font-size:clamp(15px,1.5vw,22px); font-weight:700; color:var(--creme-2);
+  line-height:1.18; padding-right:3.2em;
+}
+.ptklot {
+  font-size:clamp(11px,.95vw,14px); font-weight:600; letter-spacing:.05em;
+  text-transform:uppercase; color:var(--or-clair); margin-top:2px; line-height:1.25;
+}
+
+/* À la fin, la scène se tasse pour laisser la grille respirer. Les deux
+   lignes vides (« revient à » et le nom) doivent DISPARAÎTRE et pas
+   seulement se vider : leur min-height creusait un trou de 80 px entre
+   le titre et le récapitulatif. */
+.revelation.fini .pscene { flex:0 0 auto; gap:var(--e2) }
+.revelation.fini .ptlot {
+  font-family:var(--serif); font-size:clamp(24px,3.4vw,44px);
+  letter-spacing:-.01em; text-transform:none; color:var(--or-pale);
+}
+.revelation.fini .ptvers,
+.revelation.fini .ptnom { display:none }
 
 @media (prefers-reduced-motion:reduce) {
   .halo, .loupiotte, .ampoule { animation:none !important }

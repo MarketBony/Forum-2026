@@ -1,4 +1,4 @@
-# Consignes de travail — Le Grand Bal des Points
+# Consignes de travail — Le Grand Bal des Fournisseurs
 
 **Lire [`CONTEXTE.md`](CONTEXTE.md) avant la première modification.** Ce fichier-ci
 ne contient que les règles à respecter en permanence.
@@ -15,7 +15,7 @@ développeur, tutoie, demande des preuves chiffrées.
 correction doit être adossée à un chiffre obtenu sur la vraie base. « Ça devrait
 tenir » n'est pas une réponse ; un tableau de mesures en est une.
 
-**Rejouer les 104 tests après toute modification SQL.** Ils tournent contre la base
+**Rejouer les 109 tests après toute modification SQL.** Ils tournent contre la base
 de production, sans mock.
 
 ```powershell
@@ -56,10 +56,24 @@ n'a pas été testé.
 - **Tous les `.ps1` ont un BOM UTF-8.** Sans lui, PowerShell 5.1 les lit en CP1252
   et les comparaisons accentuées cassent silencieusement. **Le conserver.**
 - **`System.Net.Http.HttpClient`, jamais `Invoke-WebRequest`** dans les scripts de
-  test : `Invoke-WebRequest` ne rend pas le corps des réponses 4xx.
+  test : `Invoke-WebRequest` ne rend pas le corps des réponses 4xx, et son
+  `.Content` décode les accents selon un en-tête que Supabase n'annonce pas
+  toujours — « Autos République » revenait en « Autos RÃ©publique ».
 - **Ne jamais nommer un paramètre `$args`** — variable automatique, le corps part
   vide et PostgREST répond « function without parameters not found ».
+- **`ConvertFrom-Json` rend un tableau comme UN SEUL objet**, sans l'énumérer.
+  `$x = @(… | ConvertFrom-Json)` l'emballe donc dans un tableau à un élément :
+  assigner **sans** `@()`, et compter avec `@()` au moment de compter.
+- **`$x = if (…) { @(…) } else { @() }` déroule le tableau** : à un seul élément,
+  `$x` devient l'objet et `.Count` rend `$null`. Affecter **hors** du `if`.
+- **`Start-Process -ArgumentList` en tableau ne met aucun guillemet** : un chemin
+  contenant un espace — et le projet vit dans `APP FORUM` — se coupe en deux.
+  Passer une **chaîne** avec les guillemets posés à la main.
 - **Fichiers temporaires dans le scratchpad**, pas à la racine du projet.
+
+> Ces quatre derniers points ont tous coûté une séance de débogage, et aucun ne
+> se voit : le script ne plante pas, il fait silencieusement autre chose. Le
+> détail de chacun est au §15 de `CONTEXTE.md`.
 
 ---
 
@@ -81,6 +95,14 @@ portes d'entrée. Le journal est en **ajout seul** — une erreur se corrige par
 | Aucun solde négatif | contrôle dans `_ecrire` |
 | Aucun code garage = un PIN personnel | `verifier_portes()`, à relancer après tout changement de PIN |
 | Le journal ne se modifie pas | trigger `journal_pas_de_modif` |
+| Aucun badge sans code utilisable | `verifier_badges()`, à relancer après tout import |
+| Un import de listing rejoué ne duplique rien | `cle_source` unique dans `participants` |
+
+**Le générateur de badges est un outil local, à part.** Il lit la table
+`participants` et n'écrit jamais dans l'application ; aucune fonction `api_*` ne
+la touche ; `wrangler.jsonc` ne sert que `app/`, donc `badges/` n'est **jamais
+déployé** — un badge porte le code d'accès de son porteur. Tout est au §15 de
+`CONTEXTE.md`, y compris les neuf pièges payés pour y arriver.
 
 ---
 

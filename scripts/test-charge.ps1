@@ -183,7 +183,9 @@ Write-Output '==================================================================
 Write-Output ''
 Write-Output '--- Preparation : remise a zero -------------------------------------'
 $rz = Sql @'
-delete from public.tirage;
+-- La table tirage a disparu avec sql/23_grand_tirage.sql : le soir est
+-- une revelation, pas un tirage. Seul le drapeau retombe.
+update public.config set valeur='non' where cle='tirage_revele';
 delete from public.tentatives;
 update public.grille set garage_id=null, journal_id=null, achete_le=null, revele_le=null,
        code_retrait=null, remis=false, remis_le=null;

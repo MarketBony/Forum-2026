@@ -287,8 +287,14 @@ export const ecrit = {
   // Le grand tirage : opérations d'estrade, jamais mises en file d'attente.
   // Sur scène, une opération qui « partira plus tard » n'a aucun sens : on
   // veut savoir tout de suite si elle a abouti.
+  //
+  // tirageLancer est le SEUL appel du spectacle. Il bascule la soirée et
+  // rend les 15 tickets d'un coup ; les 60 secondes d'animation se
+  // déroulent ensuite dans le navigateur, sans retoucher la base. C'est
+  // volontaire : au moment où l'écran géant s'allume, 200 téléphones
+  // sondent leur solde, ce n'est pas l'instant pour ajouter quinze
+  // allers-retours par écran.
   reveler:      (numero = null) => appel('api_reveler', { p_jeton: jeton(), p_numero: numero }),
-  tirageOuvrir: () => appel('api_tirage_ouvrir', { p_jeton: jeton() }),
-  tirageManche: () => appel('api_tirage_manche', { p_jeton: jeton() }),
+  tirageLancer: () => appel('api_tirage_lancer', { p_jeton: jeton() }),
   tirageReset:  () => appel('api_tirage_reset', { p_jeton: jeton() }),
 };

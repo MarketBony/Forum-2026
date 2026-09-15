@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Générateur de badges — Le Grand Bal des Fournisseurs</title>
+<meta name="robots" content="noindex, nofollow">
+
+<!-- OUTIL INTERNE. Ce dossier n'est PAS déployé sur Cloudflare : wrangler
+     ne sert que ./app. Il s'ouvre en local, et il doit le rester — les
+     badges portent les codes d'accès de tout le monde. -->
+
+<!-- Le blason Bony : c'est lui qui apparaît dans la barre des tâches quand
+     la fenêtre est ouverte en mode application (--app). -->
+<link rel="icon" href="./icone.svg" type="image/svg+xml">
+<link rel="alternate icon" href="./icone.ico" sizes="any">
+
+<!-- Mêmes familles que app/index.html, mais encastrées dans polices.css.
+     Aucune requête vers l'extérieur, et surtout aucune attente de
+     fichier — voir l'en-tête de scripts/generer-polices.ps1. -->
+<link rel="stylesheet" href="./polices.css">
+<link rel="stylesheet" href="./badges.css">
+</head>
+<body>
+
+<div class="interface">
+
+  <div class="entete">
+    <h1>Générateur de badges</h1>
+    <span class="sous">Le Grand Bal des Fournisseurs · Jeudi 17 septembre 2026 · Grande Halle d'Auvergne</span>
+  </div>
+
+  <!-- Rempli par badges.js depuis _etat.json : fraîcheur des données, et
+       les contrôles de l'export (badge sans code, code partagé). Un
+       lanceur sans fenêtre ne doit jamais échouer en silence. -->
+  <div id="etat"></div>
+
+  <div class="rappel">
+    <b>Cette liste vient de la base, et de rien d'autre.</b> Pour qu'un participant
+    apparaisse ici, il faut qu'il soit dans <code>participants</code> — les listings
+    se poussent avec <code>importer-inscriptions.ps1</code>. Relance l'icône du Bureau
+    pour reprendre la version du jour.<br>
+    <b>Une feuille A4 = deux badges.</b> Recto à gauche, verso à droite. On coupe sur
+    le trait, on plie sur les pointillés en rabattant le verso derrière le recto.
+    Impression <b>simple face</b> : rien à caler. Avant la série, une feuille d'essai :
+    la carte pliée doit faire <b>105 × 148,5 mm</b>.
+  </div>
+
+  <div class="pastilles" id="pastilles"></div>
+
+  <div class="bloc">
+    <h2>La liste — <span id="titre-liste"></span></h2>
+
+    <div class="export" id="export">
+      <button class="action or gros" id="b-pdf">Exporter en PDF</button>
+      <label class="case"><input type="checkbox" id="f-neufs"> seulement ce qui n'a jamais été exporté</label>
+      <label class="case"><input type="checkbox" id="f-decouper"> un PDF par lettre initiale</label>
+      <span class="espace"></span>
+      <span class="chiffre" id="chiffre-export"></span>
+    </div>
+    <div id="progression" hidden></div>
+
+    <div class="outils" style="margin:14px 0">
+      <button class="action creux" id="b-vierges">Badges vierges</button>
+      <span class="espace"></span>
+      <button class="action creux" id="b-relire">Relire la base</button>
+    </div>
+
+    <div class="champ" style="max-width:320px;margin-bottom:14px">
+      <label for="f-filtre">Filtrer la liste</label>
+      <input id="f-filtre" autocomplete="off" spellcheck="false" placeholder="nom, commune ou code…">
+    </div>
+    <div class="tableau-defilant"><table class="liste" id="liste"></table></div>
+  </div>
+
+  <div class="apercu" id="apercu"></div>
+</div>
+
+<!-- Les feuilles à imprimer sont construites ici, et nulle part ailleurs.
+     C'est le seul bloc visible en mode impression. -->
+<div id="feuilles"></div>
+
+<!-- Le blason « B » Bony et le QR sont définis UNE fois et réutilisés par
+     <use> : recopier le tracé à chaque exemplaire ferait des mégaoctets
+     de DOM pour un dessin strictement identique. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" id="defs">
+  <defs>
+    <symbol id="blason" viewBox="0 0 62.09 63.05">
+      <path d="M57.36,24.68c-.41-.47-.85-.93-1.32-1.37.45-1.28.77-2.59.95-3.9.73-5.19-.63-10.07-3.84-13.76-3.16-3.64-7.73-5.64-12.86-5.64h-17.54l-4.05,22.05h23.55c3.27,0,6.34.86,8.89,2.49-3.14,5.81-9.41,9.71-15.66,9.71H5.25L0,63.05h36.5c12.26,0,23.64-9.97,25.36-22.22.86-6.09-.74-11.83-4.5-16.16h0ZM57.91,40.27c-1.46,10.36-11.06,18.78-21.4,18.78H4.81l3.76-20.81h26.92c7.41,0,14.74-4.34,18.74-11.08.04.04.08.09.11.13,2.99,3.44,4.25,8.04,3.56,12.98h0ZM53.04,18.85c-.09.64-.22,1.28-.39,1.92-3.04-1.78-6.62-2.71-10.39-2.71h-18.65l2.42-14.06h14.26c3.96,0,7.45,1.52,9.84,4.27,2.43,2.8,3.46,6.56,2.9,10.58h0Z"/>
+    </symbol>
+    <symbol id="qr" preserveAspectRatio="xMidYMid meet"><!-- rempli par badges.js --></symbol>
+  </defs>
+</svg>
+
+<script src="./vendor/qrcode.js"></script>
+<script src="./badges.js"></script>
+</body>
+</html>

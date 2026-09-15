@@ -1,5 +1,5 @@
 // =====================================================================
-//  app.js — Le Grand Bal des Points
+//  app.js — Le Grand Bal des Fournisseurs
 //  Quatre profils, une seule page. Pas d'étape de compilation : des
 //  modules ES natifs, servis tels quels par Cloudflare Pages.
 // =====================================================================
@@ -233,12 +233,19 @@ function vueParticipant() {
                   <span class="ldetail">Verdict ce soir, sur l'écran géant</span>
                 </span>
                 <span class="cachet">?</span></div>`;
+              // Après la révélation du soir, le ticket d'or cesse d'être
+              // une promesse : il porte le nom du gros lot et son code de
+              // retrait, au même endroit et dans la même forme que les
+              // autres lots. Le garage n'a rien de nouveau à comprendre.
               if (c.nature === 'billet') return `<div class="lot">
                 <span class="principal">
-                  <span class="lnom">${esc(c.lot || "Ticket d'or")}</span>
-                  <span class="ldetail">Case n°${c.numero} · un gros lot vous revient ce soir</span>
+                  <span class="lnom">${esc(c.gros_lot || c.lot || "Ticket d'or")}</span>
+                  <span class="ldetail">${c.gros_lot
+                    ? `Case n°${c.numero} · code <b>${esc(c.code_retrait)}</b> ·
+                       ${c.remis ? 'déjà retiré' : 'à retirer au stand des lots'}`
+                    : `Case n°${c.numero} · un gros lot vous revient ce soir`}</span>
                 </span>
-                <span class="cachet billet">★</span></div>`;
+                ${c.remis ? '<span class="lremis">Retiré</span>' : '<span class="cachet billet">★</span>'}</div>`;
               if (c.nature === 'lot') return `<div class="lot">
                 <span class="principal">
                   <span class="lnom">${esc(c.lot)}</span>
@@ -334,8 +341,8 @@ function vueRevelation() {
         <div class="rk">${billet ? 'Vous avez' : (lot ? 'Bravo,' : 'Cette fois,')}</div>
         <div class="rt">${billet ? 'un gros lot !' : (lot ? "c'est gagné !" : "c'est raté")}</div>
         ${billet ? `<div class="rlot">${esc(r.lot || "Ticket d'or")}
-            <div class="rnote">L'un des quinze gros lots vous revient. Le tirage
-              de ce soir, en direct sur l'écran géant, désignera lequel —
+            <div class="rnote">L'un des quinze gros lots vous revient. Il est
+              déjà sous cette case ; il se révélera ce soir sur l'écran géant —
               <b>il faut être là</b>.</div></div>`
           : lot ? `<div class="rlot">${esc(r.lot)}
             <div class="rcode">${esc(r.code_retrait)}</div>
@@ -540,8 +547,20 @@ function vueAdmin() {
           ${s.a_reveler > 0
             ? `<button class="bouton" data-a="reveler">Révéler les ${s.a_reveler} cases achetées</button>`
             : ''}
-          <button class="bouton creux" data-a="projection">Écran de projection du tirage</button>
         </div>
+      </div>
+      <!-- Le grand tirage a sa propre section, et le bouton est plein et
+           seul : c'est le geste du soir, celui qu'on cherche sur scène
+           avec le micro dans l'autre main. Il ne doit pas se confondre
+           avec les boutons creux de service qui l'entourent. -->
+      <div class="section">
+        <p class="etiq">Le soir, au cocktail</p>
+        <div class="pile">
+          <button class="bouton" data-a="projection">Grand tirage au sort</button>
+        </div>
+        <p class="sous">${s.billets_vendus} ticket${s.billets_vendus > 1 ? 's' : ''} d'or
+          décroché${s.billets_vendus > 1 ? 's' : ''} sur 15. Chaque ticket porte déjà son gros
+          lot : la soirée ne tire rien, elle ouvre les enveloppes.</p>
       </div>
       <div class="section">
         <p class="etiq">Sauvegarde</p>
@@ -639,48 +658,285 @@ function vueAccueilHotesse() {
   </div>`;
 }
 
-// --- écran de projection du grand tirage (§11) -----------------------
+// --- écran de projection : la révélation des tickets d'or (§11) -------
+//
+//  Ce n'est plus un tirage : chaque ticket d'or est collé à son gros lot
+//  depuis sql/23_grand_tirage.sql, et le seul hasard de la soirée a eu
+//  lieu dans la journée, quand un garagiste a choisi sa case. L'écran
+//  ouvre les enveloppes, dans un ordre de spectacle décidé à l'avance.
+//
+//  L'ANIMATION NE PASSE PAS PAR rendre(). Elle est montée une seule fois
+//  et pilotée ensuite en basculant des classes sur le DOM en place :
+//  réécrire innerHTML à chaque temps rejouerait les transitions CSS
+//  depuis zéro et le texte clignoterait au lieu d'apparaître.
 function vueProjection() {
   const t = S.tirage;
-  if (!t) return `<div class="projection"><p class="chargement">Chargement du tirage…</p></div>`;
+  if (!t) return `<div class="projection"><p class="chargement">Chargement du grand tirage…</p></div>`;
 
-  const gagnant = t.gagnant;
-  const enCourse = t.en_course || [];
-  const sortis = t.sortis || [];
+  const joues = (t.tickets || []).filter((k) => k.rang);   // les tickets décrochés
+  const n = joues.length;
 
-  let tete;
-  if (gagnant) {
-    tete = `<div class="pscript">Et le grand gagnant est</div>
-            <div class="ptitre">${esc(gagnant.garage)}</div>
-            <div class="pinfo">${esc(gagnant.ville)} · billet n°${gagnant.numero}</div>`;
-  } else if (!t.ouvert) {
-    tete = `<div class="pscript">Le grand tirage</div>
-            <div class="ptitre">${t.billets_reveles} billet${t.billets_reveles > 1 ? 's' : ''} en jeu</div>
-            <div class="pinfo">Ouvrez le tirage quand la salle est prête.</div>`;
-  } else {
-    tete = `<div class="pscript">Manche ${t.manche}</div>
-            <div class="ptitre">${enCourse.length} encore en course</div>
-            <div class="pinfo">${sortis.length} éliminé${sortis.length > 1 ? 's' : ''}</div>`;
-  }
-
-  const jetons = [
-    ...enCourse.map((b) => `<div class="pbillet${gagnant && gagnant.numero === b.numero ? ' gagnant' : ''}">
-        <span class="pnum">${b.numero}</span>${esc(b.garage)}</div>`),
-    ...sortis.map((b) => `<div class="pbillet sorti"><span class="pnum">${b.numero}</span>${esc(b.garage)}</div>`),
-  ].join('');
-
-  return `<div class="projection">
-      ${tete}
-      <div class="pcourse">${jetons}</div>
+  // --- avant le lancement : la salle n'est pas encore prête ----------
+  if (!t.revele && !S.revel) {
+    return `<div class="projection">
+      <div class="pscript">Le grand tirage</div>
+      <div class="ptitre">${n} ticket${n > 1 ? 's' : ''} d'or</div>
+      <div class="pinfo">${n} gros lot${n > 1 ? 's' : ''} à révéler${
+        t.orphelins > 0
+          ? ` · ${t.orphelins} ticket${t.orphelins > 1 ? 's' : ''} n'${t.orphelins > 1 ? 'ont' : 'a'} pas trouvé preneur, ${
+              t.orphelins > 1 ? 'ils seront passés' : 'il sera passé'} en silence`
+          : ''}</div>
       <div class="pactions">
-        ${!t.ouvert
-          ? `<button class="bouton" data-a="tirage-ouvrir">Ouvrir le tirage</button>`
-          : (gagnant
-              ? `<button class="bouton creux" data-a="tirage-reset">Recommencer</button>`
-              : `<button class="bouton" data-a="tirage-manche">${enCourse.length === 2 ? 'Désigner le gagnant' : 'Manche suivante'}</button>`)}
+        ${n > 0
+          ? `<button class="bouton" data-a="tirage-lancer">Lancer la révélation</button>`
+          : `<div class="bandeau"><i></i>Aucun ticket d'or décroché : rien à révéler</div>`}
         <button class="bouton creux" data-a="admin">Quitter la projection</button>
       </div>
     </div>`;
+  }
+
+  // --- la scène, montée une fois pour toute la durée du spectacle ----
+  //  Les cartes du récapitulatif sont posées tout de suite mais masquées :
+  //  c'est ce qui permet à chaque temps de n'être qu'un ajout de classe.
+  const pastilles = joues.map((k) =>
+    `<span class="ppast" data-rang="${k.rang}"></span>`).join('');
+
+  // Le garage AVANT le lot, comme sur la scène : c'est le nom qu'on
+  // cherche dans ce tableau, au stand des lots comme depuis la salle.
+  const cartes = joues.map((k) =>
+    `<div class="ptk" data-rang="${k.rang}">
+       <div class="ptknum">n°${k.numero}</div>
+       <div class="ptkgar">${esc(k.garage)}</div>
+       <div class="ptklot">${esc(k.gros_lot)}</div>
+     </div>`).join('');
+
+  return `<div class="projection revelation" id="scene">
+      <div class="pscene" id="pscene">
+        <div class="pscript">Le grand tirage</div>
+        <div class="ptlot"   id="ptlot"></div>
+        <div class="ptvers"  id="ptvers">revient à</div>
+        <!-- Le halo est un élément à part, DERRIÈRE le nom. Le mettre en
+             ombre portée sur le texte lui-même l'empâtait : à 100 px de
+             haut, une lueur sur les lettres mange les contreformes et le
+             nom devient illisible au fond de la salle. -->
+        <div class="ptnom">
+          <div class="pthalo" id="pthalo" aria-hidden="true"></div>
+          <div class="ptgarage" id="ptgarage"></div>
+        </div>
+        <div class="ptdetail" id="ptdetail"></div>
+      </div>
+      <div class="ppastilles" id="ppastilles">${pastilles}</div>
+      <div class="pgrille" id="pgrille">${cartes}</div>
+      <div class="pactions" id="pactions">
+        <button class="bouton creux" data-a="tirage-rejouer">Rejouer l'animation</button>
+        <button class="bouton creux" data-a="admin">Quitter la projection</button>
+      </div>
+    </div>`;
+}
+
+// ---------------------------------------------------------------------
+//  Le moteur de la révélation
+//
+//  DURÉE : ~60 secondes, quel que soit le nombre de tickets décrochés.
+//  Le budget est réparti au poids : un temps normal pour les premiers,
+//  un temps DOUBLE pour les trois derniers. C'est là que se trouvent les
+//  trois pièces uniques — le sac à dos Alpine, le weekender, et le sac
+//  cuir jaune à 379 € qui clôt le spectacle. Accélérer la fin serait
+//  exactement l'inverse de ce qu'on veut.
+//
+//  Dans chaque temps : le LOT apparaît d'abord, seul. Le nom du garage
+//  ne tombe qu'à 45 % du temps imparti. Ce silence-là est tout le
+//  spectacle ; sans lui on affiche un tableau, on ne révèle rien.
+// ---------------------------------------------------------------------
+// Durée totale du spectacle, hors carton de fin. 95 s pour 15 tickets :
+// une première version à 57 s a été jugée « un poil trop rapide » sur
+// scène, et elle l'était — on ne laisse pas à une salle qui dîne le temps
+// de lever les yeux, de comprendre le lot, puis de chercher qui a gagné.
+const REVEL_DUREE = 95000;
+// Part du temps d'un ticket consacrée au SUSPENSE (roulette des noms).
+// Le reste laisse le nom du gagnant affiché, en clair, avant de passer.
+const REVEL_SUSPENSE = 0.5;
+let revelMinuteur = null;
+
+// La roulette : les noms des porteurs de ticket défilent de plus en plus
+// lentement et s'arrêtent sur le gagnant. C'est du théâtre — le lot lui
+// est attribué depuis la veille — mais c'est le théâtre que la salle
+// attend, et il ne ment sur rien : tous les noms qui défilent sont bien
+// ceux de garages qui ont décroché un ticket.
+//
+// La décélération est en p² : les premiers sauts s'enchaînent presque
+// sans reprise, les derniers se détachent un par un. Un ralentissement
+// linéaire donne une impression de panne, pas de suspense.
+function revelRouler(el, noms, gagnant, duree, fin) {
+  const sauts = Math.max(10, Math.round(duree / 127));   // cf. calage ci-dessous
+  const debut = performance.now();
+  let i = 0;
+  el.classList.add('roule');
+  const tic = () => {
+    // GARDE-FOU DE SCÈNE. Un navigateur bride setTimeout à ~1 Hz dès que
+    // l'onglet passe en arrière-plan : les 21 sauts de la roulette
+    // s'étalaient alors sur 21 secondes au lieu de 2,6, et le spectacle
+    // se serait enlisé si quelqu'un avait basculé de fenêtre en pleine
+    // annonce. On se cale donc sur l'horloge murale, pas sur le nombre
+    // de sauts effectués : au-delà du temps imparti, on s'arrête net.
+    if (i >= sauts || performance.now() - debut >= duree) {
+      el.classList.remove('roule');
+      el.textContent = gagnant;
+      fin();
+      return;
+    }
+    // On évite de tomber sur le gagnant avant l'heure : le voir passer
+    // puis repartir casse l'effet.
+    let n = gagnant;
+    if (noms.length > 1) { while (n === gagnant) n = noms[(Math.random() * noms.length) | 0]; }
+    el.textContent = n;
+    const p = i / sauts;
+    i++;
+    // 40 ms au départ, ~300 ms à l'arrivée. La moyenne de 40 + 260p²
+    // vaut 40 + 260/3 ≈ 127 ms, d'où le diviseur du nombre de sauts.
+    revelMinuteur = setTimeout(tic, 40 + 260 * p * p);
+  };
+  tic();
+}
+
+function revelArreter() {
+  if (revelMinuteur) { clearTimeout(revelMinuteur); revelMinuteur = null; }
+}
+
+function revelJoues() {
+  return ((S.tirage && S.tirage.tickets) || []).filter((k) => k.rang);
+}
+
+// Allume la pastille et la carte d'un rang. Appelé au moment où le nom
+// tombe, et une seconde fois en bloc à la fin : le récapitulatif doit
+// être COMPLET quelle que soit la façon dont le spectacle a été mené.
+// Un animateur qui accélère à la main ne doit pas laisser neuf cartes
+// éteintes derrière lui sous un titre qui annonce onze lots remis.
+function revelAllumer(rang) {
+  const p = $(`.ppast[data-rang="${rang}"]`); if (p) p.classList.add('vu');
+  const c = $(`.ptk[data-rang="${rang}"]`);   if (c) c.classList.add('vu');
+}
+
+function revelFin() {
+  revelArreter();
+  const joues = revelJoues();
+  S.revel = { rang: joues.length, total: joues.length, fini: true };
+  const scene = $('#scene');
+  if (!scene) return;
+  scene.classList.add('fini');
+  joues.forEach((k) => revelAllumer(k.rang));
+  const lot = $('#ptlot'), gar = $('#ptgarage'), det = $('#ptdetail');
+  if (lot) lot.textContent = `${joues.length} gros lot${joues.length > 1 ? 's' : ''} remis`;
+  if (gar) gar.textContent = '';
+  if (det) det.textContent = 'Rendez-vous au stand des lots avec votre code de retrait.';
+}
+
+function revelJouer(depart = 0) {
+  revelArreter();
+  const joues = revelJoues();
+  if (!joues.length) return;
+
+  // Poids : 1 pour un temps normal, 2 pour chacun des trois derniers.
+  const poids = joues.map((_, i) => (i >= joues.length - 3 ? 2 : 1));
+  const total = poids.reduce((s, p) => s + p, 0);
+  const unite = REVEL_DUREE / total;
+
+  const scene = $('#scene');
+  if (scene) scene.classList.remove('fini', 'nomme');
+  // Rejouer repart d'un tableau vierge. Sans ça, les pastilles et les
+  // cartes restaient allumées du passage précédent et le spectacle
+  // s'ouvrait en annonçant que tout était déjà révélé.
+  if (depart === 0) {
+    $$('.ppast').forEach((p) => p.classList.remove('vu'));
+    $$('.ptk').forEach((c) => c.classList.remove('vu'));
+  }
+
+  const noms = joues.map((k) => k.garage);
+
+  // Fait tomber le nom du gagnant du temps courant. Séparé de l'étape
+  // pour qu'un clic puisse le déclencher AVANT la fin du suspense.
+  const nommer = (i) => {
+    const k = joues[i];
+    const gar = $('#ptgarage'), det = $('#ptdetail'), halo = $('#pthalo');
+    if (!gar || !scene) return;
+    revelArreter();
+    gar.classList.remove('roule');
+    gar.textContent = k.garage;
+    det.textContent = `${k.ville || ''}${k.ville ? ' · ' : ''}case n°${k.numero}`;
+    scene.classList.add('nomme');
+    // On rejoue l'éclat en le retirant puis le remettant : sans ce
+    // reflow forcé, l'animation ne repart pas d'un ticket à l'autre.
+    if (halo) { halo.classList.remove('eclate'); void halo.offsetWidth; halo.classList.add('eclate'); }
+    revelAllumer(k.rang);
+  };
+
+  const etape = (i) => {
+    if (i >= joues.length) return revelFin();
+    const k = joues[i];
+    const duree = unite * poids[i];
+
+    // Arrêter la roulette à la main ne doit pas figer le spectacle : on
+    // nomme tout de suite, puis on repart sur le minuteur normal. Sans
+    // ça, un animateur qui presse le pas une fois devait ensuite cliquer
+    // pour CHAQUE lot restant, micro dans l'autre main.
+    const nommerPuisSuivre = () => {
+      nommer(i);
+      S.revel.nomme = true;
+      revelMinuteur = setTimeout(() => etape(i + 1), duree * (1 - REVEL_SUSPENSE));
+    };
+    S.revel = { rang: i + 1, total: joues.length, nomme: false, nommer: nommerPuisSuivre };
+
+    // 1. le lot s'annonce, et la roulette part aussitôt
+    const lot = $('#ptlot'), gar = $('#ptgarage'), det = $('#ptdetail'),
+          vers = $('#ptvers'), halo = $('#pthalo');
+    if (!lot || !scene) return;             // l'écran a été quitté
+    scene.classList.remove('nomme');
+    if (halo) halo.classList.remove('eclate');
+    lot.textContent = k.gros_lot;
+    det.textContent = '';
+    lot.classList.remove('entre'); void lot.offsetWidth; lot.classList.add('entre');
+    vers.classList.remove('entre'); void vers.offsetWidth; vers.classList.add('entre');
+
+    // 2. la roulette ralentit et s'arrête sur le gagnant, puis le nom
+    //    reste en clair avant qu'on passe au lot suivant
+    revelRouler(gar, noms, k.garage, duree * REVEL_SUSPENSE, nommerPuisSuivre);
+  };
+
+  etape(depart);
+}
+
+// Un clic n'importe où sur la scène fait avancer le spectacle : sur une
+// estrade, l'animateur doit pouvoir presser le pas si la salle décroche.
+// DEUX TEMPS, pas un : le premier clic fait tomber le nom du gagnant en
+// cours, le second passe au lot suivant. Un clic unique qui sauterait
+// directement au suivant escamoterait le nom — c'est-à-dire la seule
+// chose que la salle attend.
+function revelClic(e) {
+  if (e.target.closest('.pactions')) return;      // les boutons gardent leur rôle
+  if (!S.revel || S.revel.fini) return;
+  if (!S.revel.nomme && S.revel.nommer) {
+    revelArreter();
+    S.revel.nommer();
+    S.revel.nomme = true;
+    return;
+  }
+  revelJouer(S.revel.rang);                        // reprend au temps suivant
+}
+
+// Retour sur un spectacle déjà joué : tout est montré d'emblée. C'est
+// l'écran dont l'équipe se sert au stand des lots pour retrouver qui a
+// gagné quoi, pas une rediffusion.
+function revelRecapito() {
+  revelArreter();
+  const scene = $('#scene');
+  if (!scene) return;
+  scene.classList.add('fini');
+  $$('.ppast').forEach((p) => p.classList.add('vu'));
+  $$('.ptk').forEach((c) => c.classList.add('vu'));
+  const joues = ((S.tirage && S.tirage.tickets) || []).filter((k) => k.rang);
+  const lot = $('#ptlot'), det = $('#ptdetail');
+  if (lot) lot.textContent = `${joues.length} gros lot${joues.length > 1 ? 's' : ''} attribué${joues.length > 1 ? 's' : ''}`;
+  if (det) det.textContent = 'Le spectacle a déjà eu lieu.';
 }
 
 // =====================================================================
@@ -1006,30 +1262,37 @@ async function agir(a, el) {
       return;
     }
     case 'projection': {
+      revelArreter(); S.revel = null;
       S.vue = 'projection'; rendre();
-      try { S.tirage = await api.lire.tirage(); rendre(); }
-      catch (e) { toast('Impossible', e.detail || e.message, 'negatif'); }
+      try {
+        S.tirage = await api.lire.tirage(); rendre();
+        // Déjà révélé : on revient sur un spectacle passé, on affiche le
+        // récapitulatif sans rejouer l'animation. Sinon l'équipe qui
+        // rouvre l'écran pour retrouver un code se retaperait 60 s.
+        if (S.tirage.revele) { S.revel = { fini: true }; rendre(); revelRecapito(); }
+      } catch (e) { toast('Impossible', e.detail || e.message, 'negatif'); }
       return;
     }
-    case 'tirage-ouvrir': {
-      try { S.tirage = await api.ecrit.tirageOuvrir(); rendre();
-            toast('Tirage ouvert', `${S.tirage.en_course.length} billets en course`); }
-      catch (e) { toast('Impossible', e.detail || e.message, 'negatif'); }
-      return;
-    }
-    case 'tirage-manche': {
+    case 'tirage-lancer': {
       if (S.envoi) return;
       S.envoi = true;
       try {
-        S.tirage = await api.ecrit.tirageManche(); rendre();
-        if (S.tirage.gagnant) toast('Gagnant désigné', esc(S.tirage.gagnant.garage));
+        S.tirage = await api.ecrit.tirageLancer();
+        S.revel = { rang: 0 };
+        rendre();
+        revelJouer(0);
       } catch (e) { toast('Impossible', e.detail || e.message, 'negatif'); }
       finally { S.envoi = false; }
       return;
     }
+    case 'tirage-rejouer': {
+      revelJouer(0);
+      return;
+    }
     case 'tirage-reset': {
-      if (!confirm('Effacer le tirage et recommencer ?')) return;
-      try { await api.ecrit.tirageReset(); S.tirage = await api.lire.tirage(); rendre(); }
+      if (!confirm('Remettre le grand tirage à « non révélé » ? À ne faire qu\'après une répétition.')) return;
+      revelArreter(); S.revel = null;
+      try { S.tirage = await api.ecrit.tirageReset(); rendre(); }
       catch (e) { toast('Impossible', e.detail || e.message, 'negatif'); }
       return;
     }
@@ -1052,7 +1315,13 @@ async function agir(a, el) {
 // =====================================================================
 $('#app').addEventListener('click', (ev) => {
   const el = ev.target.closest('[data-a]');
-  if (!el) return;
+  if (!el) {
+    // Hors bouton : sur l'écran de projection, un clic fait avancer le
+    // spectacle. Délégué ici parce que rendre() remonte le DOM et
+    // emporterait un écouteur posé sur la scène elle-même.
+    if (S.vue === 'projection') revelClic(ev);
+    return;
+  }
   ev.preventDefault();
   agir(el.dataset.a, el);
 });

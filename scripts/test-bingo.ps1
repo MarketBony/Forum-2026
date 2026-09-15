@@ -2,7 +2,7 @@
 # =====================================================================
 #  test-bingo.ps1
 #  Vérifie la mécanique du bingo par l'API réelle, dans les DEUX modes
-#  de révélation, puis déroule le grand tirage jusqu'au gagnant.
+#  de révélation, puis déroule la RÉVÉLATION des tickets d'or du soir.
 #
 #    .\scripts\test-bingo.ps1
 # =====================================================================
@@ -66,8 +66,7 @@ delete from public.journal;
 alter table public.journal enable trigger journal_pas_de_modif;
 update public.garages set solde=0, inscrit_le=null;
 delete from public.appareils;
-delete from public.tirage;
-update public.config set valeur='non' where cle='tirage_ouvert';
+update public.config set valeur='non' where cle='tirage_revele';
 '@ | Out-Null
 Write-Output '  Terrain propre.'
 
@@ -176,35 +175,81 @@ for ($i = 0; $i -lt [Math]::Min($restants.Count, $acheteurs.Count); $i++) {
 $vendus = (Sql "select count(*)::int as n from grille where nature='billet' and garage_id is not null and revele_le is not null").data[0].n
 Verdict 'Les 5 billets sont vendus et reveles' ($vendus -eq 5) ("billets en course = $vendus")
 
-$ouv = Rpc 'api_tirage_ouvrir' @{ p_jeton = $telAdm }
-Verdict 'Ouverture du tirage : la course est figee' `
-        (($ouv.ok) -and ($ouv.data.en_course.Count -eq 5)) `
-        ("en course = $($ouv.data.en_course.Count) · " + (($ouv.data.en_course | ForEach-Object { $_.garage }) -join ', '))
+# --- l'etat du soir, avant que quoi que ce soit ne soit revele -------
+$et = Rpc 'api_tirage_etat' @{ p_jeton = $telAdm }
+$joues = @($et.data.tickets | Where-Object { $null -ne $_.rang })
+Verdict 'Les 15 tickets sont connus, 5 decroches, chacun porte son gros lot' `
+        (($et.data.tickets.Count -eq 15) -and ($joues.Count -eq 5) -and `
+         (@($et.data.tickets | Where-Object { [string]::IsNullOrEmpty($_.gros_lot) }).Count -eq 0)) `
+        ("15 tickets, $($joues.Count) decroches, $($et.data.orphelins) orphelins")
 
-$dbl = Rpc 'api_tirage_ouvrir' @{ p_jeton = $telAdm }
-Verdict 'Une seconde ouverture est refusee' `
-        ($dbl.code -eq 'TIRAGE_DEJA_OUVERT') ("$($dbl.code) : $($dbl.detail)")
+# LE TEST QUI COMPTE : tant que la soiree n'a pas eu lieu, le contenu de
+# l'enveloppe ne doit fuiter NULLE PART vers le telephone du garage.
+$porteur = $joues[0]
+$gPorteur = (Sql "select g.nom, g.code from garages g join grille gr on gr.garage_id=g.id where gr.numero=$($porteur.numero)").data[0]
+$telP = Jeton
+Rpc 'api_entrer' @{ p_jeton = $telP; p_code = $gPorteur.code } | Out-Null
+$avant = Rpc 'api_etat' @{ p_jeton = $telP }
+$caseAvant = @($avant.data.mes_cases | Where-Object { $_.numero -eq $porteur.numero })[0]
+Verdict 'AVANT la revelation, le garage ne voit pas son gros lot' `
+        (($avant.data.tirage_revele -eq $false) -and ($null -eq $caseAvant.gros_lot) -and `
+         ($caseAvant.lot -eq "Ticket d'or") -and ($null -eq $caseAvant.code_retrait)) `
+        ("lot affiche = '$($caseAvant.lot)' · gros_lot = '$($caseAvant.gros_lot)' · code = '$($caseAvant.code_retrait)'")
 
-$manche = 0
-do {
-  $manche++
-  $m = Rpc 'api_tirage_manche' @{ p_jeton = $telAdm }
-  $reste = $m.data.en_course.Count
-  Write-Output ("          manche {0} -> {1} encore en course : {2}" -f `
-                 $m.data.manche, $reste, (($m.data.en_course | ForEach-Object { $_.garage }) -join ', '))
-} while ((-not $m.data.gagnant) -and ($manche -lt 10))
+# --- le lancement ----------------------------------------------------
+$lan = Rpc 'api_tirage_lancer' @{ p_jeton = $telAdm }
+$lanJoues = @($lan.data.tickets | Where-Object { $null -ne $_.rang })
+Verdict 'Le lancement revele les 5 tickets decroches et pose un code de retrait' `
+        (($lan.ok) -and ($lan.data.revele -eq $true) -and ($lanJoues.Count -eq 5) -and `
+         (@($lanJoues | Where-Object { [string]::IsNullOrEmpty($_.code_retrait) }).Count -eq 0)) `
+        ("revele = $($lan.data.revele) · " + (($lanJoues | ForEach-Object { "$($_.gros_lot) -> $($_.garage)" }) -join ' | '))
 
-Verdict 'Le tirage designe un gagnant unique' `
-        ($null -ne $m.data.gagnant) `
-        ("gagnant = $($m.data.gagnant.garage) ($($m.data.gagnant.ville)), billet n°$($m.data.gagnant.numero), en $($m.data.manche) manches")
+Verdict 'Les tickets non decroches restent hors du spectacle' `
+        ((@($lan.data.tickets | Where-Object { $null -eq $_.rang }).Count -eq 10) -and `
+         ((($lanJoues | ForEach-Object { $_.rang }) -join ',') -eq '1,2,3,4,5')) `
+        ("rangs joues = " + (($lanJoues | ForEach-Object { $_.rang }) -join ','))
 
-$apres = Rpc 'api_tirage_manche' @{ p_jeton = $telAdm }
-Verdict 'Une manche de plus apres le gagnant est refusee' `
-        ($apres.code -eq 'TIRAGE_TERMINE') ("$($apres.code) : $($apres.detail)")
+# --- ce que le garage voit APRES -------------------------------------
+$apres = Rpc 'api_etat' @{ p_jeton = $telP }
+$caseApres = @($apres.data.mes_cases | Where-Object { $_.numero -eq $porteur.numero })[0]
+Verdict 'APRES la revelation, le garage voit son gros lot et son code' `
+        (($apres.data.tirage_revele -eq $true) -and ($caseApres.gros_lot -eq $porteur.gros_lot) -and `
+         (-not [string]::IsNullOrEmpty($caseApres.code_retrait))) `
+        ("$($caseApres.gros_lot) · code $($caseApres.code_retrait)")
 
-$trace = (Sql "select count(*)::int as n, max(manche)::int as m from tirage").data[0]
-Verdict 'Chaque manche est tracee en base (tirage justifiable)' `
-        ($trace.n -gt 0) ("$($trace.n) lignes de tirage sur $($trace.m) manches")
+# --- relancer ne rebat pas les cartes --------------------------------
+$codes1 = (($lanJoues | Sort-Object rang | ForEach-Object { "$($_.numero):$($_.code_retrait)" }) -join ',')
+$relance = Rpc 'api_tirage_lancer' @{ p_jeton = $telAdm }
+$codes2 = ((@($relance.data.tickets | Where-Object { $null -ne $_.rang }) | Sort-Object rang |
+            ForEach-Object { "$($_.numero):$($_.code_retrait)" }) -join ',')
+Verdict 'Relancer est sans effet : aucun code de retrait ne change' `
+        ($codes1 -eq $codes2) ("avant = $codes1")
+
+# --- l'ordre de spectacle --------------------------------------------
+$ordre = (Sql "select gros_lot, gros_lot_ordre from grille where nature='billet' order by gros_lot_ordre").data
+$suite = 0
+for ($i = 1; $i -lt $ordre.Count; $i++) { if ($ordre[$i].gros_lot -eq $ordre[$i-1].gros_lot) { $suite++ } }
+Verdict 'Le spectacle ne repete jamais deux fois le meme lot de suite' `
+        ($suite -eq 0) ("$suite repetition(s) sur 15 temps")
+
+Verdict 'Le spectacle finit sur le sac cuir Alpine' `
+        ($ordre[-1].gros_lot -eq 'SAC CUIR ALPINE JAUNE 48H') `
+        ("dernier = $($ordre[-1].gros_lot)")
+
+# --- le suivi des lots accueille les gros lots ------------------------
+$suivi = Rpc 'api_lots' @{ p_jeton = $telAdm }
+$gros = @($suivi.data | Where-Object { $_.gros -eq $true })
+Verdict 'Les 5 gros lots reveles apparaissent dans le suivi des lots' `
+        ($gros.Count -eq 5) ("$($gros.Count) gros lots au comptoir sur $($suivi.data.Count) lots au total")
+
+# --- retour en arriere, pour la repetition generale -------------------
+$reset = Rpc 'api_tirage_reset' @{ p_jeton = $telAdm }
+Verdict 'La remise a zero du drapeau recache les gros lots' `
+        (($reset.data.revele -eq $false) -and `
+         ($null -eq (@((Rpc 'api_etat' @{ p_jeton = $telP }).data.mes_cases |
+                       Where-Object { $_.numero -eq $porteur.numero })[0].gros_lot))) `
+        ("revele = $($reset.data.revele)")
+Rpc 'api_tirage_lancer' @{ p_jeton = $telAdm } | Out-Null   # on laisse la base revelee
 
 # =====================================================================
 #  La grille a 200 cases et le plafond par garage

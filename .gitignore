@@ -9,6 +9,20 @@
 # codes d'accès. Ils restent sur le poste, jamais dans le dépôt.
 exports/
 
+# Donnees du generateur de badges. Meme regle que exports/ : elles
+# portent les codes d'acces de tout le monde, elles restent sur le poste.
+badges/participants.json
+badges/marques.json
+badges/sauvegarde-*.json
+# Traces de lancement et d'export : locales a la machine.
+badges/_etat.json
+badges/_export-etat.json
+badges/_impression/
+badges/_journal-lancement.txt
+# Le raccourci porte un chemin absolu : il se recree avec
+# scripts/creer-raccourci.ps1, il ne se versionne pas.
+*.lnk
+
 # Divers
 node_modules/
 dist/

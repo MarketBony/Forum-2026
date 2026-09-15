@@ -22,11 +22,10 @@
 --  suspense — il ne décide plus qui gagne, il décide QUI GAGNE QUOI,
 --  entre le sac cuir Alpine à 379 € et l'avion Caudron à 72 €.
 --
---  ⚠️ LES 15 GROS LOTS NE SONT PAS DANS LA GRILLE. Ils se gagnent au
---  tirage du soir, parmi les porteurs de ticket d'or. La mécanique
---  d'attribution des 15 lots au tirage reste à faire : aujourd'hui
---  api_tirage_manche élimine jusqu'à UN seul gagnant, il faudra
---  l'arrêter à quinze. Arbitrage Bony en attente.
+--  ⚠️ LES 15 GROS LOTS NE SONT PAS NOMMÉS ICI. Chacun est collé à SON
+--  ticket d'or par sql/23_grand_tirage.sql, dans les colonnes gros_lot
+--  et gros_lot_ordre — invisibles du garage jusqu'au soir. Le ticket
+--  garde donc le libellé neutre « Ticket d'or » toute la journée.
 --
 --  LES LIBELLÉS SONT RECOPIÉS TELS QUELS depuis "stock forum.xlsx",
 --  en majuscules comprises. C'est volontaire : le garagiste présente

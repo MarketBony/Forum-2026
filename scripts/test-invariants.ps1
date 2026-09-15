@@ -79,7 +79,9 @@ $r = Sql @'
 update public.grille
    set garage_id=null, journal_id=null, achete_le=null, revele_le=null,
        code_retrait=null, remis=false, remis_le=null;
-delete from public.tirage;
+-- La table tirage a disparu avec sql/23_grand_tirage.sql : le soir est
+-- une revelation, pas un tirage. Seul le drapeau retombe.
+update public.config set valeur='non' where cle='tirage_revele';
 delete from public.tentatives;
 -- 2. purge du journal, verrou d'immuabilite momentanement leve
 alter table public.journal disable trigger journal_pas_de_modif;
@@ -125,22 +127,30 @@ Verdict 'Connexion animateur par code PIN' `
         ($anim.data.role -eq 'animateur') ('role = ' + $anim.data.role + ', animation = ' + $anim.data.libelle)
 
 $idAnim   = $anim.data.animation_id
-$idPanier = ($anim.data.bareme | Where-Object { $_.points -eq 10 })[0].id
+# On vise le MEILLEUR palier du jeu, pas un palier a 10 points ecrit en
+# dur : le barreme a change une fois (20/10/5/0 -> celui du prestataire)
+# et ce test s'est mis a viser un palier qui n'existait plus, $idPanier
+# partant a $null sans que rien ne le signale. Le solde attendu se
+# deduit du palier, il ne se recopie pas.
+$meilleur = ($anim.data.bareme | Sort-Object points -Descending)[0]
+$idPanier = $meilleur.id
+$attendu  = 10 - $anim.data.cout + $meilleur.points   # bonus - participation + gain
+$soldeApresDebit = 10 - $anim.data.cout
 
 $cle = Cle
 $p1 = Rpc 'api_participation' @{ p_jeton=$telAnim; p_garage=$dupont; p_animation=$idAnim; p_cle=$cle }
 $p2 = Rpc 'api_participation' @{ p_jeton=$telAnim; p_garage=$dupont; p_animation=$idAnim; p_cle=$cle }
 $n = (Sql "select count(*)::int as n from journal where cle_idem = '$cle'").data[0].n
 Verdict 'Participation envoyee 2 fois : 1 seule ligne de journal' `
-        (($n -eq 1) -and ($p2.data.solde -eq 8) -and ($p2.data.deja_traite -eq $true)) `
-        ('lignes = ' + $n + ', solde = ' + $p2.data.solde + ', deja_traite = ' + $p2.data.deja_traite)
+        (($n -eq 1) -and ($p2.data.solde -eq $soldeApresDebit) -and ($p2.data.deja_traite -eq $true)) `
+        ('lignes = ' + $n + ', solde = ' + $p2.data.solde + ' (attendu ' + $soldeApresDebit + '), deja_traite = ' + $p2.data.deja_traite)
 
 $cle2 = Cle
 1..3 | ForEach-Object { $script:rr = Rpc 'api_resultat' @{ p_jeton=$telAnim; p_garage=$dupont; p_bareme=$idPanier; p_cle=$cle2 } }
 $n2 = (Sql "select count(*)::int as n from journal where cle_idem = '$cle2'").data[0].n
 Verdict 'Resultat tape 3 fois tres vite : 1 seul credit' `
-        (($n2 -eq 1) -and ($script:rr.data.solde -eq 18)) `
-        ('lignes = ' + $n2 + ', solde = ' + $script:rr.data.solde + ' (attendu 18 = 10 -2 +10)')
+        (($n2 -eq 1) -and ($script:rr.data.solde -eq $attendu)) `
+        ('lignes = ' + $n2 + ', solde = ' + $script:rr.data.solde + " (attendu $attendu = 10 -$($anim.data.cout) +$($meilleur.points) « $($meilleur.libelle) »)")
 
 # =====================================================================
 Write-Output ''
@@ -176,8 +186,14 @@ Verdict 'Attribution de 500 pts (plafond 20) : refusee' `
 # FAAB est en categorie CA : ses paliers sont 1 a 199 EUR / 200 a 699 EUR /
 # 700 EUR et plus. Le palier remonte doit etre repris dans le journal.
 $bon = Rpc 'api_points_achat' @{ p_jeton=$telF; p_garage=$dupont; p_points=20; p_cle=(Cle); p_palier='700 € et plus' }
+# Le solde attendu s'enchaine sur celui de l'animation, il ne se recopie
+# PAS en dur : ces deux verdicts sont tombes le jour ou le gain du
+# meilleur palier est passe de 10 a 5 points, alors que rien de ce qu'ils
+# verifient n'avait bouge.
+$apresStandHaut = $attendu + 20
 Verdict 'Attribution au palier haut : acceptee et tracee au nom du stand' `
-        ($bon.data.solde -eq 38) ('solde = ' + $bon.data.solde + ', stand = ' + $bon.data.stand + ', cumul stand = ' + $bon.data.cumul_stand)
+        ($bon.data.solde -eq $apresStandHaut) `
+        ('solde = ' + $bon.data.solde + ' (attendu ' + $apresStandHaut + '), stand = ' + $bon.data.stand + ', cumul stand = ' + $bon.data.cumul_stand)
 
 Verdict 'Le palier choisi est repris dans l ecriture' `
         ($bon.data.palier -eq '700 € et plus') ('palier journalise = ' + $bon.data.palier)
@@ -211,9 +227,11 @@ $soldeDupont = (Sql "select solde from garages where id='$dupont'").data[0].sold
 Verdict 'Un autre garage sur la MEME case : refuse' `
         (($c2.http -eq 400) -and ($c2.code -eq 'CASE_DEJA_PRISE')) `
         ($c2.code + ' : "' + $c2.detail + '"')
-# 18 apres l animation, + 20 au palier haut, + 5 au palier bas = 43.
+# Solde apres l animation, + 20 au palier haut, + 5 au palier bas.
+$apresStands = $attendu + 20 + 5
 Verdict 'Le garage refuse n a rien paye' `
-        ($soldeDupont -eq 43) ('solde Dupont = ' + $soldeDupont + ' (attendu 43, inchange)')
+        ($soldeDupont -eq $apresStands) `
+        ('solde Dupont = ' + $soldeDupont + ' (attendu ' + $apresStands + ', inchange)')
 
 # --- vraie concurrence : 8 requetes simultanees sur la meme case -----
 $taches = New-Object 'System.Collections.Generic.List[System.Threading.Tasks.Task[System.Net.Http.HttpResponseMessage]]'
@@ -272,7 +290,7 @@ $s = (Rpc 'api_supervision' @{ p_jeton = $telAdm }).data
 Verdict 'La supervision Bony repond et se recoupe' `
         ($s.ecarts_solde -eq 0) `
         ('points en circulation = ' + $s.points_circulation + ', cases jouees = ' + $s.cases_jouees +
-         '/100, parties financables = ' + $s.parties_financables + ', tension = ' + $s.tension + ', ecarts = ' + $s.ecarts_solde)
+         '/' + $s.cases_total + ', parties financables = ' + $s.parties_financables + ', tension = ' + $s.tension + ', ecarts = ' + $s.ecarts_solde)
 
 # =====================================================================
 Write-Output ''

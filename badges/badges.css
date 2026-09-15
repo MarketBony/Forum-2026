@@ -1,0 +1,330 @@
+/* =====================================================================
+   badges.css — le dessin du badge, et la mise en page de la feuille A4.
+
+   DEUX RÈGLES GOUVERNENT TOUT CE FICHIER.
+
+   1. LE PAPIER RESTE BLANC. Demande explicite : « sinon à l'impression
+      ça va être l'enfer ». La charte de l'application est nocturne ; ici
+      elle tient par la guirlande de fanions, le bandeau en dégradé, le
+      blason or, les filets ornés et les trois polices — sur du blanc.
+
+   2. AUCUN APLAT DE FOND CSS. Un navigateur qui imprime peut décider de
+      ne pas imprimer les `background` : le bandeau de catégorie
+      sortirait alors BLANC SUR BLANC sans que rien ne prévienne. Tout
+      ce qui est coloré sur le badge est donc du **SVG** — un
+      `<rect fill="url(#grad)">` est du contenu, il s'imprime comme une
+      lettre. C'est la raison des montages `.bandeau` / `.boite-code`
+      plus bas, où un SVG en position absolue porte la couleur et le
+      texte est posé par-dessus. Ne pas « simplifier » en CSS.
+   ===================================================================== */
+
+/* Les polices (Playfair Display, Hanken Grotesk) sont declarees dans
+   badges/polices.css, encastrees en base64. Ce n'est pas du confort :
+   un Chrome sans fenetre lance avec --virtual-time-budget n'attend pas
+   un fichier de police et imprime en police de secours. Lire l'en-tete
+   de scripts/generer-polices.ps1. */
+
+:root{
+  /* Reprises telles quelles de app/app.css, bloc :root */
+  --nuit:#1A0E22;
+  --or:#C5963C;
+  --or-fonce:#9A6C26;
+  --gris:#6B6472;          /* gris de lecture sur papier blanc */
+  --gris-pale:#B9B3BF;     /* traits de coupe et de pli */
+
+  --serif:"Playfair Display", Georgia, serif;
+  --sans:"Hanken Grotesk", -apple-system, system-ui, sans-serif;
+  --script:"Petit Formal Script", cursive;
+
+  /* Géométrie papier. A4 = 210 x 297, le quart = A6 = 105 x 148,5. */
+  --cell-l:105mm;
+  --cell-h:148.5mm;
+}
+
+/* =====================================================================
+   1. L'INTERFACE — écran seulement
+   ===================================================================== */
+
+*{ box-sizing:border-box }
+
+body{
+  margin:0;
+  font-family:var(--sans);
+  font-size:14px;
+  color:var(--nuit);
+  background:#EFECF2;
+}
+
+.interface{ max-width:1180px; margin:0 auto; padding:22px 20px 80px }
+
+.entete{ display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; margin-bottom:4px }
+.entete h1{ font-family:var(--serif); font-weight:700; font-size:27px; margin:0; letter-spacing:-.01em }
+.entete .sous{ color:var(--gris); font-size:13px }
+
+/* Le rappel des réglages d'impression. Il reste affiché en permanence :
+   une échelle à 94 % (le défaut « Ajuster à la page » de Chrome) donne
+   un badge de 99 mm qui flotte dans la pochette, et rien ne le signale. */
+.rappel{
+  margin:14px 0 20px; padding:11px 14px; border-left:4px solid var(--or);
+  background:#fff; border-radius:0 8px 8px 0; font-size:13px; line-height:1.55;
+}
+.rappel b{ color:var(--or-fonce) }
+
+/* L'état des données. Discret quand tout va bien, impossible à rater
+   quand la base n'a pas répondu — c'est toute la question. */
+.etat{ margin:14px 0 0; padding:10px 14px; border-radius:8px; font-size:13px; line-height:1.55 }
+.etat.frais{ color:var(--gris); padding:0 2px }
+.etat.perime{ border:2px solid #B0286E; color:#7A1B4C; background:#FDF2F7 }
+.etat .detail{ margin-top:6px; font:400 11.5px/1.45 ui-monospace, Consolas, monospace; opacity:.75 }
+
+.pastilles{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px }
+.pastille{
+  border:2px solid currentColor; background:#fff; border-radius:999px;
+  padding:8px 16px; font:600 13px/1 var(--sans); letter-spacing:.06em;
+  text-transform:uppercase; cursor:pointer;
+}
+.pastille .n{ opacity:.6; font-weight:500; margin-left:6px }
+.pastille[aria-pressed="true"]{ color:#fff !important; border-color:transparent }
+
+.bloc{ background:#fff; border-radius:12px; padding:18px 20px; margin-bottom:16px;
+       box-shadow:0 1px 2px rgba(26,14,34,.07), 0 8px 24px -14px rgba(26,14,34,.25) }
+.bloc h2{ font:700 11px/1 var(--sans); letter-spacing:.13em; text-transform:uppercase;
+          color:var(--gris); margin:0 0 14px }
+
+.ligne{ display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end }
+.champ{ display:flex; flex-direction:column; gap:5px; flex:1 1 180px; position:relative }
+.champ label{ font:600 10.5px/1 var(--sans); letter-spacing:.1em; text-transform:uppercase; color:var(--gris) }
+.champ input{ font:400 15px/1 var(--sans); padding:10px 12px; border:1.5px solid #D8D3DE;
+              border-radius:8px; background:#fff; color:var(--nuit) }
+.champ input:focus{ outline:none; border-color:var(--or) }
+.champ.court{ flex:0 0 130px }
+
+.suggestions{
+  position:absolute; top:100%; left:0; right:0; z-index:20; margin-top:4px;
+  background:#fff; border:1.5px solid #D8D3DE; border-radius:8px; max-height:300px;
+  overflow:auto; box-shadow:0 12px 34px -12px rgba(26,14,34,.4);
+}
+.suggestions button{
+  display:block; width:100%; text-align:left; border:0; background:none; cursor:pointer;
+  padding:9px 12px; font:400 14px/1.3 var(--sans); border-bottom:1px solid #F0EDF3;
+}
+.suggestions button:hover, .suggestions button.vise{ background:#FAF7F0 }
+.suggestions .v{ color:var(--gris); font-size:12px }
+.suggestions .c{ float:right; font-weight:700; letter-spacing:.1em; color:var(--or-fonce) }
+
+button.action{
+  border:0; border-radius:999px; cursor:pointer; padding:11px 20px;
+  font:600 14px/1 var(--sans); background:var(--nuit); color:#fff;
+}
+button.action.creux{ background:#fff; color:var(--nuit); border:1.5px solid #D8D3DE }
+button.action.or{ background:linear-gradient(180deg,#E6C77E,#B9873A 96%); color:#231402 }
+button.action:disabled{ opacity:.4; cursor:default }
+.outils{ display:flex; gap:8px; flex-wrap:wrap; align-items:center }
+.outils .espace{ flex:1 }
+
+table.liste{ width:100%; border-collapse:collapse; font-size:13.5px }
+table.liste th{ text-align:left; font:600 10.5px/1 var(--sans); letter-spacing:.1em;
+                text-transform:uppercase; color:var(--gris); padding:0 8px 9px; border-bottom:1.5px solid #EEEAF1 }
+table.liste td{ padding:8px; border-bottom:1px solid #F4F1F7; vertical-align:middle }
+table.liste tr.orange td{ background:#FFF8EC }
+table.liste .code{ font-weight:700; letter-spacing:.14em; font-variant-numeric:tabular-nums }
+table.liste .quand{ color:var(--gris); font-size:12px; white-space:nowrap }
+table.liste .accomp{ font-size:11px; color:var(--gris); font-style:italic }
+table.liste .jamais{ color:var(--or-fonce); font-weight:600; font-size:12px; white-space:nowrap }
+table.liste .sup{ border:0; background:none; cursor:pointer; color:#C0BAC6; font-size:17px; line-height:1; padding:2px 6px }
+table.liste .sup:hover{ color:#B0286E }
+.vide{ color:var(--gris); padding:18px 8px; font-style:italic }
+
+/* --- l'assistant d'import ------------------------------------------- */
+
+.depot{
+  border:2px dashed #CFC9D5; border-radius:12px; padding:26px 18px; text-align:center;
+  transition:border-color .12s, background .12s;
+}
+.depot.survol{ border-color:var(--or); background:#FCF8F0 }
+.depot.charge{ border-style:solid; border-color:#9FD4AC; background:#F5FCF7 }
+.depot-titre{ font-size:15px; margin-bottom:8px }
+.depot-sous{ color:var(--gris); font-size:13px }
+
+select{ font:400 14px/1 var(--sans); padding:9px 10px; border:1.5px solid #D8D3DE;
+        border-radius:8px; background:#fff; color:var(--nuit) }
+
+/* Le tableau de correspondance des colonnes peut être plus large que
+   l'écran : il défile tout seul, la page ne bouge pas. */
+.tableau-defilant{ overflow-x:auto; max-width:100% }
+.apercu-colonnes th{ vertical-align:top; padding-right:12px; min-width:150px }
+.apercu-colonnes .col-nom{ font:700 12px/1.3 var(--sans); color:var(--nuit); text-transform:none;
+                           letter-spacing:0; margin-bottom:6px }
+.apercu-colonnes select{ font-size:12.5px; padding:6px 8px; width:100% }
+.apercu-colonnes td{ color:var(--gris); font-size:12.5px; max-width:220px; overflow:hidden;
+                     text-overflow:ellipsis; white-space:nowrap }
+
+.rapport{ margin-top:14px; font-size:13px; line-height:1.6 }
+.rapport .bilan{ font-size:15px }
+.rapport .ok{ color:#2E7D4F; font-weight:700 }
+.rapport .amb{ color:#A66A00; font-weight:700 }
+.rapport .ko{ color:#B0286E; font-weight:700 }
+.rapport .gris{ color:var(--gris); font-weight:600 }
+.rapport .detail-bilan{ color:var(--gris); margin-top:3px }
+.rapport .groupe{ margin-top:14px; padding:12px 14px; background:#FAF9FB; border-radius:8px }
+.rapport ul{ margin:8px 0 0; padding-left:20px }
+.rapport li{ margin-bottom:5px }
+.rapport select{ font-size:12.5px; padding:4px 7px; max-width:100% }
+.rapport .bloc-rates{ margin:8px 0 4px; padding:9px 11px; background:#fff;
+                      border:1.5px solid #E8DFEF; border-radius:8px; font-weight:600 }
+.rapport .bloc-rates select{ font-weight:400; min-width:260px }
+
+/* --- la saisie manuelle, repliée par défaut -------------------------- */
+
+.repliable h2{ margin:0 }
+.replier{ border:0; background:none; cursor:pointer; padding:0; color:var(--gris);
+          font:700 11px/1 var(--sans); letter-spacing:.13em; text-transform:uppercase }
+.replier::before{ content:'▸ '; }
+.replier[aria-expanded="true"]::before{ content:'▾ '; }
+.repliable #manuel{ margin-top:14px }
+
+/* --- l'export -------------------------------------------------------- */
+
+.export{ display:flex; gap:14px; align-items:center; flex-wrap:wrap;
+         padding:14px; background:#FBF8F2; border-radius:10px; border:1px solid #EFE4CE }
+.case{ display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer }
+button.action.gros{ font-size:15.5px; padding:13px 26px }
+button.action.danger:hover{ border-color:#B0286E; color:#B0286E }
+.chiffre{ color:var(--gris); font-size:13px }
+
+.progression{ margin-top:12px; padding:12px 14px; border-radius:8px; font-size:13.5px;
+              line-height:1.6; border:2px solid #D8D3DE; background:#fff }
+.progression.fini{ border-color:#9FD4AC; background:#F5FCF7 }
+.progression.rate{ border-color:#B0286E; background:#FDF2F7 }
+.progression code{ font:400 12.5px ui-monospace, Consolas, monospace; background:#F0EDF3;
+                   padding:2px 5px; border-radius:4px }
+.progression button{ margin-left:8px; padding:7px 14px; font-size:13px }
+
+.apercu{ margin-top:22px }
+.apercu .titre-lot{ font:600 11px/1 var(--sans); letter-spacing:.13em; text-transform:uppercase;
+                    color:var(--gris); margin:22px 0 10px }
+
+/* =====================================================================
+   2. LA FEUILLE A4
+   ===================================================================== */
+
+.feuille{
+  width:210mm; height:297mm; position:relative; background:#fff;
+  display:grid;
+  grid-template-columns:var(--cell-l) var(--cell-l);
+  grid-template-rows:var(--cell-h) var(--cell-h);
+  /* Une grille à deux colonnes ne place pas toute seule ses enfants là
+     où on croit ; ici les quatre cellules sont explicitement placées. */
+}
+
+/* Aperçu à l'écran seulement : `zoom` reflue proprement, contrairement
+   à `transform: scale()` qui laisserait un trou de 297 mm sous la page. */
+@media screen{
+  .feuille{ zoom:.5; box-shadow:0 2px 6px rgba(26,14,34,.16), 0 18px 40px -20px rgba(26,14,34,.4);
+            margin:0 auto 18px }
+}
+
+.cellule{ padding:10mm 11mm; display:flex; flex-direction:column; align-items:center;
+          text-align:center; overflow:hidden }
+.cellule.r1c1{ grid-column:1; grid-row:1 } .cellule.r1c2{ grid-column:2; grid-row:1 }
+.cellule.r2c1{ grid-column:1; grid-row:2 } .cellule.r2c2{ grid-column:2; grid-row:2 }
+
+/* Les repères de coupe et de pli. Une seule ligne horizontale (la
+   coupe) et une seule verticale (le pli), exactement là où il faut
+   agir — c'est le croquis d'origine. */
+.reperes{ position:absolute; inset:0; pointer-events:none }
+.reperes .coupe{ position:absolute; left:0; right:0; top:var(--cell-h);
+                 border-top:.3mm dashed var(--gris-pale) }
+.reperes .pli{ position:absolute; top:0; bottom:0; left:var(--cell-l);
+               border-left:.3mm dotted var(--gris-pale) }
+.reperes span{ position:absolute; font:500 6pt/1 var(--sans); letter-spacing:.12em;
+               text-transform:uppercase; color:var(--gris-pale) }
+.reperes .l-coupe{ left:7mm; top:calc(var(--cell-h) + 1.6mm) }
+.reperes .l-pli{ left:calc(var(--cell-l) + 1.6mm); top:7mm }
+
+/* =====================================================================
+   3. LE BADGE
+   ===================================================================== */
+
+/* --- la guinguette -------------------------------------------------- */
+
+/* Tout ce qui est coloré sur le badge est du SVG, jamais un fond CSS :
+   un navigateur qui imprime peut décider de ne pas imprimer les fonds,
+   et le badge sortirait blanc sur blanc sans rien signaler. Lire
+   l'en-tête de la section « LA GUINGUETTE » dans badges.js. */
+
+.guirlande{ width:100%; height:11mm; flex:none; display:block; margin-bottom:2.5mm }
+
+.bandeau{ position:relative; width:100%; height:14mm; flex:none }
+.bandeau-fond{ position:absolute; inset:0; width:100%; height:100% }
+.bandeau b{
+  position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  font:700 12.5pt/1 var(--sans); letter-spacing:.2em; text-transform:uppercase;
+  color:var(--cat-txt);
+}
+
+.corps{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+        width:100%; min-height:0; padding:3mm 0 }
+/* Le verso n'a pas de bandeau : sans cette compensation, son bloc se
+   centrerait plus haut que celui du recto et les deux faces
+   paraîtraient décalées une fois la carte pliée. */
+.corps.verso{ padding-top:11mm }
+
+.raison{ font-family:var(--serif); font-weight:700; line-height:1.12; color:var(--nuit);
+         overflow-wrap:break-word; width:100% }
+/* Quatre paliers plutôt qu'une mesure au pixel : une boucle de mesure
+   sur des centaines de badges coûte des secondes, et le résultat serait
+   le même. */
+.raison.t1{ font-size:26pt } .raison.t2{ font-size:21pt }
+.raison.t3{ font-size:17pt } .raison.t4{ font-size:13.5pt }
+
+.filet-orne{ width:34mm; height:3mm; margin:5mm 0; flex:none; display:block }
+
+.personne{ font:600 14.5pt/1.25 var(--sans); color:var(--nuit); overflow-wrap:break-word; width:100% }
+
+/* Le badge vierge : de quoi écrire au marqueur. */
+.aecrire{ width:70%; border-bottom:.35mm solid #CFC9D5; height:9mm }
+.aecrire + .aecrire{ margin-top:4mm }
+
+.pied{ flex:none; width:100%; display:flex; flex-direction:column; align-items:center; gap:1mm }
+.blason{ width:8mm; height:8mm; fill:url(#grad-or) }
+/* La note de grâce de la charte : UNE seule par face, jamais deux. */
+.pied .script{ font:400 14pt/1.05 var(--script); color:var(--or-fonce); margin-top:.5mm }
+.pied .evenement{ font:600 6.5pt/1.4 var(--sans); letter-spacing:.09em; text-transform:uppercase;
+                  color:var(--gris) }
+
+/* --- le verso ------------------------------------------------------- */
+
+/* Un badge retourné doit rester identifiable : la catégorie est reprise
+   en petit, dans sa couleur. */
+.cat-verso{ font:700 8pt/1 var(--sans); letter-spacing:.2em; text-transform:uppercase;
+            color:var(--cat); margin-bottom:4mm }
+.qr{ width:44mm; height:44mm; flex:none; display:block }
+.consigne{ font:500 9.5pt/1.4 var(--sans); color:var(--gris); margin-top:4mm }
+.consigne b{ color:var(--nuit); font-weight:700 }
+
+.etiq{ font:700 7.5pt/1 var(--sans); letter-spacing:.18em; text-transform:uppercase;
+       color:var(--gris); margin:5mm 0 2.5mm }
+.boite-code{ position:relative; min-width:56mm; padding:3.5mm 4mm 3mm }
+.boite-fond{ position:absolute; inset:0; width:100%; height:100% }
+.boite-code .valeur{ position:relative; font:700 25pt/1 var(--sans); letter-spacing:.22em;
+                     color:var(--nuit);
+                     text-indent:.22em /* recentre : letter-spacing ajoute un blanc final */ }
+.boite-code.sans .valeur{ color:#CFC9D5; letter-spacing:.3em; text-indent:.3em }
+
+/* =====================================================================
+   4. L'IMPRESSION
+   ===================================================================== */
+
+@page{ size:A4 portrait; margin:0 }
+
+@media print{
+  body{ background:#fff }
+  .interface, .apercu .titre-lot{ display:none !important }
+  .feuille{ zoom:1; box-shadow:none; margin:0; break-after:page; page-break-after:always }
+  .feuille:last-child{ break-after:auto; page-break-after:auto }
+  /* Ceinture et bretelles : même si tout est en bordures, on demande
+     explicitement au navigateur de ne pas « économiser » les couleurs. */
+  *{ -webkit-print-color-adjust:exact; print-color-adjust:exact }
+}
