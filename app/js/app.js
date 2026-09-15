@@ -33,6 +33,7 @@ const S = {
   panne: null,        // derniere panne de chargement, affichee plutot qu'avalee
   quota: null,        // refus de quota sur le garage vise — bandeau persistant
   deplie: {},         // sections longues de la supervision ouvertes en entier
+  avantRegles: null,  // ecran d'ou l'on a ouvert les regles, pour y revenir
   sante: null,        // sonde de sante de la base, bande d'etat de la supervision
   cleEnCours: null,     // clé d'idempotence de l'opération en cours
   envoi: false,         // garde anti-double-appui
@@ -250,7 +251,8 @@ function vueParticipant() {
   return guirlande() + `
     <div class="ecran">
       ${barre('Mon espace', null,
-        `<button class="lien" data-a="rafraichir">Actualiser</button>
+        `<button class="lien" data-a="regles">Règles</button>
+         <button class="lien" data-a="rafraichir">Actualiser</button>
          <button class="lien" data-a="quitter">Quitter</button>`)}
       ${bandeauReseau()}
       <div class="surface solde">
@@ -404,7 +406,8 @@ function vueAnimateur() {
   if (!S.cible) {
     const liste = api.chercherLocal(S.q, 10);
     return `<div class="ecran">
-      ${barre(r.libelle, null, `<button class="lien" data-a="quitter">Quitter</button>`)}
+      ${barre(r.libelle, null, `<button class="lien" data-a="regles">Règles</button>
+        <button class="lien" data-a="quitter">Quitter</button>`)}
       ${bandeauReseau()}
       <div class="entete">
         <h1 class="titre">Qui joue&nbsp;?</h1>
@@ -480,7 +483,8 @@ function vueFournisseur() {
   if (!S.cible) {
     const liste = api.chercherLocal(S.q, 10);
     return `<div class="ecran">
-      ${barre(r.libelle, null, `<button class="lien" data-a="quitter">Quitter</button>`)}
+      ${barre(r.libelle, null, `<button class="lien" data-a="regles">Règles</button>
+        <button class="lien" data-a="quitter">Quitter</button>`)}
       ${bandeauReseau()}
       <div class="entete">
         <div class="script">Une vente</div>
@@ -522,6 +526,134 @@ function vueFournisseur() {
         <p class="sous">Barème ${esc(r.categorie || '')} · l'écriture est signée au nom du stand.</p>
       </div>
       <button class="bouton bas" data-a="attribuer" ${(S.envoi || !sel) ? 'disabled' : ''}>Attribuer +${sel ? sel.points : 0} points</button>
+    </div>`;
+}
+
+
+// =====================================================================
+//  LES RÈGLES DU JEU — une version par profil
+//
+//  POURQUOI PAS UNE SEULE PAGE POUR TOUT LE MONDE. Un garagiste n'a rien
+//  à faire des quotas de stand, et un représentant se moque de la grille
+//  à 200 cases. Une page commune, c'est une page que personne ne lit
+//  jusqu'au bout. Chacun voit SON mode d'emploi, en quatre ou cinq
+//  temps, et rien d'autre.
+//
+//  LES CHIFFRES VIENNENT DE LA BASE, PAS DU TEXTE. Le coût d'une case,
+//  le plafond de cases, la participation : tout est lu dans l'état
+//  renvoyé par l'API. Si Bony change `cout_grille` en direct, les règles
+//  changent avec — sinon elles mentiraient dès la première journée, et
+//  des règles qui mentent sont pires que pas de règles.
+//
+//  LES PICTOS SONT DU SVG EN LIGNE, au trait, dans l'or de la charte.
+//  Pas d'emoji : leur dessin change d'un téléphone à l'autre et certains
+//  sortent en noir et blanc. Pas d'image non plus : un fichier de plus à
+//  charger sur le wifi d'une halle, pour un dessin de vingt lignes.
+// =====================================================================
+const PICTO = {
+  cle:     'M7 14a4 4 0 1 1 3.9-5h9.1l2 2-2 2-1.5-1.5L17 13l-1.5-1.5L14 13h-3.1A4 4 0 0 1 7 14Z',
+  cadeau:  'M4 11h16v9H4zM2 7h20v4H2zM12 7v13M12 7S9.5 3 7.5 4 9 7 12 7Zm0 0s2.5-4 4.5-3-1.5 3-4.5 3Z',
+  grille:  'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z',
+  ticket:  'M12 3l2.6 5.6 6.1.8-4.5 4.2 1.2 6L12 16.8 6.6 19.6l1.2-6L3.3 9.4l6.1-.8z',
+  loupe:   'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM20 20l-4.2-4.2',
+  manette: 'M7 8h10a4 4 0 0 1 4 4v1a3 3 0 0 1-5.2 2L14 13h-4l-1.8 2A3 3 0 0 1 3 13v-1a4 4 0 0 1 4-4ZM7.5 11v2M6.5 12h2M16 11.5h.01M18 13h.01',
+  poignee: 'M8 12l3-3 3 3 3-3M3 10l4-4 4 4M21 10l-4-4-4 4M6 14l4 4 3-3 3 3 4-4',
+  ecran:   'M3 5h18v11H3zM9 20h6M12 16v4',
+  horloge: 'M12 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16zM12 8v4l3 2',
+  scene:   'M4 18V9l8-5 8 5v9M9 18v-5h6v5M2 18h20',
+};
+
+function picto(nom) {
+  return `<svg class="pic" viewBox="0 0 24 24" aria-hidden="true"><path d="${PICTO[nom] || PICTO.cle}"/></svg>`;
+}
+
+//  Chaque profil : une note manuscrite, un titre, des temps numérotés,
+//  et — quand ça aide — une rangée de chiffres clés.
+function reglesDe(role) {
+  const e = S.etat;
+  const cout    = (e && e.cout_grille) || 20;
+  const maxCase = (e && e.cases_max) || 5;
+  const bonus   = 10;
+  const cout_p  = (S.r && S.r.cout != null) ? S.r.cout : 2;
+
+  if (role === 'garage') return {
+    script: 'Trois choses', titre: 'à savoir, et c\'est tout',
+    temps: [
+      ['cle', 'Votre code ouvre tout', `Les quatre caractères de votre invitation. Pas de compte, pas de mot de passe. Il rouvre votre solde sur n'importe quel téléphone.`],
+      ['manette', 'Vous gagnez des points', `${bonus} points en arrivant. Puis aux six animations, et sur les stands fournisseurs à chaque opération conclue.`],
+      ['grille', 'Vous les dépensez sur la grille', `${cout} points la case, ${maxCase} cases maximum. Une case sur deux est gagnante.`],
+      ['cadeau', 'Vous retirez votre lot', `Un code de retrait s'affiche. Vous le présentez au stand des lots, on vous remet le cadeau.`],
+      ['ticket', 'Le ticket d\'or', `Quinze cases cachent un gros lot qui ne dit pas son nom. Il se révèle sur scène au cocktail — <b>il faut être là</b>.`],
+    ],
+    chiffres: [[cout, 'points la case'], ['1 sur 2', 'cases gagnantes'], [15, 'gros lots le soir']],
+    note: `Perdu votre code ? L'accueil vous le redonne en trois secondes.`,
+  };
+
+  if (role === 'animateur') return {
+    script: 'Votre stand', titre: 'en quatre gestes',
+    temps: [
+      ['loupe', 'Retrouvez le garage', `Tapez les premières lettres de son nom. La liste se réduit toute seule.`],
+      ['manette', 'Lancez la partie', `${cout_p} points sont débités à ce moment-là. C'est le seul prix à payer pour jouer.`],
+      ['cadeau', 'Notez le résultat', `Un seul appui sur le résultat obtenu. Le meilleur est en haut. Un double appui ne crédite jamais deux fois.`],
+      ['horloge', 'Le quota', `Un garage ne peut pas tirer un nombre illimité de points de VOTRE animation. Quand il a eu sa part, un bandeau vous le dit — il peut aller jouer ailleurs.`],
+    ],
+    note: `Pas de réseau ? Continuez : tout part tout seul dès que ça revient.`,
+  };
+
+  if (role === 'fournisseur') return {
+    script: 'Une vente', titre: 'conclue, et c\'est tout',
+    temps: [
+      ['loupe', 'Retrouvez le garage', `Les premières lettres de son nom suffisent.`],
+      ['poignee', 'Choisissez ce qui a été conclu', `Les paliers sont ceux de VOTRE métier — un montant, un nombre de pneus, un simple contact. Pas de points à calculer.`],
+      ['cadeau', 'Validez', `Les points partent sur son portefeuille immédiatement. Le palier le plus bas est présélectionné : une frappe malheureuse ne coûte jamais cher.`],
+      ['horloge', 'Le quota', `Un garage ne peut pas tirer un nombre illimité de points de VOTRE stand. Quand il a eu sa part, un bandeau vous le dit.`],
+    ],
+    note: `Le compteur de votre stand est partagé par les cinq badges.`,
+  };
+
+  if (role === 'accueil') return {
+    script: 'Votre poste', titre: 'en deux gestes',
+    temps: [
+      ['loupe', 'Cherchez l\'invité', `Par son nom ou sa commune. Les accents et les traits d'union n'ont pas d'importance.`],
+      ['cle', 'Lisez-lui son code', `Quatre caractères, affichés en très grand. Il le tape sur son téléphone et son portefeuille s'ouvre.`],
+      ['cadeau', 'Il n\'est pas dans la liste ?', `Remettez-lui un badge vierge et appelez l'équipe Bony. Personne ne reste à la porte.`],
+    ],
+    note: `Vous ne voyez ni les soldes ni le journal : ce n'est pas votre rôle, et c'est volontaire.`,
+  };
+
+  return {
+    script: 'La supervision', titre: 'et la soirée',
+    temps: [
+      ['ecran', 'L\'état de la base', `La console en haut de l\'écran. Tant que la santé globale est verte, tout va bien. Le tableau de bord Supabase, lui, comptera chaque refus voulu comme une erreur — ne vous y fiez pas.`],
+      ['cadeau', 'La remise des lots', `« Suivi des lots » : le garage présente son code, vous le retrouvez, vous cochez « Remettre ».`],
+      ['ticket', 'Les tickets d\'or', `Le détail de qui détient quoi. <b>Cet écran nomme les gros lots avant la révélation</b> — ne le montrez à personne.`],
+      ['scene', 'Le grand tirage', `Un bouton, et la révélation se déroule seule en 95 secondes. Un clic sur l'écran fait tomber le nom tout de suite, un second passe au lot suivant.`],
+      ['horloge', 'Toutes les heures', `Exportez le journal en CSV. C'est la seule vraie sauvegarde de la soirée.`],
+    ],
+    note: `Le code supervision n'est sur aucun badge. Ne le donnez pas.`,
+  };
+}
+
+function vueRegles() {
+  const role = (S.r && S.r.role) || 'garage';
+  const r = reglesDe(role);
+  return `<div class="ecran regles">
+      ${barre('Règles du jeu', 'retour-regles')}
+      <div class="entete">
+        <div class="script">${esc(r.script)}</div>
+        <h1 class="titre">${esc(r.titre)}</h1>
+      </div>
+      ${r.chiffres ? `<div class="rchiffres">${r.chiffres.map(([v, l]) =>
+        `<div class="rc"><b>${esc(String(v))}</b><span>${esc(l)}</span></div>`).join('')}</div>` : ''}
+      <ol class="rtemps">
+        ${r.temps.map(([ico, titre, texte], i) => `<li class="rt">
+          <span class="rnum">${i + 1}</span>
+          ${picto(ico)}
+          <span class="rtx"><b>${esc(titre)}</b>${texte}</span>
+        </li>`).join('')}
+      </ol>
+      ${r.note ? `<p class="rnote">${r.note}</p>` : ''}
+      <button class="bouton creux bas" data-a="retour-regles">J'ai compris</button>
     </div>`;
 }
 
@@ -649,7 +781,8 @@ function vueAdmin() {
   const s = S.sup;
   if (!s) return ecranAttente('Supervision Bony', null);
   return `<div class="ecran">
-      ${barre('Supervision Bony', null, `<button class="lien" data-a="quitter">Quitter</button>`)}
+      ${barre('Supervision Bony', null, `<button class="lien" data-a="regles">Règles</button>
+        <button class="lien" data-a="quitter">Quitter</button>`)}
       ${bandeauReseau()}
       ${bandeSante()}
       <div class="entete">
@@ -786,7 +919,8 @@ function vueAccueilHotesse() {
   const part = e && e.invites ? Math.round((e.arrives / e.invites) * 100) : 0;
 
   return `<div class="ecran large">
-    ${barre('Accueil du Forum', null, `<button class="lien" data-a="quitter">Quitter</button>`)}
+    ${barre('Accueil du Forum', null, `<button class="lien" data-a="regles">Règles</button>
+      <button class="lien" data-a="quitter">Quitter</button>`)}
     ${e ? `<div class="verre compteur">
       <div class="cchiffres"><b>${e.arrives}</b><span>sur ${e.invites} invités</span></div>
       <div class="jauge"><span style="width:${part}%"></span></div>
@@ -1197,6 +1331,7 @@ const VUES = {
   admin: vueAdmin,
   lots: vueLots,
   tickets: vueTickets,
+  regles: vueRegles,
   projection: vueProjection,
   accueil_hotesse: vueAccueilHotesse,
 };
@@ -1208,7 +1343,7 @@ function rendre(garderFocus) {
   // Verre allégé, sans flou : les seuls écrans animateur et fournisseur,
   // ceux qui tournent cinq heures dans une main.
   const avecDecor = ['accueil', 'espace', 'grille', 'revelation',
-                     'projection', 'admin', 'lots', 'tickets',
+                     'projection', 'admin', 'lots', 'tickets', 'regles',
                      'accueil_hotesse'].includes(S.vue);
   const enService = ['animateur', 'fournisseur'].includes(S.vue);
   document.body.classList.toggle('decore', avecDecor);
@@ -1378,6 +1513,14 @@ async function agir(a, el) {
     // Relance le chargement de l'écran courant après une panne. Le
     // bouton n'existe que sur ecranAttente, donc uniquement là où un
     // chargement a échoué.
+    // Les règles s'ouvrent depuis n'importe quel écran et rendent la main
+    // exactement où on était : au milieu d'une file d'attente, on ne veut
+    // pas avoir à retrouver son garage.
+    case 'regles':
+      S.avantRegles = S.vue; S.vue = 'regles'; return rendre();
+    case 'retour-regles':
+      S.vue = S.avantRegles || 'accueil'; S.avantRegles = null; return rendre();
+
     case 'deplier': {
       const k = el.dataset.cle;
       S.deplie[k] = !S.deplie[k];

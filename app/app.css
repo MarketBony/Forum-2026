@@ -695,6 +695,67 @@ body.service .bouton.creux {
 /* révélation différée : ni gain ni perte, une attente */
 .revele.attente .rt { color:var(--creme-2); text-shadow:none }
 
+/* =====================================================================
+   Les règles du jeu
+
+   Un garagiste debout, un verre à la main, dans le bruit. Il ne lira pas
+   un paragraphe : il balaie. D'où la forme — un gros chiffre, un picto,
+   un titre gras, une ligne. Rien qui demande de se concentrer.
+
+   Les pictos sont au TRAIT, jamais pleins : à 22 px, une forme pleine
+   dans l'or de la charte fait une tache, un trait fait un dessin.
+   ===================================================================== */
+.regles .rchiffres {
+  display:grid; grid-template-columns:repeat(3,1fr); gap:var(--e2);
+  margin-bottom:var(--e2);
+}
+.regles .rc {
+  padding:var(--e3) var(--e2); border-radius:var(--r1); text-align:center;
+  background:var(--surface-plate);
+}
+.regles .rc b {
+  display:block; font-family:var(--serif); font-size:clamp(20px,5.5vw,26px);
+  color:var(--or-pale); line-height:1.1;
+}
+.regles .rc span {
+  display:block; font-size:10.5px; color:var(--txt-3);
+  letter-spacing:.05em; margin-top:3px; line-height:1.3;
+}
+
+.rtemps { list-style:none; display:flex; flex-direction:column; gap:var(--e2) }
+.rt {
+  display:grid; grid-template-columns:auto auto 1fr; align-items:start;
+  gap:var(--e3); padding:var(--e4); border-radius:var(--r2);
+  background:var(--surface); box-shadow:inset 0 1px 0 var(--reflet), var(--ombre-1);
+}
+/* Le chiffre est en Playfair : c'est la seule licence typographique de
+   l'écran, et elle sert à donner le rythme de lecture. */
+.rt .rnum {
+  font-family:var(--serif); font-size:26px; font-weight:700; line-height:1;
+  color:var(--or); min-width:1.1em; text-align:center;
+}
+.rt .pic {
+  width:26px; height:26px; flex:none; margin-top:1px;
+  fill:none; stroke:var(--or-clair); stroke-width:1.5;
+  stroke-linecap:round; stroke-linejoin:round;
+}
+.rt .rtx { font-size:14px; line-height:1.5; color:var(--txt-2); min-width:0 }
+/* SEUL LE PREMIER gras est le titre. La règle visait tous les <b> et
+   faisait passer à la ligne les mises en valeur DANS le texte — « il
+   faut être là » se retrouvait seul sur sa ligne, suivi d'un point
+   orphelin. `> b:first-child` et rien d'autre. */
+.rt .rtx > b:first-child {
+  display:block; font-size:15.5px; font-weight:700; color:var(--creme-2);
+  margin-bottom:2px; line-height:1.3;
+}
+.rt .rtx b { color:var(--or-clair); font-weight:700 }
+
+.rnote {
+  font-family:var(--script); font-size:clamp(17px,4.4vw,21px);
+  color:var(--or-clair); line-height:1.35; text-align:center;
+  padding:var(--e2) var(--e3);
+}
+
 /* Le bouton qui ouvre une liste longue. Discret : c'est une commande de
    confort, pas une action de la soirée. Il porte le nombre de lignes
    masquées — sans lui on ne sait pas s'il en reste trois ou vingt. */

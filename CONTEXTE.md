@@ -953,6 +953,36 @@ donc les plus faciles à enchaîner.
 > paient davantage, il est à 10 et se remonte en une ligne — le contrôle SQL le
 > borne à la moitié de `cout_grille`.
 
+### Les règles du jeu, une version par profil
+
+Ajoutées le 15 septembre. Un bouton **Règles** dans la barre des cinq écrans de
+profil, qui ouvre un mode d'emploi et rend la main exactement où on était — au
+milieu d'une file d'attente, on ne veut pas avoir à retrouver son garage.
+
+**Pourquoi pas une page commune.** Un garagiste n'a rien à faire des quotas de
+stand, un représentant se moque de la grille à 200 cases. Une page pour tout le
+monde, c'est une page que personne ne lit jusqu'au bout. Chacun voit son mode
+d'emploi en quatre ou cinq temps, et rien d'autre.
+
+| Profil | Ce qu'il lit |
+|---|---|
+| Garage | son code, gagner, dépenser, retirer, le ticket d'or |
+| Animateur | chercher, lancer, noter, le quota |
+| Fournisseur | chercher, choisir le palier, valider, le quota |
+| Hôtesse | chercher, lire le code, que faire d'un absent de la liste |
+| Équipe Bony | la console, la remise, les tickets, le tirage, l'export horaire |
+
+**Les chiffres viennent de la base, pas du texte.** Le coût d'une case, le
+plafond de cases, la participation : tout est lu dans la réponse de l'API. Si
+Bony change `cout_grille` en direct, les règles changent avec — sinon elles
+mentiraient dès la première journée, et des règles qui mentent sont pires que
+pas de règles.
+
+**Les pictos sont du SVG en ligne, au trait.** Pas d'emoji — leur dessin change
+d'un téléphone à l'autre et certains sortent en noir et blanc. Pas d'image non
+plus : un fichier de plus à charger sur le wifi d'une halle, pour un dessin de
+vingt lignes.
+
 ### Les quotas par garage — les freins anti-abus
 
 Ajoutés le 15 septembre (`sql/26_quotas.sql`), à la demande de Bony.

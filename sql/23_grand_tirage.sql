@@ -314,6 +314,15 @@ begin
     'cout_grille', cfg_int('cout_grille', 20),
     'revelation', coalesce((select valeur from config where cle = 'revelation'), 'immediate'),
     'tirage_revele', v_fait,
+    -- ⚠️ CES DEUX CHAMPS VIENNENT DE sql/17_grille_200.sql ET AVAIENT ÉTÉ
+    -- PERDUS ICI. Réécrire api_etat en entier pour y ajouter le tirage a
+    -- fait tomber `cases_max` et `mes_cases_nb` : l'écran de la grille a
+    -- cessé d'afficher « il vous reste N cases » et le bandeau de
+    -- plafond, sans la moindre erreur — le front lisait `undefined > 0`,
+    -- qui vaut faux. Leçon : on ne réécrit pas une fonction longue pour
+    -- ajouter un champ, on la relit ligne à ligne avant de la remplacer.
+    'cases_max', cfg_int('cases_max_garage', 0),
+    'mes_cases_nb', (select count(*) from grille where garage_id = v_g.id),
     'cases_libres', (select count(*) from grille where garage_id is null),
     'billets_restants', (select count(*) from grille where nature = 'billet' and garage_id is null),
     'grille', (select string_agg(case when garage_id is null then '0' else '1' end, ''
