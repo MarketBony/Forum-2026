@@ -600,6 +600,48 @@ garde ceux de démonstration — mais on ne fait pas les deux dans le désordre.
 l'impression ne demande aucune retouche de `participants`, juste un nouvel
 export. C'est le papier déjà sorti qui est irrattrapable, pas la donnée.*
 
+### 🔒 Case ↔ lot : scellé le 15 septembre 2026
+
+La liste complète a été sortie en classeur d'étiquetage et les lots physiques
+portent leur **numéro de case**. *Verbatim : « les lots et tickets d'or seront
+scellés à leur numéros et ne pourront plus bouger ».*
+
+`exports/Lots Forum 2026 - etiquetage.xlsx`, hors dépôt — il nomme les 15 gros
+lots du soir, qui sont le secret de la soirée. Trois feuilles :
+
+| Feuille | Contenu |
+|---|---|
+| **Étiquettes** | les 85 lots remis au stand, par numéro de case |
+| **Gros lots du soir** | les 15, par ordre de révélation — **confidentiel** |
+| **Par référence** | 31 lignes, pour sortir les lots du stock |
+
+**Le « code » de l'étiquette est le NUMÉRO DE CASE**, pas le code de retrait.
+Le code de retrait n'existe pas avant l'achat : il est dérivé de la clé
+d'idempotence au moment où le garage prend la case. Le parcours au comptoir est
+donc : le garage montre son code → l'écran « Suivi des lots » de la tablette
+donne le numéro de case → on prend l'objet étiqueté à ce numéro.
+
+**Rapprochement vérifié, pas supposé.** Les libellés de la grille et ceux de
+l'état de stock ne coïncident pas (« MINIATURE Renault Austral EA BLEU » contre
+« 1L43 HHN MY25 EA BLEU ») : la correspondance est une table écrite à la main,
+et le script refuse de produire le classeur si elle n'est pas exacte et
+bijective. Résultat : **100 cases, 31 références, et la grille consomme
+exactement le stock proposé, référence par référence.**
+
+| | Unités | Valeur HT |
+|---|---|---|
+| Lots immédiats | 85 | 1 884,37 € |
+| Gros lots du soir | 15 | 1 695,68 € |
+| **Total** | **100** | **3 580,05 €** |
+
+Ce total recoupe les 3 580 € notés depuis le 11 septembre. Les totaux du
+classeur ont été recalculés par Excel : **zéro formule en erreur**.
+
+**Conséquence : `sql/18_lots.sql` et `sql/23_grand_tirage.sql` ne doivent plus
+changer de valeurs.** Les rejouer à l'identique reste sans danger — ils
+réécrivent les mêmes lignes — mais modifier un numéro rendrait fausses des
+étiquettes déjà collées, sans que rien ne le signale avant le comptoir.
+
 ### Ce que l'événement distribue, arrêté le 11 septembre
 
 **100 lots**, valeur totale **3 580 € HT**, 31 références. Ils se gagnent de

@@ -55,6 +55,21 @@
 -- =====================================================================
 
 -- ---------------------------------------------------------------------
+--  🔒 SCELLÉ LE 15 SEPTEMBRE 2026
+--
+--  La liste case ↔ lot est sortie en classeur d'étiquetage
+--  (« Lots Forum 2026 - etiquetage.xlsx ») et les lots physiques portent
+--  désormais leur numéro de case. Décision de Bastien, verbatim :
+--  « les lots et tickets d'or seront scellés à leur numéros et ne
+--  pourront plus bouger ».
+--
+--  CE FICHIER NE DOIT PLUS CHANGER DE VALEURS. Le rejouer à l'identique
+--  reste sans danger — il réécrit exactement les mêmes lignes — mais
+--  modifier un numéro ou un libellé rendrait fausses les étiquettes déjà
+--  collées, et personne ne s'en apercevrait avant le comptoir.
+-- ---------------------------------------------------------------------
+
+-- ---------------------------------------------------------------------
 -- 1. Les deux colonnes
 --
 --  gros_lot_ordre est l'ordre de SPECTACLE figé ici. L'ordre réellement
@@ -95,8 +110,10 @@ on conflict (cle) do update set description = excluded.description;
 -- ---------------------------------------------------------------------
 -- 3. Les 15 affectations, figées
 --
---  Pour changer un lot de case, on change UNE ligne ici et on rejoue le
---  fichier. Tant que la soirée n'a pas eu lieu, ça ne coûte rien.
+--  🔒 CES QUINZE LIGNES NE BOUGENT PLUS (voir le sceau en tête). Elles
+--  sont sorties en classeur d'étiquetage et les lots physiques portent
+--  leur numéro de case. Rejouer le fichier à l'identique est sans
+--  danger ; changer un numéro rendrait fausse une étiquette déjà collée.
 -- ---------------------------------------------------------------------
 update public.grille g
    set gros_lot = v.lot, gros_lot_ordre = v.ordre

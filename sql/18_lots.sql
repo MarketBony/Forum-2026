@@ -51,6 +51,21 @@
 -- =====================================================================
 
 -- ---------------------------------------------------------------------
+--  🔒 SCELLÉ LE 15 SEPTEMBRE 2026
+--
+--  La liste case ↔ lot est sortie en classeur d'étiquetage
+--  (« Lots Forum 2026 - etiquetage.xlsx ») et les lots physiques portent
+--  désormais leur numéro de case. Décision de Bastien, verbatim :
+--  « les lots et tickets d'or seront scellés à leur numéros et ne
+--  pourront plus bouger ».
+--
+--  CE FICHIER NE DOIT PLUS CHANGER DE VALEURS. Le rejouer à l'identique
+--  reste sans danger — il réécrit exactement les mêmes lignes — mais
+--  modifier un numéro ou un libellé rendrait fausses les étiquettes déjà
+--  collées, et personne ne s'en apercevrait avant le comptoir.
+-- ---------------------------------------------------------------------
+
+-- ---------------------------------------------------------------------
 -- 1. Garde-fou : on ne recompose pas une grille déjà jouée
 --
 --  Ce fichier efface l'attribution des cases. Si des garages ont déjà
