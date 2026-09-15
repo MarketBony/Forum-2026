@@ -546,6 +546,9 @@ halle, le rendu sur téléphone étroit de la présentation : tout ce qui n'a pa
 | 6 | **Répétition sur place** | non planifiée — **c'est le point le plus important** |
 | 7 | ~~Les listings de participants~~ | ✅ **434 badges** en base, voir §15 |
 | 8 | **Les arbitrages de badges** | 8 points en attente, tous listés en fin de §15 |
+| 9 | **Un 3ᵉ palier aux fléchettes** | demandé au prestataire — sans lui le jeu perd des points en moyenne |
+| 10 | **« TOP SCORE EN 45 SECONDES »** | seuil sur ardoise (retenu) ou classement journalier ? le second demande du code |
+| 11 | **Constructeurs et derniers inscrits** | listings annoncés par Bastien, à pousser avec `importer-inscriptions.ps1` |
 
 **Pourquoi la n°4 est devenue bloquante.** Tant qu'aucun badge n'était imprimé,
 changer un PIN ne coûtait rien. Aujourd'hui les 115 badges exposants, les 6
