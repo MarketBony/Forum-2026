@@ -31,6 +31,8 @@ const S = {
   lots: null,
   tirage: null,       // etat du grand tirage du soir
   panne: null,        // derniere panne de chargement, affichee plutot qu'avalee
+  quota: null,        // refus de quota sur le garage vise — bandeau persistant
+  deplie: {},         // sections longues de la supervision ouvertes en entier
   sante: null,        // sonde de sante de la base, bande d'etat de la supervision
   cleEnCours: null,     // clé d'idempotence de l'opération en cours
   envoi: false,         // garde anti-double-appui
@@ -138,6 +140,40 @@ function barre(qui, retour, extra = '') {
     <span class="actions">${extra}
       ${retour ? `<button class="lien" data-a="${retour}">Retour</button>` : ''}
     </span></div>`;
+}
+
+// Un refus de quota n'est pas une panne : c'est une REGLE. Un toast de
+// quatre secondes disparait pendant que l'animateur relit le nom du
+// garage, et il retente. Le bandeau reste tant qu'on regarde ce
+// garage-la, et s'efface des qu'on passe au suivant.
+// Une liste longue sur la supervision, c'est un écran qu'on scrolle au
+// lieu de le lire. On n'en montre que le haut — le reste est à un appui.
+// Le compte des masquées est dans le bouton : sans lui, on ne sait pas
+// s'il y a trois lignes de plus ou vingt.
+const APERCU = 6;
+
+//  `interne` sert au journal : ses lignes veulent un conteneur
+//  `.mouvements` a l'interieur du `.groupe`, sinon la grille des
+//  colonnes heure / libelle / delta ne s'applique pas.
+function sectionRepliable(cle, titre, lignes, rendreLigne, interne) {
+  const tout = S.deplie[cle] === true;
+  const vues = tout ? lignes : lignes.slice(0, APERCU);
+  const reste = lignes.length - vues.length;
+  const corps = vues.length
+    ? vues.map(rendreLigne).join('')
+    : '<p class="vide">Rien pour le moment.</p>';
+  return `<div class="section">
+      <p class="etiq">${esc(titre)}</p>
+      <div class="groupe">${interne && vues.length
+        ? `<div class="${interne}">${corps}</div>` : corps}</div>
+      ${(reste > 0 || tout) ? `<button class="deplier" data-a="deplier" data-cle="${esc(cle)}">
+        ${tout ? 'Réduire' : `Développer · ${reste} de plus`}</button>` : ''}
+    </div>`;
+}
+
+function bandeauQuota() {
+  if (!S.quota) return '';
+  return `<div class="bandeau quota"><i></i>${esc(S.quota)}</div>`;
 }
 
 function bandeauReseau() {
@@ -387,6 +423,7 @@ function vueAnimateur() {
     return `<div class="ecran">
       ${barre(r.libelle, 'recherche')}
       ${bandeauReseau()}
+      ${bandeauQuota()}
       <div class="surface fiche">
         <div class="fnom">${esc(S.cible.nom)}</div>
         <div class="fville">${esc(S.cible.ville)}</div>
@@ -466,6 +503,7 @@ function vueFournisseur() {
   return `<div class="ecran">
       ${barre(r.libelle, 'recherche')}
       ${bandeauReseau()}
+      ${bandeauQuota()}
       <div class="groupe">
         <div class="rangee">
           <span class="principal"><span class="nom">${esc(S.cible.nom)}</span>
@@ -635,19 +673,19 @@ function vueAdmin() {
           <div class="il">Écarts entre solde et journal — à signaler immédiatement</div></div>` : ''}
       </div>
       ${s.tension ? `<div class="bandeau"><i></i>Plus de points en circulation que de cases restantes — resserrer les barèmes</div>` : ''}
-      <div class="section">
-        <p class="etiq">Distribution par stand</p>
-        <div class="groupe">
-          ${s.par_stand.map((p) => `<div class="rangee">
+      ${sectionRepliable('stands', 'Distribution par stand',
+        // Les stands qui ont distribué en premier : un stand à zéro
+        // n'apprend rien, et il y en a vingt-trois.
+        [...s.par_stand].sort((x, y) => y.distribue - x.distribue),
+        (p) => `<div class="rangee">
             <span class="principal"><span class="nom">${esc(p.stand)}</span></span>
             <span class="valeur"><b>${p.distribue}</b><span>/ ${p.plafond}</span></span>
-          </div>`).join('')}
-        </div>
-      </div>
-      <div class="section">
-        <p class="etiq">Journal en direct</p>
-        ${mouvements(s.journal.map((j) => ({ heure: j.heure, libelle: j.garage + ' · ' + j.libelle, source: j.source, delta: j.delta })))}
-      </div>
+          </div>`)}
+      ${sectionRepliable('journal', 'Journal en direct', s.journal,
+        (j) => `<div class="mvt"><span class="mh">${esc(j.heure)}</span>
+            <span class="ml">${esc(j.garage + ' · ' + j.libelle)}<small>${esc(j.source)}</small></span>
+            <span class="md ${j.delta > 0 ? 'plus' : 'moins'}">${j.delta > 0 ? '+' : ''}${j.delta}</span>
+          </div>`, 'mouvements')}
       <div class="section">
         <p class="etiq">Le bingo</p>
         <div class="groupe">
@@ -1328,7 +1366,7 @@ async function agir(a, el) {
     case 'accueil':   S.vue = 'accueil'; S.q = ''; S.code = ''; return rendre();
     case 'espace':    S.vue = 'espace'; await chargerEtat(); return rendre();
     case 'grille':    S.vue = 'grille'; await chargerEtat(); return rendre();
-    case 'recherche': S.cible = null; S.partieLancee = false; S.q = ''; return rendre();
+    case 'recherche': S.cible = null; S.partieLancee = false; S.q = ''; S.quota = null; return rendre();
     // On recharge toujours en revenant au tableau de bord : sinon un lot
     // que Bony vient de remettre reste affiché comme « à remettre »
     // jusqu'au sondage suivant, et l'équipe doute de l'outil.
@@ -1340,6 +1378,11 @@ async function agir(a, el) {
     // Relance le chargement de l'écran courant après une panne. Le
     // bouton n'existe que sur ecranAttente, donc uniquement là où un
     // chargement a échoué.
+    case 'deplier': {
+      const k = el.dataset.cle;
+      S.deplie[k] = !S.deplie[k];
+      return rendre();
+    }
     case 'reessayer': {
       S.panne = null; rendre();
       if (S.vue === 'admin')        { await chargerSupervision(); return rendre(); }
@@ -1462,6 +1505,7 @@ async function agir(a, el) {
 
     // ---------------- personnel : cibler un garage ----------------
     case 'cibler': {
+      S.quota = null;                 // on change de garage : le quota du precedent ne le concerne pas
       S.cible = { id: el.dataset.id, nom: el.dataset.nom, ville: el.dataset.ville, solde: 0 };
       const c = api.garagesEnCache();
       const g = c && c.liste.find((x) => x.id === S.cible.id);
@@ -1490,6 +1534,7 @@ async function agir(a, el) {
               `−${S.r.cout} pts · ${esc(S.cible.nom)}` + (r.enAttente ? ' · sera envoyé au retour du réseau' : ` · solde <b>${r.solde}</b>`),
               r.enAttente ? 'attente' : 'negatif');
       } catch (e) {
+        if (e.code === 'QUOTA_ANIMATION') S.quota = e.detail || e.message;
         toast('Impossible', e.detail || e.message, 'negatif');
       } finally { S.envoi = false; rendre(); }
       return;
@@ -1534,6 +1579,10 @@ async function agir(a, el) {
         if (r.enAttente) toast('Enregistré hors ligne', `${esc(nom)} · +${pts} pts en attente d'envoi`, 'attente');
         else toast(`+${pts} points ajoutés`, `${esc(nom)} · nouveau solde <b>${r.solde}</b>`);
       } catch (e) {
+        // Le quota reste affiché sous les yeux du représentant : il doit
+        // comprendre que ce garage a eu sa part, pas croire à une panne
+        // et réessayer trois fois.
+        if (e.code === 'QUOTA_STAND') S.quota = e.detail || e.message;
         toast('Refusé', e.detail || e.message, 'negatif');
       } finally { S.envoi = false; rendre(); }
       return;
@@ -1739,13 +1788,21 @@ document.addEventListener('visibilitychange', async () => {
   }
 
   // personnel : on affiche tout de suite, la liste se rafraîchit derrière
-  S.vue = S.r.role === 'admin' ? 'admin'
-        : (S.r.role === 'accueil' ? 'accueil_hotesse' : S.r.role);
+  //
+  // PIÈGE : on retient le rôle dans une variable AVANT les chargements.
+  // sessionMorte() met S.r à null quand le jeton n'est plus reconnu — et
+  // la ligne suivante lisait alors S.r.role sur null, ce qui plantait le
+  // démarrage sans un mot. Le cas arrive dès qu'un appareil disparaît de
+  // la base, ce qui est exactement la situation où on a besoin que
+  // l'application retombe proprement sur l'écran de code.
+  const role = S.r.role;
+  S.vue = role === 'admin' ? 'admin'
+        : (role === 'accueil' ? 'accueil_hotesse' : role);
   rendre();
-  if (S.r.role === 'admin') { await chargerSupervision(); rendre(); }
-  if (S.r.role === 'accueil') { await chargerAccueil(); rendre(); }
-  else if (S.r.role !== 'admin') api.rafraichirGarages().then(() => rendre()).catch(() => {});
-  sondage();
+  if (role === 'admin') { await chargerSupervision(); rendre(); }
+  else if (role === 'accueil') { await chargerAccueil(); rendre(); }
+  else api.rafraichirGarages().then(() => rendre()).catch(() => {});
+  if (S.r) sondage();          // session morte entre-temps : rien à sonder
 })();
 
 // Service worker : coquille hors ligne

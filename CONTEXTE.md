@@ -34,7 +34,7 @@
 | **En ligne** | https://forum-2026.bonyauto-mobile.workers.dev/ — **et rien d'autre**, voir §10 |
 | **Dépôt** | `MarketBony/Forum-2026` — **privé**, doit le rester |
 | **Coût** | 0 € (Cloudflare Workers gratuit + Supabase gratuit) |
-| **État** | Fonctionnel de bout en bout, 109 tests verts, en attente de décisions |
+| **État** | Fonctionnel de bout en bout, 114 tests verts, en attente de décisions |
 | **Badges** | 434 badges prêts, 218 feuilles A4 — voir §15 |
 
 > Le chiffre de « ~150 attendus » qui figurait ici jusqu'au 11 septembre était une
@@ -462,8 +462,8 @@ n'était jamais parti. Depuis, la règle est : après chaque `git push`, incrém
 ) -match "const VERSION = '([^']+)'" ; $Matches[1]
 ```
 
-**Les tests tournent contre la vraie base.** Pas de mock. 109 contrôles :
-`test-porte.ps1` (53), `test-invariants.ps1` (27), `test-bingo.ps1` (29). À
+**Les tests tournent contre la vraie base.** Pas de mock. 114 contrôles :
+`test-porte.ps1` (53), `test-invariants.ps1` (32), `test-bingo.ps1` (29). À
 rejouer après **toute** modification SQL.
 
 **Le terrain de l'utilisateur l'emporte.** Exemple : j'avais proposé de passer la
@@ -564,7 +564,7 @@ halle, le rendu sur téléphone étroit de la présentation : tout ce qui n'a pa
   rien qui l'alerte.
 
 - **Le tableau de bord Supabase compte comme « erreur » tout refus voulu.**
-  Après un passage des 109 tests, il affiche ~70 erreurs Postgres : ce sont les
+  Après un passage des 114 tests, il affiche ~70 erreurs Postgres : ce sont les
   `CASE_DEJA_PRISE` du test de concurrence (7 refus sur 8 achats simultanés =
   le test réussit), les `permission denied` qui prouvent que la clé publique ne
   lit aucune table, les plafonds qui plafonnent, le trigger d'inaltérabilité qui
@@ -926,8 +926,8 @@ pour que la comparaison vaille quelque chose.
 | **Total par garage** | | **~77** | **~55** |
 | **En cases à 20 pts** | | 3,9 | **2,8** |
 
-Le **plafond de 3 cases par garage** (`config.cases_max_garage`) tient donc
-toujours : un garage type arrive juste au-dessous, et 150 à 212 garages demandent
+Le **plafond de cases par garage** (`config.cases_max_garage`), passé de 3 à
+**5** le 15 septembre, tient donc toujours : un garage type arrive juste au-dessous, et 150 à 212 garages demandent
 420 à 590 cases pour 200 disponibles. La grille se vide quand même, et c'est le
 plafond qui la rationne. Il **se lève** en direct et ne se baisse jamais —
 baisser pénaliserait ceux qui ont déjà acheté.
@@ -952,6 +952,38 @@ donc les plus faciles à enchaîner.
 > **Le curseur, c'est le plafond d'une animation.** S'il faut que les jeux
 > paient davantage, il est à 10 et se remonte en une ligne — le contrôle SQL le
 > borne à la moitié de `cout_grille`.
+
+### Les quotas par garage — les freins anti-abus
+
+Ajoutés le 15 septembre (`sql/26_quotas.sql`), à la demande de Bony.
+
+| Frein | Valeur | Ce qu'il protège |
+|---|---|---|
+| Cases par garage | **5** (était 3) | « il en faut pour tout le monde » |
+| Points d'UNE animation | **4 × son meilleur palier** — 20 ou 40 pts | le garage qui camperait devant une borne |
+| Points d'UN stand | **3 × le plafond d'opération** — 60 pts | le fournisseur généreux avec un ami |
+
+**Le refus tombe au LANCEMENT de la partie, pas au résultat.** `api_participation`
+débite 2 points avant qu'on note le résultat : si le refus arrivait au résultat,
+le garage aurait payé sa partie pour s'entendre dire qu'il n'a droit à rien. Le
+résultat est quand même contrôlé, en ceinture, pour un résultat envoyé sans
+participation (rejeu, file hors ligne).
+
+**La dernière partie a le droit de dépasser.** Un garage à 38/40 qui lance et
+fait un carreau touche ses 10 points et finit à 48. Le quota est un frein à la
+répétition, pas une règle comptable — couper un gain en deux serait
+incompréhensible au stand.
+
+**L'équipe Bony n'est pas soumise aux quotas** : le rôle `admin` corrige et
+compense, le bloquer avec un frein anti-abus lui retirerait l'outil au moment où
+il en a besoin.
+
+Les deux multiplicateurs sont dans `config` et se règlent en direct :
+`quota_animation_x` (4) et `quota_stand_x` (3).
+
+L'animateur et le fournisseur voient un **bandeau or persistant** — pas un toast
+de quatre secondes qui disparaît pendant qu'ils relisent le nom du garage. Il
+s'efface dès qu'ils passent au garage suivant.
 
 ### Travaux techniques identifiés, non faits
 
@@ -984,9 +1016,9 @@ justification chiffrée.
 .\scripts\push-sql.ps1 -File sql\01_schema.sql
 .\scripts\push-sql.ps1 -Query "select count(*) from garages" -Quiet
 
-# Les trois batteries de tests — 109 contrôles, à rejouer après tout changement SQL
+# Les trois batteries de tests — 114 contrôles, à rejouer après tout changement SQL
 .\scripts\test-porte.ps1        # 53 : la porte, le frein, les 31 PIN, les collisions
-.\scripts\test-invariants.ps1   # 27 : double crédit, solde négatif, plafonds, paliers
+.\scripts\test-invariants.ps1   # 32 : double crédit, quotas, solde négatif, plafonds, paliers
 .\scripts\test-bingo.ps1        # 29 : les deux modes, la revelation, 200 cases, plafond
 
 # Serveur local (le service worker ne fonctionne pas depuis file://)
@@ -1365,7 +1397,7 @@ reconstruit en une impression si on la perd.
 >    chacun.
 > 7. **Les deux hôtesses partagent le même code** : il n'y a qu'un `pin_accueil`
 >    dans `config`. Deux codes distincts demanderaient une modification de
->    `sql/13_porte.sql` et un nouveau passage des 109 tests.
+>    `sql/13_porte.sql` et un nouveau passage des 114 tests.
 > 8. **La catégorie `CONSTRUCTEUR` est prête et vide.** Renault est inscrit —
 >    deux personnes avec des identifiants `EXTERN` — mais n'a aucun code en base.
 

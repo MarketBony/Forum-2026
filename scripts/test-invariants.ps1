@@ -222,7 +222,71 @@ Verdict 'Un palier invente est ignore, pas journalise' `
 
 # =====================================================================
 Write-Output ''
+Write-Output '=== 4bis. Les quotas par garage (anti-abus) ========================='
+#  Un garage ne peut pas tirer plus de 4x le meilleur palier d'UNE
+#  animation, ni plus de 3x le plafond d'operation d'UN stand. Le refus
+#  doit tomber AU LANCEMENT de la partie, pas au resultat : sinon le
+#  garage a paye ses 2 points pour s'entendre dire qu'il n'a droit a rien.
+
+$quotaA = (Sql "select public._quota_animation(id)::int as q from animations where nom='BASKET ARCADE'").data[0].q
+$meilleur = ($anim.data.bareme | Sort-Object points -Descending)[0]
+$vise = $trois[2]                      # un garage qui n'a pas encore joue
+$telQ = Jeton
+Rpc 'api_entrer' @{ p_jeton = $telQ; p_code = $vise.code } | Out-Null
+Sql @"
+insert into journal (garage_id, delta, libelle, source, cle_idem)
+values ('$($vise.id)', 400, 'Dotation test quota', 'administration', 'quota-$($vise.id)');
+update garages set solde = (select coalesce(sum(delta),0) from journal where garage_id='$($vise.id)')
+ where id = '$($vise.id)';
+"@ | Out-Null
+
+#  On joue jusqu'a saturation, en comptant. Il faut exactement
+#  quota / points-du-meilleur-palier parties pour remplir le quota.
+# $partiesAttendues et pas $attendu : ce dernier porte deja le solde
+# attendu de la section 4, et l'ecraser faisait tomber un test situe
+# cinquante lignes plus bas — sans le moindre rapport avec les quotas.
+$partiesAttendues = [Math]::Ceiling($quotaA / $meilleur.points)
+$jouees = 0; $refus = $null
+for ($i = 1; $i -le ($partiesAttendues + 3); $i++) {
+  $pa = Rpc 'api_participation' @{ p_jeton=$telAnim; p_garage=$vise.id; p_animation=$idAnim; p_cle=(Cle) }
+  if (-not $pa.ok) { $refus = $pa; break }
+  Rpc 'api_resultat' @{ p_jeton=$telAnim; p_garage=$vise.id; p_bareme=$meilleur.id; p_cle=(Cle) } | Out-Null
+  $jouees++
+}
+Verdict 'Le quota d animation se remplit puis refuse la partie suivante' `
+        (($jouees -eq $partiesAttendues) -and ($null -ne $refus) -and ($refus.code -eq 'QUOTA_ANIMATION')) `
+        ("quota $quotaA pts · $jouees parties a $($meilleur.points) pts · puis $($refus.code)")
+
+Verdict 'Le refus de quota tombe AU LANCEMENT, avant tout debit' `
+        ($refus.http -eq 400) `
+        ("HTTP $($refus.http) : `"$($refus.detail)`"")
+
+$recu = (Sql "select public._recu_animation('$($vise.id)', (select id from animations where nom='BASKET ARCADE'))::int as n").data[0].n
+Verdict 'Le garage n a pas touche plus que son quota (hors derniere partie)' `
+        ($recu -le $quotaA) ("recu = $recu pour un quota de $quotaA")
+
+#  Les AUTRES animations restent ouvertes : le quota est par jeu.
+$autre = (Sql "select id from animations where actif and nom <> 'BASKET ARCADE' order by ordre limit 1").data[0].id
+$pa2 = Rpc 'api_participation' @{ p_jeton=$telAnim; p_garage=$vise.id; p_animation=$autre; p_cle=(Cle) }
+Verdict 'Le quota est PAR animation : les autres restent jouables' `
+        ($pa2.ok) ("participation sur une autre animation : HTTP $($pa2.http)")
+
+#  Le stand : meme mecanique, plafonnee a 3x le plafond d'operation.
+$quotaS = (Sql "select public._quota_stand(id)::int as q from stands where nom='FAAB'").data[0].q
+$n = 0; $refusS = $null
+for ($i = 1; $i -le 8; $i++) {
+  $r = Rpc 'api_points_achat' @{ p_jeton=$telF; p_garage=$vise.id; p_points=20; p_cle=(Cle); p_palier='700 € et plus' }
+  if (-not $r.ok) { $refusS = $r; break }
+  $n++
+}
+Verdict 'Le quota de stand refuse au-dela de 3 operations pleines' `
+        (($null -ne $refusS) -and ($refusS.code -eq 'QUOTA_STAND') -and ($n * 20 -ge $quotaS)) `
+        ("quota $quotaS pts · $n operations de 20 pts · puis $($refusS.code)")
+
+# =====================================================================
+Write-Output ''
 Write-Output '=== 5. Une case de la grille ne part qu une seule fois =============='
+
 $telD = Jeton
 Rpc 'api_entrer' @{ p_jeton = $telD; p_code = $gB.code } | Out-Null
 Sql @"

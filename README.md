@@ -106,13 +106,13 @@ Pour en sortir : effacer les données du site sur l'ancienne URL, désinstaller
 l'application si elle a été ajoutée à l'écran d'accueil, repartir de la bonne.
 **À vérifier sur tous les téléphones de l'équipe avant le Forum.**
 
-## Vérifications — 109 contrôles
+## Vérifications — 114 contrôles
 
 À rejouer après **toute** modification SQL. Ils tournent contre la vraie base.
 
 ```powershell
 .\scripts\test-porte.ps1        # 53 : la porte, le frein, les 31 PIN, les collisions
-.\scripts\test-invariants.ps1   # 27 : double crédit, solde négatif, plafonds, paliers
+.\scripts\test-invariants.ps1   # 32 : double crédit, quotas, solde négatif, plafonds, paliers
 .\scripts\test-bingo.ps1        # 29 : les deux modes, la revelation, 200 cases, plafond
 ```
 

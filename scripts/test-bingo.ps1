@@ -298,21 +298,29 @@ update garages set solde = (select coalesce(sum(delta),0) from journal where gar
  where id = '$($g7.id)';
 "@ | Out-Null
 
+# LE PLAFOND EST LU EN BASE, jamais recopie. Il est passe de 3 a 5 le
+# 15 septembre et ces trois controles sont tombes d'un coup, en annoncant
+# une panne applicative qui n'existait pas. Un test qui recopie un
+# reglage casse le jour ou le reglage bouge.
+$plafond = [int](Sql "select valeur from config where cle='cases_max_garage'").data[0].valeur
+if ($plafond -lt 1) { throw "cases_max_garage vaut $plafond : test impossible." }
+
 # Les cases 101 a 200 n'existaient pas avant 17_grille_200.sql : c'est
-# la moitie neuve de la grille, celle qu'aucun test ne couvrait.
-$hautes = @(150, 175, 200)
+# la moitie neuve de la grille, celle qu'aucun test ne couvrait. On en
+# prend exactement le plafond, pour que la suivante soit LA case de trop.
+$hautes = @(150, 175, 200, 198, 197, 196, 195, 194)[0..($plafond - 1)]
 $prises = 0
 foreach ($n in $hautes) {
   $r = Rpc 'api_jouer_case' @{ p_jeton = $j7; p_numero = $n; p_cle = (Cle) }
   if ($r.ok) { $prises++ }
 }
 Verdict 'Les cases de la moitie haute (101-200) sont jouables' `
-        ($prises -eq 3) ("cases 150, 175 et 200 prises = $prises / 3")
+        ($prises -eq $plafond) ("$prises / $plafond cases prises : $($hautes -join ', ')")
 
 $soldeAvant = (Sql "select solde from garages where id='$($g7.id)'").data[0].solde
 $quatrieme  = Rpc 'api_jouer_case' @{ p_jeton = $j7; p_numero = 199; p_cle = (Cle) }
 $soldeApres = (Sql "select solde from garages where id='$($g7.id)'").data[0].solde
-Verdict 'La 4e case est refusee : le plafond de 3 tient' `
+Verdict "La case de trop est refusee : le plafond de $plafond tient" `
         (($quatrieme.http -eq 400) -and ($quatrieme.code -eq 'PLAFOND_CASES')) `
         ("$($quatrieme.code) : `"$($quatrieme.detail)`"")
 Verdict 'Le garage plafonne n a rien paye et la case reste libre' `
@@ -331,13 +339,13 @@ Verdict 'La case 201 n existe pas et est refusee comme telle' `
 # permettra d'ouvrir le reste de la grille au cocktail.
 Sql "update config set valeur='0' where cle='cases_max_garage'" | Out-Null
 $levee = Rpc 'api_jouer_case' @{ p_jeton = $j7; p_numero = 199; p_cle = (Cle) }
-Sql "update config set valeur='3' where cle='cases_max_garage'" | Out-Null
+Sql "update config set valeur='$plafond' where cle='cases_max_garage'" | Out-Null
 Verdict 'Le plafond se leve en direct depuis config' `
-        ($levee.ok) ("4e case acceptee apres levee du plafond : http=$($levee.http)")
+        ($levee.ok) ("case de trop acceptee apres levee du plafond : http=$($levee.http)")
 
 $remis = (Sql "select valeur from config where cle='cases_max_garage'").data[0].valeur
-Verdict 'Le plafond est bien remis a 3 apres le test' `
-        ($remis -eq '3') ("cases_max_garage = $remis")
+Verdict "Le plafond est bien remis a $plafond apres le test" `
+        ($remis -eq [string]$plafond) ("cases_max_garage = $remis")
 
 # =====================================================================
 Write-Output ''

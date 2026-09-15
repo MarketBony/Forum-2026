@@ -695,6 +695,28 @@ body.service .bouton.creux {
 /* révélation différée : ni gain ni perte, une attente */
 .revele.attente .rt { color:var(--creme-2); text-shadow:none }
 
+/* Le bouton qui ouvre une liste longue. Discret : c'est une commande de
+   confort, pas une action de la soirée. Il porte le nombre de lignes
+   masquées — sans lui on ne sait pas s'il en reste trois ou vingt. */
+.deplier {
+  display:block; width:100%; margin-top:var(--e2);
+  padding:9px var(--e3); border-radius:var(--r1);
+  font-size:12px; font-weight:600; letter-spacing:.04em;
+  color:var(--or-clair); background:rgba(241,231,210,.04);
+  box-shadow:inset 0 0 0 1px var(--filet);
+  transition:background .25s ease, color .25s ease;
+}
+.deplier:hover { background:rgba(197,150,60,.12); color:var(--or-pale) }
+
+/* Un refus de quota n'est pas une panne : il est or, pas terracotta.
+   Le terracotta veut dire « quelque chose ne va pas » ; ici tout va
+   bien, c'est la règle qui s'applique. */
+.bandeau.quota {
+  background:rgba(197,150,60,.14); color:var(--or-clair);
+  box-shadow:inset 0 0 0 1px rgba(197,150,60,.4);
+}
+.bandeau.quota i { background:var(--or) }
+
 /* =====================================================================
    La console — l'état de la base, en haut de la supervision
 
