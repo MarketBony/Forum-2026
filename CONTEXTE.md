@@ -93,7 +93,7 @@ qu'une chose ne va pas sur le terrain, c'est son terrain : il a raison.
 ### Le soir
 
 1. Supervision → **Grand tirage au sort** → *Lancer la révélation*.
-2. 80 secondes. Un clic sur la scène fait tomber le nom tout de suite, un second
+2. 4 s par lot, soit ~61 s pour 15 tickets. Un clic sur la scène fait tomber le nom tout de suite, un second
    passe au lot suivant.
 3. Le récapitulatif reste affiché, et sert au stand des lots.
    **Si l'écran est rouvert plus tard**, il ne réaffiche rien de lui-même :
@@ -927,24 +927,39 @@ case 182 valait 379 €.
 
 #### L'écran de projection
 
-**Mesuré sur un passage complet de 15 tickets : 79,6 secondes**, le
-16 septembre au soir, à 1 280 × 720 — chronométré dans le navigateur sur la
-disparition de la classe `roule`, pas au jugé.
+**LA DURÉE SE COMPTE PAR LOT, PLUS EN BUDGET TOTAL.** `REVEL_PAR_LOT` vaut
+**4 000 ms**, sous le plafond de 5 s posé par Bastien le 17 septembre :
+*« 5 secondes par tirage d'un garage grand max, et que ça enchaîne vite d'un
+tirage à l'autre »*.
+
+Le budget global a disparu avec cette passe, et c'est le bon modèle : ce que la
+salle ressent, c'est le temps d'UNE annonce, pas la somme. Un budget total
+faisait dépendre le rythme du nombre de tickets décrochés — à 8 tickets au lieu
+de 15, chaque annonce durait presque le double sans que personne l'ait demandé.
+
+**Mesuré sur un passage complet de 15 tickets : 61,1 secondes.**
 
 ```
-noms tombés à : 2,2 · 6,5 · 10,9 · 15,3 · 19,7 · 24,1 · 28,5 · 32,9 · 37,2
-                41,6 · 46,0 · 50,3 · 57,1 · 66,1 · 75,1 s   → fin à 79,6 s
-écarts        : 4,4 s par lot, puis 6,8 · 9,0 · 9,0 pour les trois derniers
+noms tombés à : 2,6 · 6,6 · 10,7 · 14,7 · 18,8 · 22,9 · 27,0 · 31,1 · 35,1
+                39,2 · 43,3 · 47,4 · 51,5 · 55,5 · 59,6 s   → fin à 61,1 s
+écarts        : 4,05 à 4,10 s, sans exception — plafond de 5 s tenu
 ```
 
-> **Le réglage de la durée s'est fait en trois passes, sur retour de scène.**
-> 57 s : « un poil trop rapide » — la salle n'avait pas le temps de lever les
-> yeux, de lire le lot, PUIS de chercher qui avait gagné. 95 s : « un poil trop
-> long » — le silence entre deux lots laissait l'attention retomber, et une salle
-> qui dîne ne se rattrape pas d'elle-même. **80 s** est le compromis retenu, et
-> c'est la valeur de `REVEL_DUREE`. En dessous de 4 s par lot, la roulette n'a
-> plus la place de ralentir et le nom tombe avant que le lot soit lu : ne pas
-> descendre plus bas sans rejouer le spectacle en entier.
+> **Quatre passes, toutes sur retour de scène.** 57 s au total : « un poil trop
+> rapide ». 95 s : « un poil trop long ». 80 s : le compromis du 16, mais 8,9 s
+> sur les trois derniers lots. **4 s par lot** : le réglage du 17.
+>
+> ⚠️ **Le temps double des trois derniers a sauté.** Il portait le crescendo sur
+> les trois pièces uniques — sac à dos Alpine, weekender, sac cuir jaune — et il
+> est incompatible avec le plafond de 5 s : à poids double, elles tombaient à
+> 8 s. Le spectacle finit toujours sur le plus beau lot, mais au même rythme que
+> le reste. C'est un arbitrage de scène, pas un oubli.
+>
+> `REVEL_SUSPENSE` monte de 0,50 à **0,62** : c'est le temps mort APRÈS la chute
+> du nom qui donnait l'impression de traîner, pas la roulette. À 4 s, ça fait
+> 2,5 s de roulette et 1,5 s de nom en clair — la roulette a donc plus de temps
+> qu'avant, et l'attente moins. Ne pas descendre sous 3 s par lot sans rejouer
+> le spectacle : la roulette n'aurait plus la place de ralentir.
 
 **Le titre de scène est détaché du lot.** « Le grand tirage » et le nom du lot
 partageaient le gap commun de la scène — 12 px — et se lisaient de loin comme une
@@ -992,8 +1007,12 @@ toute la salle lisait les quinze gagnants avant la première annonce. Relevé pa
 Bastien le 16 septembre : *« avant de lancer le tirage on projettera exactement
 ça, donc si y'a déjà le nom des gagnants c'est con »*.
 
-Un écran de garde le remplace — le nombre de lots attribués, et trois boutons :
+Un écran de garde le remplace : **le nom du spectacle, et trois boutons** —
 *Afficher le récapitulatif*, *Rejouer l'animation*, *Quitter la projection*.
+Ni titre ni explication : la première version affichait « 15 gros lots
+attribués » et une phrase disant pourquoi les noms étaient cachés, ce qui
+apprenait déjà à la salle que tout était joué. Le pourquoi se lit dans le code,
+pas sur le mur.
 **Les cartes ne sont pas seulement masquées, elles ne sont pas construites** :
 vérifié au banc, zéro `.ptk` dans le DOM sur cet écran. Un nom caché par du CSS
 reste lisible par qui inspecte la page, et surtout réapparaît au premier accident
@@ -1016,7 +1035,7 @@ jamais son nom.
 
 **L'animation ne rappelle jamais la base** : un seul appel au lancement, puis tout
 se déroule dans le navigateur. Vérifié en traçant `fetch` — zéro requête pendant
-les 80 secondes.
+la minute de spectacle.
 
 > **Garde-fou de scène, trouvé en mesurant.** Un navigateur bride `setTimeout` à
 > ~1 Hz dès que l'onglet passe en arrière-plan : les 21 sauts de la roulette

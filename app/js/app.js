@@ -627,7 +627,7 @@ function reglesDe(role) {
       ['ecran', 'L\'état de la base', `La console en haut de l\'écran. Tant que la santé globale est verte, tout va bien. Le tableau de bord Supabase, lui, comptera chaque refus voulu comme une erreur — ne vous y fiez pas.`],
       ['cadeau', 'La remise des lots', `« Suivi des lots » : le garage présente son code, vous le retrouvez, vous cochez « Remettre ».`],
       ['ticket', 'Les tickets d\'or', `Le détail de qui détient quoi. <b>Cet écran nomme les gros lots avant la révélation</b> — ne le montrez à personne.`],
-      ['scene', 'Le grand tirage', `Un bouton, et la révélation se déroule seule en 80 secondes. Un clic sur l'écran fait tomber le nom tout de suite, un second passe au lot suivant.`],
+      ['scene', 'Le grand tirage', `Un bouton, et la révélation se déroule seule, 4 secondes par lot. Un clic sur l'écran fait tomber le nom tout de suite, un second passe au lot suivant.`],
       ['horloge', 'Toutes les heures', `Exportez le journal en CSV. C'est la seule vraie sauvegarde de la soirée.`],
     ],
     note: `Le code supervision n'est sur aucun badge. Ne le donnez pas.`,
@@ -1087,9 +1087,11 @@ function vueProjection() {
   if (t.revele && S.revel && S.revel.masque) {
     return `<div class="projection">
       <div class="pscript">Le grand tirage</div>
-      <div class="ptitre">${n} gros lot${n > 1 ? 's' : ''} attribué${n > 1 ? 's' : ''}</div>
-      <div class="pinfo">Le spectacle a déjà eu lieu. Les noms ne s'affichent pas d'eux-mêmes :
-        cet écran est projeté, et la salle n'a rien à lire avant l'annonce.</div>
+      <!-- NI TITRE NI EXPLICATION. Retiré le 17 septembre : cet écran
+           est projeté sur grand écran avant le lancement, et « 15 gros
+           lots attribués » disait déjà à la salle que tout était joué.
+           Le pourquoi de la garde se lit ici, dans le code, pas sur le
+           mur. Il reste le nom du spectacle et les boutons. -->
       <div class="pactions">
         <button class="bouton" data-a="tirage-recap">Afficher le récapitulatif</button>
         <button class="bouton creux" data-a="tirage-rejouer">Rejouer l'animation</button>
@@ -1140,34 +1142,45 @@ function vueProjection() {
 // ---------------------------------------------------------------------
 //  Le moteur de la révélation
 //
-//  DURÉE : REVEL_DUREE, quel que soit le nombre de tickets décrochés.
-//  Le budget est réparti au poids : un temps normal pour les premiers,
-//  un temps DOUBLE pour les trois derniers. C'est là que se trouvent les
-//  trois pièces uniques — le sac à dos Alpine, le weekender, et le sac
-//  cuir jaune à 379 € qui clôt le spectacle. Accélérer la fin serait
-//  exactement l'inverse de ce qu'on veut.
+//  LA DURÉE SE COMPTE PAR LOT, PLUS EN BUDGET TOTAL. Le réglage s'est
+//  fait en quatre passes, sur scène et jamais au jugé :
+//    57 s au total → « un poil trop rapide »
+//    95 s au total → « un poil trop long »
+//    80 s au total → 4,4 s par lot, mais 8,9 s pour les trois derniers
+//    4 s PAR LOT   → « 5 secondes par tirage d'un garage grand max, et
+//                     que ça enchaîne vite d'un tirage à l'autre »
+//
+//  Le budget global a disparu avec cette dernière passe, et c'est le
+//  bon modèle : ce que la salle ressent, c'est le temps d'UNE annonce,
+//  pas la somme. Un budget total faisait dépendre le rythme du nombre
+//  de tickets décrochés — à 8 tickets au lieu de 15, chaque annonce
+//  durait presque le double, sans que personne l'ait demandé.
+//
+//  ⚠️ LE TEMPS DOUBLE DES TROIS DERNIERS A SAUTÉ. Il portait le
+//  crescendo sur les trois pièces uniques — sac à dos Alpine,
+//  weekender, sac cuir jaune à 379 € — et il est incompatible avec le
+//  plafond de 5 s posé par Bastien : à poids double, elles tombaient à
+//  8 s. Le spectacle finit donc sur le plus beau lot, mais au même
+//  rythme que le reste. C'est un arbitrage de scène, pas un oubli.
 //
 //  Dans chaque temps : le LOT apparaît d'abord, seul. Le nom du garage
-//  ne tombe qu'à la moitié du temps imparti. Ce silence-là est tout le
-//  spectacle ; sans lui on affiche un tableau, on ne révèle rien.
+//  ne tombe qu'aux deux tiers du temps imparti. Ce silence-là est tout
+//  le spectacle ; sans lui on affiche un tableau, on ne révèle rien.
 // ---------------------------------------------------------------------
-// Durée totale du spectacle, hors carton de fin. Le réglage s'est fait
-// en trois passes, sur scène et pas au jugé :
-//   57 s → « un poil trop rapide » : la salle n'avait pas le temps de
-//          lever les yeux, de comprendre le lot, PUIS de chercher qui
-//          avait gagné.
-//   95 s → « un poil trop long » : le silence entre deux lots laissait
-//          l'attention retomber, et une salle qui dîne ne se rattrape
-//          pas d'elle-même.
-//   80 s → le compromis retenu le 16 septembre. 4,4 s par lot pour les
-//          douze premiers, 8,9 s pour les trois derniers.
-// NE PAS descendre plus bas sans rejouer le spectacle en entier : sous
-// 4 s, la roulette n'a plus la place de ralentir et le nom tombe avant
-// que le lot soit lu.
-const REVEL_DUREE = 80000;
+// Durée d'UN lot, hors carton de fin. Plafond posé par Bastien le
+// 17 septembre : 5 s, jamais plus. On se tient à 4 s, ce qui laisse de
+// la marge si quelqu'un veut respirer un peu sur scène.
+// 15 tickets = 60 s. NE PAS descendre sous 3 s sans rejouer le
+// spectacle en entier : la roulette n'aurait plus la place de ralentir
+// et le nom tomberait avant que le lot soit lu.
+const REVEL_PAR_LOT = 4000;
 // Part du temps d'un ticket consacrée au SUSPENSE (roulette des noms).
 // Le reste laisse le nom du gagnant affiché, en clair, avant de passer.
-const REVEL_SUSPENSE = 0.5;
+// Montée de 0,50 à 0,62 pour « enchaîner vite » : c'est le temps mort
+// APRÈS la chute du nom qui donnait l'impression de traîner, pas la
+// roulette. À 4 s, ça fait 2,5 s de roulette et 1,5 s de nom en clair —
+// la roulette a donc plus de temps qu'avant, et l'attente moins.
+const REVEL_SUSPENSE = 0.62;
 let revelMinuteur = null;
 
 // La roulette : les noms des porteurs de ticket défilent de plus en plus
@@ -1248,10 +1261,9 @@ function revelJouer(depart = 0) {
   const joues = revelJoues();
   if (!joues.length) return;
 
-  // Poids : 1 pour un temps normal, 2 pour chacun des trois derniers.
-  const poids = joues.map((_, i) => (i >= joues.length - 3 ? 2 : 1));
-  const total = poids.reduce((s, p) => s + p, 0);
-  const unite = REVEL_DUREE / total;
+  // Un temps identique pour chaque lot : voir le plafond de 5 s en tête
+  // de fichier. Plus de poids, plus de budget à répartir.
+  const unite = REVEL_PAR_LOT;
 
   const scene = $('#scene');
   if (scene) scene.classList.remove('fini', 'nomme');
@@ -1285,7 +1297,7 @@ function revelJouer(depart = 0) {
   const etape = (i) => {
     if (i >= joues.length) return revelFin();
     const k = joues[i];
-    const duree = unite * poids[i];
+    const duree = unite;
 
     // Arrêter la roulette à la main ne doit pas figer le spectacle : on
     // nomme tout de suite, puis on repart sur le minuteur normal. Sans
@@ -1819,7 +1831,7 @@ async function agir(a, el) {
       try {
         S.tirage = await api.lire.tirage(); rendre();
         // Déjà révélé : on n'affiche NI l'animation, ni les gagnants. Un
-        // écran de garde, et deux boutons. Rejouer les 80 s serait une
+        // écran de garde, et deux boutons. Rejouer la minute serait une
         // punition pour qui vient chercher un code de retrait ; déballer
         // le récapitulatif serait pire, l'écran est branché au
         // vidéoprojecteur. Voir vueProjection().
