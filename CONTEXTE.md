@@ -2706,10 +2706,16 @@ fonctions depuis l'intérieur.**
 
 | Appel | Résultat | Lecture |
 |---|---|---|
-| `api_etat` → `_appareil` | erreur métier | imbrication intacte |
+| **`api_corriger` → `_ecrire`** | **`SOLDE_INSUFFISANT`** — « Solde 0, opération −1. » | **le cœur d'écriture est atteint depuis l'intérieur** |
+| `api_etat` → `_appareil` | `APPAREIL_INCONNU` | imbrication intacte |
 | `api_ouvrir` → `_personnel` | `porte: refus` | la porte marche, et un code refusé reste un **résultat** |
-| `api_vitrine` → `_exige_role` + `verifier_soldes` | erreur métier | imbrication intacte |
+| `api_vitrine` → `_exige_role` + `verifier_soldes` | `APPAREIL_INCONNU` | imbrication intacte |
 | `_ecrire` · `_appareil` · `_exige_role` · `_personnel` · `_code_vitrine` en direct | `permission denied` | **fermées** |
+
+Quatre refus **métier** contre cinq refus de **droits** : c'est exactement la
+frontière voulue. Le `p_delta = -1` sur un solde à 0 avait été choisi pour que
+la sonde ne puisse écrire aucune ligne — relevé après : `journal 0`,
+`soldes 0`, `ecarts 0`.
 
 Un appel imbriqué sous `security definer` s'exécute sous l'identité du
 propriétaire, qui garde son EXECUTE explicite. Le retour arrière tient en une
@@ -2773,6 +2779,10 @@ les trois pièces uniques placées en 13, 14 et 15.
 
 - **Les flux d'écriture n'ont pas été rejoués de bout en bout** (entrée,
   participation, résultat, achat, case) : il aurait fallu écrire dans le
-  journal, et la base devait rester à zéro. Les appels imbriqués ont été
-  éprouvés indirectement, par des erreurs métier.
+  journal, et la base devait rester à zéro. Ce qui a été mesuré, c'est que
+  **chaque fonction interne est bien atteinte depuis sa fonction `api_*`** —
+  `_ecrire` comprise, par un refus `SOLDE_INSUFFISANT`. Ce qui n'a pas été
+  mesuré, c'est une écriture qui aboutit. Le premier garage qui arrivera
+  jeudi matin en sera la preuve, et son bonus d'accueil passe précisément
+  par `_ecrire`.
 - **Les 114 tests n'ont pas été lancés** : ils effacent la base (§18.4).

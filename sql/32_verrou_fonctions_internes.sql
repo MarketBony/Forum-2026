@@ -56,15 +56,22 @@
 --  (postgres), qui garde son EXECUTE explicite. `api_participation`
 --  appelle donc toujours `_ecrire` sans difficulté.
 --
---  ⚠️ CE DERNIER POINT EST UN RAISONNEMENT, PAS UNE MESURE. Il est
---  solide — un appel imbriqué sous `security definer` s'exécute sous
---  l'identité du propriétaire — mais il n'a PAS été rejoué de bout en
---  bout, faute de pouvoir écrire dans le journal la nuit précédant le
---  Forum. **Après avoir passé ce fichier, éprouver une entrée de garage
---  par un vrai code** (`api_ouvrir` appelle `_ecrire` pour verser le
---  bonus d'arrivée). Si elle passe, le reste passe : c'est le même
---  mécanisme pour les six flux. Et si elle ne passait pas, le retour
---  arrière tient en une ligne :
+--  ET CE POINT A ÉTÉ MESURÉ, pas seulement raisonné. Après application,
+--  par la vraie porte HTTPS et avec la seule clé publique :
+--
+--    api_corriger  -> _ecrire      HTTP 400  SOLDE_INSUFFISANT
+--                                  « Solde 0, opération -1. »
+--    api_etat      -> _appareil    HTTP 400  APPAREIL_INCONNU
+--    api_ouvrir    -> _personnel   HTTP 200  { "porte": "refus" }
+--    api_vitrine   -> _exige_role  HTTP 400  APPAREIL_INCONNU
+--
+--  Quatre refus MÉTIER : les fonctions internes ont bien été atteintes
+--  depuis l'intérieur. Aucun « permission denied ». Le delta -1 sur un
+--  solde à 0 avait été choisi pour qu'aucune de ces sondes ne puisse
+--  écrire une ligne.
+--
+--  Et si un jour il fallait rouvrir en urgence, le retour arrière tient
+--  en une ligne :
 --      grant execute on function public._ecrire(uuid,integer,text,text,text,uuid,uuid,uuid) to public;
 --
 --      .\scripts\push-sql.ps1 -File sql\32_verrou_fonctions_internes.sql
