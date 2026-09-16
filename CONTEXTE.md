@@ -2116,7 +2116,7 @@ sous `prefers-reduced-motion`.
 
 | | |
 |---|---|
-| En ligne | `gbp-v27`, `js/app.js` identique au dépôt, octet pour octet |
+| En ligne | `gbp-v27`, `js/app.js` identique au dépôt — **au contenu**, voir ci-dessous |
 | Base | journal **0** · cases prises **0** · soldes **0** · inscrits **0** |
 | Intégrité | écarts **0** · collisions de code **0** · badges sans code **0** |
 | Grille | 85 lots + 15 tickets d'or, composition intacte |
@@ -2125,6 +2125,23 @@ sous `prefers-reduced-motion`.
 | Codes vitrine | **140** nominatifs + 1 de secours dans `config.pin_vitrine` |
 | Tests | 114 verts (53 + 32 + 29) |
 | Simulation | 400 garages, 5 800 écritures, 0 échec — puis remise à zéro |
+
+> ⚠️ **« Octet pour octet » est faux sur une copie de travail Windows, et la
+> fausse alerte est garantie.** Le fichier servi porte des fins de ligne **LF**
+> (c'est ce qu'il y a dans le dépôt) ; le fichier sur le disque porte des
+> **CRLF**, posés par `core.autocrlf` à chaque checkout. Comparer les deux
+> donne donc toujours « différent » — mesuré le 16 au soir : 110 576 octets en
+> local contre 108 353 servis, soit exactement **2 223 octets d'écart pour un
+> fichier de 2 223 lignes**. Retirer les CR des deux côtés rend le **même
+> SHA-256**. Comparer le contenu, jamais les octets :
+>
+> ```powershell
+> $d = (New-Object System.Net.WebClient).DownloadData('https://forum-2026.bonyauto-mobile.workers.dev/js/app.js?t=' + (Get-Random))
+> $l = [System.IO.File]::ReadAllBytes('app\js\app.js')
+> $h = [System.Security.Cryptography.SHA256]::Create()
+> ($h.ComputeHash([byte[]]@($d | ? { $_ -ne 13 })) -join '') -eq `
+> ($h.ComputeHash([byte[]]@($l | ? { $_ -ne 13 })) -join '')
+> ```
 
 ### 🔴 Les trois gestes à ne pas faire
 
