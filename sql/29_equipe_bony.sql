@@ -1,7 +1,7 @@
 -- =====================================================================
 --  Forum Pièces Bony 2026 — 29 — L'équipe Bony sur les badges
 --
---  DEUX DEMANDES DE BASTIEN, le 17 septembre :
+--  DEUX DEMANDES DE BASTIEN, le 16 septembre :
 --    « l'équipe Bony : tu mets la même raison sociale à tout le monde »
 --    « pour l'export il faut que ce soit par ordre alphabétique des
 --      NOMS DE FAMILLE »

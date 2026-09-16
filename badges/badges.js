@@ -443,7 +443,7 @@ function pageAutonome(lot, titre) {
 
    EQUIPE BONY — nom de famille de A a Z, un seul bloc. « Pour l'export
    il faut que ce soit par ordre alphabetique des NOMS DE FAMILLE »,
-   17/09. On NE coupe PAS cette pile en deux : un badge Bony se cherche
+   16/09. On NE coupe PAS cette pile en deux : un badge Bony se cherche
    par le nom de la personne, jamais par sa presence a la reunion du
    matin, et scinder la liste obligerait a regarder deux fois. La
    raison sociale ne departage plus rien non plus — elles sont toutes

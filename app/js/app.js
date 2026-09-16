@@ -1105,7 +1105,7 @@ function vueProjection() {
   if (t.revele && S.revel && S.revel.masque) {
     return `<div class="projection">
       <div class="pscript">Le grand tirage</div>
-      <!-- NI TITRE NI EXPLICATION. Retiré le 17 septembre : cet écran
+      <!-- NI TITRE NI EXPLICATION. Retiré le 16 septembre : cet écran
            est projeté sur grand écran avant le lancement, et « 15 gros
            lots attribués » disait déjà à la salle que tout était joué.
            Le pourquoi de la garde se lit ici, dans le code, pas sur le
@@ -1520,7 +1520,7 @@ function vueVitrine() {
             : 'Tous décrochés. Rendez-vous ce soir sur scène pour savoir qui gagne quoi.'}</p>
         <!-- AUCUN NOM, AUCUN LOT, JAMAIS. Cet écran est ouvert sur 140
              téléphones dans la salle ; le détail des tickets d'or reste
-             à la direction, et à elle seule. Arbitrage du 17 septembre. -->
+             à la direction, et à elle seule. Arbitrage du 16 septembre. -->
         <p class="sous">La soirée ne tire rien au sort : chaque ticket porte déjà son gros lot.
           Elle ouvre les enveloppes.</p>
       </div>

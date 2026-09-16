@@ -4,7 +4,7 @@
 --  CE QUE C'EST. Un sixième profil, en LECTURE SEULE. L'équipe Bony et
 --  les invités constructeur voient le Forum vivre — les compteurs, le
 --  journal en direct, les podiums — sans pouvoir rien écrire. Demande
---  de Bastien le 17 septembre.
+--  de Bastien le 16 septembre.
 --
 --  POURQUOI CE N'EST PAS LE CODE DIRECTION. Le code supervision ouvre
 --  la remise des lots, les corrections de points, l'écran de projection
@@ -28,7 +28,7 @@
 --
 --  ⚠️ LES TICKETS D'OR NE SONT JAMAIS NOMMÉS. La vitrine rend des
 --  COMPTEURS — « 9 décrochés sur 15 » — et rien d'autre. Ni qui les
---  détient, ni quel gros lot est dessous. Arbitrage du 17 septembre.
+--  détient, ni quel gros lot est dessous. Arbitrage du 16 septembre.
 --  L'écran direction, lui, garde le détail, et sa mise en garde.
 -- =====================================================================
 

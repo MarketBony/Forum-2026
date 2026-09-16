@@ -89,6 +89,8 @@ qu'une chose ne va pas sur le terrain, c'est son terrain : il a raison.
   C'est la seule vraie sauvegarde de la soirée.
 - **Une panne ?** `.\scripts\diagnostic.ps1` répond à la seule question utile :
   « est-ce la base, ou la couche devant ? »
+- **La liste d'émargement** est imprimée d'avance — `.\scripts\emargement.ps1`
+  la régénère si besoin. Elle ne porte aucun code.
 
 ### Le soir
 
@@ -929,7 +931,7 @@ case 182 valait 379 €.
 #### L'écran de projection
 
 **LA DURÉE SE COMPTE PAR LOT, PLUS EN BUDGET TOTAL.** `REVEL_PAR_LOT` vaut
-**6 500 ms**. Le plafond de 5 s posé le matin du 17 a été relevé le jour même,
+**6 500 ms**. Le plafond de 5 s posé dans la journée du 16 a été relevé le soir même,
 après passage sur scène : à 4 s, le temps de lire le nom du gagnant manquait.
 
 Le budget global a disparu avec cette passe, et c'est le bon modèle : ce que la
@@ -949,7 +951,7 @@ de la roulette ; c'est constant et sans effet visible.
 
 > **Cinq passes, toutes sur retour de scène.** 57 s au total : « un poil trop
 > rapide ». 95 s : « un poil trop long ». 80 s : le compromis du 16, mais 8,9 s
-> sur les trois derniers lots. 4 s par lot : le réglage du matin du 17, trop sec
+> sur les trois derniers lots. 4 s par lot : un réglage du 16, trop sec
 > une fois projeté. **6,5 s par lot** : le réglage retenu.
 >
 > ⚠️ **Le temps double des trois derniers a sauté.** Il portait le crescendo sur
@@ -1466,9 +1468,67 @@ recopier à la main sur le nouveau poste : URL, `SUPABASE_PROJECT_REF`,
 
 ---
 
+### La liste d'émargement des hôtesses
+
+`scripts/emargement.ps1` produit un PDF A4 — **15 pages, 316 lignes, 516
+badges** — à poser sur la table d'accueil.
+
+**Pourquoi du papier alors qu'il y a un écran d'accueil.** L'écran sait
+retrouver n'importe lequel des 1 456 invités et lire son code ; le papier ne
+sait rien faire de tout ça. Il sert à autre chose : **cocher**. Deux hôtesses
+qui accueillent 320 personnes en deux heures ont besoin de savoir qui est déjà
+passé, et un écran partagé ne se coche pas à deux mains. C'est aussi le seul
+document qui survit à une panne de wifi.
+
+> ⚠️ **Aucun code d'accès n'y figure, et c'est volontaire.** Une feuille
+> d'émargement traîne sur une table toute la journée et se photographie en une
+> seconde. Les codes restent sur l'écran d'accueil, qui en montre **un** à la
+> fois, à la demande. Vérifié sur le fichier produit : **aucun des 312 codes de
+> la base n'apparaît dans le document** — recoupé code par code, pas à l'œil.
+
+**L'ordre est celui des piles de badges**, pas l'ordre alphabétique global. Une
+hôtesse cherche un badge dans une pile ET une ligne sur une feuille : si les
+deux ne sont pas rangés pareil, elle cherche deux fois. Les garages suivent donc
+« agents d'abord », l'équipe Bony suit le nom de famille — exactement comme
+`badges/badges.js`. Un trait horizontal marque l'endroit où les agents
+s'arrêtent.
+
+Le fichier va dans `exports/`, ignoré par git : il porte des noms.
+
+### La charge de la vitrine
+
+`scripts/charge-vitrine.ps1`. La simulation du Forum joue des garages, des
+animateurs et des fournisseurs ; elle **ne connaît pas** le profil vitrine.
+Or c'est 140 téléphones qui appellent `api_vitrine` toutes les 30 secondes,
+**en plus** de la charge des garages.
+
+Mesuré le 16 septembre, **sur une base pleine** (5 800 écritures au journal,
+juste après la simulation — le pire cas) :
+
+| | Rafale de 140 d'un coup | Concurrence réaliste (10) |
+|---|---|---|
+| Médiane | 2 350 ms | **275 ms** |
+| p95 | 3 709 ms | 421 ms |
+| Échecs | **0 sur 420** | **0 sur 30** |
+
+**Le chiffre qui compte est celui de droite.** Le jour J, 140 vitrines se
+rafraîchissent chacune sur son propre minuteur : **4,7 requêtes par seconde
+réparties**, jamais 140 d'un coup. La rafale dit seulement que même le pire cas
+passe, en dégradant la latence sans rien casser.
+
+Un appel coûte **45 ms** côté base, dont seulement 5,6 ms pour
+`verifier_soldes()` — qui balaie pourtant les 5 800 lignes du journal. À 4,7
+req/s, la vitrine consomme donc ~21 % d'**une** connexion sur les onze du pool.
+
+> Ce banc part d'UNE machine et d'UNE connexion : il mesure Supabase, pas le
+> wifi de la Grande Halle. Le wifi reste le risque le plus probable, et aucun
+> script ne le testera.
+
+---
+
 ## 19. La vitrine — équipe Bony et invités constructeur
 
-Ajoutée le 17 septembre, à la demande de Bastien : *« on va créer une nouvelle
+Ajoutée le 16 septembre, à la demande de Bastien : *« on va créer une nouvelle
 interface pour l'équipe Bony mec. Et pour le constructeur aussi. Elle contiendra
 les infos de ce que l'on retrouve de manière générale dans l'onglet direction
 mais ce sera que de la vitrine. »*
@@ -1534,7 +1594,7 @@ sont pas sur la liste »*. Il ouvre la même vitrine, sans nom, et il n'est sur
   qu'il gagne finirait à zéro et disparaîtrait du podium alors que c'est lui le
   plus actif de la salle.
 - **Le journal en direct**, 40 lignes. Noms de garages en clair : arbitrage du
-  17 septembre, les constructeurs voient exactement la même chose que l'équipe
+  16 septembre, les constructeurs voient exactement la même chose que l'équipe
   Bony.
 - **Les tickets d'or, en compteurs seulement.**
 
@@ -1785,7 +1845,7 @@ constructeurs. Les trois autres viennent à la réunion mais pas au Forum.
 
 ### L'équipe Bony : une seule société, et le tri par nom de famille
 
-Deux demandes du 17 septembre : *« l'équipe Bony : tu mets la même raison
+Deux demandes du 16 septembre : *« l'équipe Bony : tu mets la même raison
 sociale à tout le monde »* et *« pour l'export il faut que ce soit par ordre
 alphabétique des NOMS DE FAMILLE »*.
 

@@ -132,6 +132,8 @@ l'application si elle a été ajoutée à l'écran d'accueil, repartir de la bon
 
 .\scripts\diagnostic.ps1        # « est-ce la base, ou la couche devant ? »
 .\scripts\exporter-journal.ps1  # journal, soldes et lots en CSV — toutes les heures
+.\scripts\emargement.ps1       # la liste papier des hôtesses — aucun code dessus
+.\scripts\charge-vitrine.ps1   # ce que coûtent 140 vitrines ouvertes
 ```
 
 **La remise à zéro est la seule manœuvre qui rendrait le Forum injouable si on
