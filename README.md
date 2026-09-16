@@ -75,6 +75,8 @@ Fichiers numérotés et rejouables. `.\scripts\push-sql.ps1 -File sql\01_schema.
 | `24_pins.sql` | les **31 PIN définitifs** du personnel, tirés d'une graine fixe |
 | `25_sante_detail.sql` | la sonde de santé lue par la console de supervision |
 | `26_quotas.sql` | **5 cases par garage**, quota de points par animation et par stand |
+| `27_collaborateurs.sql` | les 55 collaborateurs Bony du listing du 16 et les 21 constructeurs |
+| `28_reunion_agents.sql` | qui est **inscrit à la réunion d'agents** — ces badges sortent en tête |
 | `07_acces.sql` | codes garage, profils, table des tentatives |
 | `08_frein.sql` | un code refusé devient un résultat, pour que le frein compte |
 | `09_accueil.sql` | le poste d'accueil : recherche et lecture des codes |
@@ -233,10 +235,16 @@ au sort**, pensé pour un vidéoprojecteur en paysage et une lecture à dix mèt
    en rayon — ceux-là sont passés en silence
 2. `api_tirage_lancer` bascule la soirée **en un seul appel** : il pose les codes
    de retrait et rend les 15 tickets d'un coup
-3. ~95 secondes d'animation, entièrement dans le navigateur : le lot apparaît
+3. ~80 secondes d'animation, entièrement dans le navigateur : le lot apparaît
    seul, le nom du garage tombe à 45 % du temps — ce silence est tout le
    spectacle — et les trois derniers temps durent le double
 4. le récapitulatif reste à l'écran, et sert ensuite au stand des lots
+
+**Rouvrir l'écran après coup n'affiche plus les gagnants** : c'est ce même écran
+qu'on projette *avant* de lancer, et une répétition non remise à zéro donnait les
+quinze noms à la salle. Un écran de garde le remplace, et le récapitulatif
+s'ouvre sur le bouton **Afficher le récapitulatif**. Les cartes ne sont pas
+masquées en CSS, elles ne sont pas construites.
 
 Un clic sur la scène fait tomber le nom tout de suite, un second passe au lot
 suivant : l'animateur presse le pas sans escamoter le nom. `api_tirage_reset`
@@ -290,12 +298,13 @@ ne sert qu'au rattachement du PIN.
 
 | Catégorie | Lignes | Badges |
 |---|---|---|
-| Garage | 147 | 250 |
+| Garage | 145 | 248 |
 | Exposant | 23 | 115 |
-| Équipe Bony | 64 | 69 |
+| Équipe Bony | 119 | 124 |
+| Constructeur | 21 | 21 |
 | Animation | 6 | 6 |
 | Hôtesse | 2 | 2 |
-| **Total** | **242** | **442 badges · 221 feuilles A4** |
+| **Total** | **316** | **516 badges · 258 feuilles A4** |
 
 ### Les 1 457 invités restent en base
 
@@ -459,7 +468,7 @@ Deux diaporamas HTML, à la charte de l'application. `wrangler.jsonc` ne sert qu
 | Fichier | Pour qui |
 |---|---|
 | `presentation/direction.html` | la direction Bony — 14 diapositives, les cinq interfaces en maquette |
-| `presentation/agents.html` | la réunion d'agents du matin — 12 diapositives, six maquettes d'écran |
+| `presentation/agents.html` | la réunion d'agents du matin — 7 diapositives, quatre maquettes d'écran |
 
 Celle des agents est **projetée dans une salle de réunion** : les échelles
 typographiques sont montées d'un cran et les maquettes de téléphone passent de
@@ -501,7 +510,7 @@ donne accès à aucune table, uniquement aux fonctions vérifiées.
 
 `exports/` est ignoré : les exports contiennent les codes d'accès des garages.
 `badges/participants.json` l'est pour la même raison — c'est la liste des
-442 badges avec leur code. `badges/marques.json` et les traces de lancement le
+516 badges avec leur code. `badges/marques.json` et les traces de lancement le
 sont parce qu'elles ne valent que pour cette machine.
 
 > Deux fichiers versionnés contiennent malgré tout des codes : `sql/10_garages.sql`

@@ -41,7 +41,7 @@
 | **Dépôt** | `MarketBony/Forum-2026` — **privé**, doit le rester |
 | **Coût** | 0 € (Cloudflare Workers gratuit + Supabase gratuit) |
 | **État** | **Terminé et déployé** (`gbp-v22`), 114 tests verts, plus aucune décision bloquante |
-| **Badges** | **442 badges**, 221 feuilles A4 — voir §15 |
+| **Badges** | **516 badges**, 258 feuilles A4 — voir §15 |
 | **Éprouvé** | simulation de 400 garages par l'API réelle : **0 échec sur 5 831 appels** — voir §8 |
 
 > Le chiffre de « ~150 attendus » qui figurait ici jusqu'au 11 septembre était une
@@ -93,9 +93,11 @@ qu'une chose ne va pas sur le terrain, c'est son terrain : il a raison.
 ### Le soir
 
 1. Supervision → **Grand tirage au sort** → *Lancer la révélation*.
-2. 95 secondes. Un clic sur la scène fait tomber le nom tout de suite, un second
+2. 80 secondes. Un clic sur la scène fait tomber le nom tout de suite, un second
    passe au lot suivant.
 3. Le récapitulatif reste affiché, et sert au stand des lots.
+   **Si l'écran est rouvert plus tard**, il ne réaffiche rien de lui-même :
+   un bouton *Afficher le récapitulatif* le rappelle.
 4. **Un dernier export du journal** avant de fermer.
 
 ### Les réglages, tous en direct dans `config`
@@ -767,7 +769,7 @@ Après elle, vérifier que tout est à zéro :
 | 4 | ~~Codes définitifs du personnel~~ | ✅ **31 PIN définitifs** poussés le 15/09 — `sql/24_pins.sql` |
 | 5 | ~~Barèmes et plafonds~~ | ✅ fournisseurs **par catégorie** ; 6 animations en **10/5/3/2/0** |
 | 6 | ~~Répétition sur place~~ | ✅ le wifi de la halle a été vérifié par Bastien |
-| 7 | ~~Les listings de participants~~ | ✅ **442 badges** en base, voir §15 |
+| 7 | ~~Les listings de participants~~ | ✅ **516 badges** en base, voir §15 |
 | 8 | ~~Les arbitrages de badges~~ | ✅ tous tranchés le 15/09, détail en fin de §15 |
 | 9 | ~~Un 3ᵉ palier aux fléchettes~~ | ✅ « Les 3 fléchettes dans la cible » à 2 pts — **marque-place assumé** |
 | 10 | ~~« TOP SCORE EN 45 SECONDES »~~ | ✅ seuil sur ardoise — **consigne à donner de vive voix** |
@@ -925,13 +927,32 @@ case 182 valait 379 €.
 
 #### L'écran de projection
 
-**Mesuré sur un passage complet de 15 tickets : 98,9 secondes.**
+**Mesuré sur un passage complet de 15 tickets : 79,6 secondes**, le
+16 septembre au soir, à 1 280 × 720 — chronométré dans le navigateur sur la
+disparition de la classe `roule`, pas au jugé.
 
 ```
-noms tombés à : 2,7 · 8,1 · 13,4 · 18,7 · 24 · 29,4 · 34,7 · 40,1 · 45,4
-                50,7 · 56,1 · 61,4 · 69,4 · 81,7 · 93,6 s
-écarts        : 5,3 s par lot, puis 8 · 12,3 · 11,9 pour les trois derniers
+noms tombés à : 2,2 · 6,5 · 10,9 · 15,3 · 19,7 · 24,1 · 28,5 · 32,9 · 37,2
+                41,6 · 46,0 · 50,3 · 57,1 · 66,1 · 75,1 s   → fin à 79,6 s
+écarts        : 4,4 s par lot, puis 6,8 · 9,0 · 9,0 pour les trois derniers
 ```
+
+> **Le réglage de la durée s'est fait en trois passes, sur retour de scène.**
+> 57 s : « un poil trop rapide » — la salle n'avait pas le temps de lever les
+> yeux, de lire le lot, PUIS de chercher qui avait gagné. 95 s : « un poil trop
+> long » — le silence entre deux lots laissait l'attention retomber, et une salle
+> qui dîne ne se rattrape pas d'elle-même. **80 s** est le compromis retenu, et
+> c'est la valeur de `REVEL_DUREE`. En dessous de 4 s par lot, la roulette n'a
+> plus la place de ralentir et le nom tombe avant que le lot soit lu : ne pas
+> descendre plus bas sans rejouer le spectacle en entier.
+
+**Le titre de scène est détaché du lot.** « Le grand tirage » et le nom du lot
+partageaient le gap commun de la scène — 12 px — et se lisaient de loin comme une
+seule phrase : l'œil ne savait plus où s'arrêtait l'habillage et où commençait le
+gain. L'écart est désormais donné en `vh` (`clamp(16px,3.2vh,44px)`), soit 49 px
+mesurés à 720 px de haut, parce qu'un espace fixe en pixels se tasse à rien quand
+le reste de la scène grandit avec l'écran. Il est remis à zéro sur le carton de
+fin, qui n'annonce plus un lot mais un décompte.
 
 Chaque temps se joue en deux moments. **Le lot s'annonce** — étiquette en
 capitales espacées, or, volontairement discrète — puis **la roulette part** : les
@@ -963,6 +984,30 @@ une fois devrait ensuite cliquer pour chaque lot restant, micro dans l'autre mai
 **Les boutons de service s'effacent** pendant le spectacle (18 % d'opacité, pleins
 au survol) : « Rejouer l'animation » au milieu d'une annonce de lot fait amateur.
 
+**Rouvrir l'écran ne montre plus les gagnants.** Tant que `tirage_revele`
+valait `oui`, l'écran de projection déballait le récapitulatif complet — noms et
+lots — dès qu'on l'ouvrait. Or c'est cet écran-là qui est branché au
+vidéoprojecteur **avant** le lancement : une répétition non remise à zéro, et
+toute la salle lisait les quinze gagnants avant la première annonce. Relevé par
+Bastien le 16 septembre : *« avant de lancer le tirage on projettera exactement
+ça, donc si y'a déjà le nom des gagnants c'est con »*.
+
+Un écran de garde le remplace — le nombre de lots attribués, et trois boutons :
+*Afficher le récapitulatif*, *Rejouer l'animation*, *Quitter la projection*.
+**Les cartes ne sont pas seulement masquées, elles ne sont pas construites** :
+vérifié au banc, zéro `.ptk` dans le DOM sur cet écran. Un nom caché par du CSS
+reste lisible par qui inspecte la page, et surtout réapparaît au premier accident
+de feuille de style — sur un écran géant, ça ne se rattrape pas.
+
+Le récapitulatif reste à **un clic** : l'équipe s'en sert au stand des lots pour
+retrouver qui a gagné quoi. Il faut simplement le demander. Et *Rejouer
+l'animation* monte la scène avant de lancer, sinon `revelJouer()` ne trouvait ni
+`#scene` ni `#ptlot` et rendait la main sans un mot.
+
+> ⚠️ **Rien ne change à la fin d'un spectacle joué en direct** : le tableau se
+> remplit sous les yeux de la salle, c'est le bouquet. La garde ne s'applique
+> qu'à la RÉOUVERTURE d'un tirage déjà révélé.
+
 **Le récapitulatif final tient d'un seul écran** — 4 colonnes, garage en gros et
 lot en légende, un filet d'or à gauche pour les cartes sorties. Vérifié à
 1 280 × 720 : aucune barre de défilement, ni de page ni interne. Une barre de
@@ -971,7 +1016,7 @@ jamais son nom.
 
 **L'animation ne rappelle jamais la base** : un seul appel au lancement, puis tout
 se déroule dans le navigateur. Vérifié en traçant `fetch` — zéro requête pendant
-les 99 secondes.
+les 80 secondes.
 
 > **Garde-fou de scène, trouvé en mesurant.** Un navigateur bride `setTimeout` à
 > ~1 Hz dès que l'onglet passe en arrière-plan : les 21 sauts de la roulette
@@ -1323,7 +1368,7 @@ recopier à la main sur le nouveau poste : URL, `SUPABASE_PROJECT_REF`,
 |---|---|
 | `.env.local` | les accès Supabase |
 | `exports/` | journal, soldes et lots — noms de garages et codes de retrait |
-| `badges/participants.json` | les 442 badges avec leur code, lu par le générateur |
+| `badges/participants.json` | les 516 badges avec leur code, lu par le générateur |
 | `badges/marques.json` | ce qui a déjà été imprimé — local à la machine |
 | `badges/_etat.json`, `_export-etat.json`, `_journal-lancement.txt` | traces de lancement |
 | `Badges — Forum 2026.lnk` | le raccourci, il porte un chemin absolu |
@@ -1343,13 +1388,29 @@ recopier à la main sur le nouveau poste : URL, `SUPABASE_PROJECT_REF`,
   direction Bony, à la charte de l'application, avec les cinq interfaces en
   maquette. Publié en artefact privé. **Ne contient volontairement aucun code
   d'accès** : une présentation se partage.
-- **`presentation/agents.html`** — 12 diapositives pour la réunion d'agents du
-  matin, projetées sur grand écran. Même charte, mais **tout est monté d'un
+- **`presentation/agents.html`** — **7 diapositives** pour la réunion d'agents
+  du matin, projetées sur grand écran. Même charte, mais **tout est monté d'un
   cran** : les échelles typographiques et les maquettes de téléphone, qui
   passent de 238 à 320 px avec leurs textes internes agrandis d'autant. Ce qui
   se lit à un mètre sur un portable ne se lit pas au fond d'une salle de
-  réunion. Six maquettes d'écran : entrée, animateur, espace garage, grille,
-  verdict, ticket d'or.
+  réunion. Quatre maquettes d'écran : entrée, espace garage, grille, ticket d'or.
+
+  **Ramené de 12 à 7 le 16 septembre** — *« faut me la condenser, c'est trop
+  long, et y'a un peu trop de textes par endroits »*. « Ce qui change » a fondu
+  dans « l'entrée », « les animations » dans « gagner des points », « le
+  verdict » dans « la grille », « à retenir » dans la clôture. « La journée en
+  quatre temps » a été supprimée : elle redisait le reste du dossier dans
+  l'ordre. **Sept est un plafond** : avant d'ajouter une diapositive, en
+  retirer une. Une réunion d'agents dure vingt minutes.
+
+  La clôture disait **« À jeudi »** — une faute, relevée par Bastien : la
+  réunion se tient le matin même du Forum. On ne donne pas rendez-vous à un
+  jour où l'on est déjà. Elle dit maintenant « Et maintenant, place au Forum »,
+  et porte les trois choses à retenir.
+
+  Vérifié à **1 280 × 720, 1 366 × 768 et 1 920 × 1 080** : les sept
+  diapositives tiennent dans la hauteur, centrées, sans défilement interne ni
+  débordement horizontal. La plus serrée garde 65 px de marge haut et bas.
 
   On y parle à des garagistes : aucune architecture, aucun chiffre de charge,
   aucun coût. Trois questions, et rien d'autre — comment j'entre, comment je
@@ -1493,16 +1554,115 @@ le nom en base, qui porte le PIN.
 > n'est pas utilisé** : Bastien a préféré 5 badges interchangeables par stand.
 > Il resservira le jour où les exposants voudront leur nom.
 
+**Collaborateurs Bony et constructeurs** — `sql/27_collaborateurs.sql`, poussé le
+16 septembre depuis « LISTING INVITATION COLLABORATEURS BONY — FORUM —
+SEPTEMBRE 2026 ». Deux onglets, deux catégories :
+
+| Onglet | Lignes | Ce qui en est sorti |
+|---|---|---|
+| `bony` | 116 | 60 déjà en base depuis le 15, **55 ajoutés**, 1 écarté |
+| `renault` | 21 | **21 constructeurs**, dont 2 basculés depuis `GARAGE` |
+
+**Pourquoi un fichier SQL et pas `importer-inscriptions.ps1`.** L'importateur
+existe pour rapprocher un inscrit de SON GARAGE, sur la raison sociale. Ce
+listing n'a pas de colonne société, et personne dedans n'a de garage : ce sont
+des salariés et des invités constructeur. Il n'y a rien à rapprocher, seulement
+à écrire — l'outil refuserait d'ailleurs le classeur, faute d'en-tête
+« raison sociale ».
+
+**Les noms déduits d'une adresse.** 25 lignes n'ont ni nom ni prénom : tout
+l'onglet `renault` et quatre collaborateurs. On les tire de la partie locale
+(`prenom.nom@`), en traitant un jeton du milieu d'une ou deux lettres comme une
+initiale de désambiguïsation — `jean-luc.j.bisch` donne Jean-Luc BISCH.
+
+> ⚠️ **Les accents ne sont jamais inventés.** Un prénom n'est accentué que si
+> Bony l'a elle-même écrit ainsi ailleurs dans CE classeur : « Théo »,
+> « François », « Rémi », « Jérome » y sont attestés et repris tels quels — y
+> compris « Jérome » sans circonflexe, qui est la graphie de Bony. Deux prénoms
+> restent sans accent faute d'attestation, **Gerard GROS et Herve MOREAU** :
+> deux `update` d'une ligne si quelqu'un connaît la bonne graphie. Un badge mal
+> orthographié se remarque plus qu'un badge sobre.
+
+**Trois corrections portées par ce fichier.**
+
+1. **Franck TIXIER portait le badge de Thierry DUBERNAT.** L'import du 15 avait
+   écrit « Thierry DUBERNAT » sur la ligne dont l'adresse est
+   `franck.tixier@`. Le listing du 16 départage les deux : chacun a la sienne.
+2. **Un garage fantôme « RENAULT » (code `93T5`) a été désactivé.** Il avait été
+   fabriqué le 15 pour héberger Jean-Luc BISCH et Thierry WINTZENRIETH, qui
+   s'étaient inscrits par le lien d'un client — le cas `ID_MAUVAISE_CIBLE`. Sans
+   cette désactivation et sans le `garage_id = null` du `on conflict`, leur
+   badge « Constructeur » serait sorti avec un code jouable, et deux invités
+   Renault auraient pu acheter des cases. ⚠️ Ne pas confondre avec
+   « Renault lezoux » (`2869`), qui est un agent du réseau et reste actif.
+3. **Johann DUMAS n'a pas été ajouté deux fois.** Le listing l'écrit
+   `@bonyautomobiles.com`, la base le connaît `@bonyauto-mobile.com` : deux
+   graphies de domaine pour une seule personne. `cle_source` étant l'adresse,
+   l'import aurait créé un second badge à son nom. Emmanuel PAPON porte la même
+   graphie de domaine, sans équivalent en base : il entre tel quel.
+
+**Trois doublons de personne restent en base, et c'est volontaire.** Ils datent
+de l'import du 15, pas de celui-ci ; les retirer ferait perdre un badge ou un
+code à quelqu'un la veille du Forum, et c'est un arbitrage de Bastien, pas une
+correction technique :
+
+| Qui | Ce qu'il y a | Effet |
+|---|---|---|
+| Denis FOSSIEZ | deux inscriptions, `contact@` et `denis.fossiez@` | 2 badges, **même garage et même code** — un badge de perdu, rien d'autre |
+| Grégory MICHEL | « Michel » (Clermont, 2 badges) et « MICHEL AUBIERE » | 3 badges, 2 codes — plausiblement deux établissements |
+| Franck TIXIER | ligne `EQUIPE_BONY` + ligne `GARAGE` sur « Espace automobile d'Auvergne » (`F52B`) | 2 badges, dont un code jouable. Son adresse était tapée `bonyhauto-mobile.com` : l'import du 15 ne l'a pas reconnue comme une adresse Bony |
+
 ### État au 16 septembre 2026
 
 | Catégorie | Lignes | Badges |
 |---|---|---|
-| Garage | 147 | 250 |
+| Garage | 145 | 248 |
 | Exposant | 23 | 115 |
-| Équipe Bony | 64 | 69 |
+| Équipe Bony | 119 | 124 |
+| Constructeur | 21 | 21 |
 | Animation | 6 | 6 |
 | Hôtesse | 2 | 2 |
-| **Total** | **242** | **442 badges · 221 feuilles A4** |
+| **Total** | **316** | **516 badges · 258 feuilles A4** |
+
+### Les agents sortent en tête du PDF
+
+Demande de Bastien le 16 septembre : *« Agents de A à Z puis reste des garages
+de A à Z »*. La réunion d'agents a lieu le matin, avant le Forum : cette pile-là
+se distribue en premier et doit pouvoir se séparer d'un geste au massicot.
+
+**Mesuré** sur la catégorie Garage : 248 badges, dont **77 agents en tête, soit
+les 39 premières feuilles** — le générateur affiche ce chiffre, pour qu'on n'ait
+pas à recompter le tas debout devant l'imprimante. Les deux moitiés sont triées
+A→Z chacune de son côté.
+
+> ⚠️ **La lettre de profil ne répond pas à la question.** `garages.profil` vient
+> du fichier Sarbacane et dit qui a été **invité** à quoi — `A` Réunion + Forum
+> (Agent Historique), `B` Réunion + Visite + Forum (Agent BSO), `C` Forum,
+> `D` Visite + Forum. Être invité n'est pas être inscrit, et le tri par lettre
+> donnait une pile fausse dans les deux sens : **18 agents inscrits** sont
+> rattachés à un garage de profil `INSCRIT` — créé par l'import du 15, lettre
+> inconnue — et seraient restés au fond du tas ; **2 garages de profil A** ne
+> se sont pas inscrits à la réunion et seraient montés dans la pile du matin
+> pour rien. 33 lignes par la lettre contre **51 par l'inscription réelle**.
+
+La source est donc la colonne **« Réunion »** du consolidé du 15 septembre
+(onglet `INSCRITS_CONSOLIDES`), figée dans `participants.reunion_agents` par
+`sql/28_reunion_agents.sql` et exposée par `v_badges`. Elle vaut « oui » pour
+92 adresses, dont 89 portent un badge : 51 garages, 36 Équipe Bony, 2
+constructeurs. Les trois autres viennent à la réunion mais pas au Forum.
+
+> Les 55 collaborateurs arrivés par le listing du 16 (`sql/27`) ne sont **pas**
+> marqués : ce fichier-là donne le profil d'**invitation**, pas l'inscription.
+> Les marquer mélangerait deux choses sous un même drapeau. Ceux d'entre eux
+> qui s'étaient inscrits par le formulaire sont déjà couverts.
+
+**Avec « un PDF par lettre initiale »**, les deux séries restent deux tas :
+`badges-garage-agents-a`… puis `badges-garage-reste-a`… Le préfixe `reste-`
+n'est pas décoratif — avec la lettre nue, `badges-garage-a` se classait **avant**
+`badges-garage-agents-a` dans l'Explorateur (le tiret vaut moins que le `g`) et
+les deux piles s'entrelaçaient au moment de tout sélectionner pour imprimer.
+Une catégorie sans aucun agent garde la lettre nue : rien ne change pour les
+exposants, les animateurs et les hôtesses.
 
 ### La mécanique papier
 
@@ -1534,7 +1694,7 @@ le 14 septembre.
 > « simplifier » en CSS.
 
 Les dégradés, la guirlande et le QR sont définis **une fois** dans `<defs>` et
-repris par `<use>` : à 442 badges, recopier le tracé à chaque exemplaire ferait
+repris par `<use>` : à 516 badges, recopier le tracé à chaque exemplaire ferait
 des mégaoctets de DOM pour un dessin identique.
 
 ### L'export PDF
