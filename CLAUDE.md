@@ -7,6 +7,12 @@ ne contient que les règles à respecter en permanence.
 Bastien Fuziol, service marketing de Bony Automobile — technique sans être
 développeur, tutoie, demande des preuves chiffrées.
 
+> 🔴 **AU 16 SEPTEMBRE, IL RESTE UNE SEULE MANŒUVRE OBLIGATOIRE :**
+> `.\scripts\push-sql.ps1 -File sql\99_remise_a_zero.sql`
+> La base porte les traces des tests et de la simulation. Sans elle, des cases
+> sont déjà prises et des garages arrivent avec un solde fictif. Tout le reste
+> est fait, déployé (`gbp-v22`) et éprouvé.
+
 ---
 
 ## Les règles non négociables

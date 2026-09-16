@@ -17,7 +17,7 @@ l'édition précédente.
 | **Garage** | son code à 4 caractères | son solde, ses opérations, acheter une case |
 | **Animateur** | le code de son animation | lancer une partie, noter le résultat |
 | **Fournisseur** | le code de son stand | créditer une opération conclue |
-| **Accueil** | le code hôtesse | chercher parmi les 1 407 invités, lire un code |
+| **Accueil** | le code hôtesse | chercher parmi les 1 457 invités, lire un code |
 | **Équipe Bony** | le code direction | supervision, lots, corrections, projection |
 
 Tout le monde tape son code **dans le même champ** : `api_ouvrir` reconnaît
@@ -72,10 +72,13 @@ Fichiers numérotés et rejouables. `.\scripts\push-sql.ps1 -File sql\01_schema.
 | `05_inscription.sql` | *(historique — `api_garages_invites` a été supprimée en 07)* |
 | `06_bingo.sql` | nature des cases, deux modes de révélation |
 | `23_grand_tirage.sql` | les 15 gros lots collés aux tickets, la révélation du soir |
+| `24_pins.sql` | les **31 PIN définitifs** du personnel, tirés d'une graine fixe |
+| `25_sante_detail.sql` | la sonde de santé lue par la console de supervision |
+| `26_quotas.sql` | **5 cases par garage**, quota de points par animation et par stand |
 | `07_acces.sql` | codes garage, profils, table des tentatives |
 | `08_frein.sql` | un code refusé devient un résultat, pour que le frein compte |
 | `09_accueil.sql` | le poste d'accueil : recherche et lecture des codes |
-| `10_garages.sql` | les 1 407 invités — **généré**, ne pas éditer à la main |
+| `10_garages.sql` | les 1 457 invités — **généré**, ne pas éditer à la main |
 | `11_recherche.sql` | `norm()` neutralise aussi la ponctuation |
 | `12_requete.sql` | « st » et « ste » développés côté requête seulement |
 | `13_porte.sql` | **la porte unique** et `verifier_portes()` |
@@ -119,9 +122,17 @@ l'application si elle a été ajoutée à l'écran d'accueil, repartir de la bon
 ## Le jour J
 
 ```powershell
+# 🔴 AVANT L'OUVERTURE — obligatoire. Efface achats, journal, soldes et
+#    appareils ; PRÉSERVE la grille (100 lots, 15 tickets d'or).
+.\scripts\push-sql.ps1 -File sql\99_remise_a_zero.sql
+
 .\scripts\diagnostic.ps1        # « est-ce la base, ou la couche devant ? »
 .\scripts\exporter-journal.ps1  # journal, soldes et lots en CSV — toutes les heures
 ```
+
+**La remise à zéro est la seule manœuvre qui rendrait le Forum injouable si on
+l'oubliait** : la base porte les traces des tests et de la simulation, donc des
+cases déjà prises et des soldes fictifs.
 
 `diagnostic.ps1` interroge Postgres par l'API de management, qui **ne passe pas
 par PostgREST** : il répond donc même quand l'application est à l'arrêt. C'est ce
@@ -133,7 +144,24 @@ une sauvegarde quotidienne est prise la nuit et ne contient rien du 17.
 
 ## Dimensionnement
 
-Mesuré, pas supposé. À 20 128 lignes de journal (7× une vraie soirée) :
+**Éprouvé le 15 septembre par une simulation de 400 garages jouée par l'API
+réelle** — `scripts/simuler-forum.ps1` : arrivées, animations, stands, grille
+jusqu'à épuisement, révélation du soir.
+
+```
+5 831 appels · 166 req/s de moyenne · 300 req/s de POINTE
+0 échec dur · 0 écart de solde · 5 800 clés d'idempotence pour 5 800 lignes
+200 cases parties · 15 tickets d'or décrochés
+```
+
+La charge attendue au Forum est de ~20 req/s : **quinze fois la marge**. Le banc
+de rupture ne trouve aucun échec jusqu'à 800 requêtes simultanées. Le plan
+gratuit n'est pas le facteur limitant.
+
+> Ce banc part d'**une seule machine et d'une seule connexion** : il mesure
+> Supabase, pas le wifi de la Grande Halle.
+
+Mesures de fond, à 20 128 lignes de journal (7× une vraie soirée) :
 
 | Appel | Coût en base | Fréquence |
 |---|---|---|
@@ -163,9 +191,9 @@ gagnante.** Les 15 tickets d'or valent chacun un gros lot : le tirage du soir ne
 désigne pas qui gagne, il désigne **qui gagne quoi**. Personne ne repart bredouille
 d'un ticket d'or.
 
-Un garage ne peut pas prendre plus de **3 cases** (`config.cases_max_garage`).
-Le plafond se lève en direct et ne se baisse jamais — baisser pénaliserait ceux
-qui ont déjà acheté :
+Un garage ne peut pas prendre plus de **5 cases** (`config.cases_max_garage`,
+passé de 3 à 5 le 15 septembre). Le plafond se lève en direct et **ne se baisse
+jamais** — baisser pénaliserait ceux qui ont déjà acheté :
 
 ```sql
 update config set valeur = '0' where cle = 'cases_max_garage';  -- 0 = illimité
@@ -227,7 +255,7 @@ dans `badges/participants.json`. Le générateur affiche, filtre et imprime.
 
 ### Pourquoi le croisement a été abandonné
 
-La version précédente rapprochait les 1 407 invités et les fichiers
+La version précédente rapprochait les 1 457 invités et les fichiers
 d'inscription. Le fichier consolidé du 14 septembre a montré que c'était
 impossible : **l'identifiant d'invitation n'est pas une clé.** `BONY00250` a servi
 à trois sociétés successives, et des salariés Bony se sont inscrits via le lien
@@ -247,7 +275,7 @@ société absente de la base reçoit un nouveau garage et un code généré — 
 création, pas une supposition. `cle_source` (l'e-mail) rend l'import rejouable :
 repousser le même listing met à jour au lieu de dupliquer.
 
-Mesuré sur le listing du 14 septembre : 212 inscrits au Forum, **206 retenus**,
+Mesuré sur le listing consolidé du 15 septembre : 212 inscrits, **211 retenus**,
 91 sociétés retrouvées par leur nom, 4 par l'identifiant, 46 créées, 3 homonymes
 signalés pour arbitrage, **0 badge sans code utilisable**.
 
@@ -258,18 +286,18 @@ par stand** (23 stands), **un animateur par jeu** (6), **deux hôtesses**. Les
 libellés sont ceux de Bony — « TOTAL ELF », « AGENTS » — pas ceux de la base, qui
 ne sert qu'au rattachement du PIN.
 
-### État au 15 septembre 2026
+### État au 16 septembre 2026
 
 | Catégorie | Lignes | Badges |
 |---|---|---|
-| Garage | 142 | 242 |
+| Garage | 147 | 250 |
 | Exposant | 23 | 115 |
 | Équipe Bony | 64 | 69 |
 | Animation | 6 | 6 |
 | Hôtesse | 2 | 2 |
-| **Total** | **237** | **434 badges · 218 feuilles A4** |
+| **Total** | **242** | **442 badges · 221 feuilles A4** |
 
-### Les 1 407 invités restent en base
+### Les 1 457 invités restent en base
 
 Ils ne sont pas un carnet d'adresses : `garages.code` **est** le contrôle d'accès.
 Un garagiste qui se présente sans s'être inscrit doit pouvoir entrer — l'hôtesse
@@ -282,8 +310,8 @@ Un bouton, des fichiers sur le disque : `Documents\Badges Forum 2026`. Pas de
 boîte d'impression, pas de nom à taper. **Un PDF par catégorie**, et une case
 « un PDF par lettre initiale » quand un fichier devient trop gros. Le navigateur
 fabrique une page autonome, un **Chrome sans fenêtre** l'imprime
-(`--headless --print-to-pdf`). Mesuré : 242 badges garage en **5 s** (121 pages),
-115 exposants en 3 s, 69 équipe Bony en 3 s — et 1 407 badges en 17 s à l'époque
+(`--headless --print-to-pdf`). Mesuré : 250 badges garage en **5 s** (125 pages),
+115 exposants en 3 s, 69 équipe Bony en 3 s — et 1 457 badges en 17 s à l'époque
 où ils y étaient tous. Vérifié **sur les fichiers**, pas à l'œil : toutes les
 pages à **209,89 × 297,01 mm**, **cinq polices réellement incorporées**, et entre
 40 et 56 dégradés axiaux par PDF.
@@ -325,7 +353,7 @@ Six catégories, une couleur chacune : Garage, Exposant, Animation, Hôtesse,
 
 ```powershell
 .\scripts\creer-raccourci.ps1   # une seule fois, ou apres avoir deplace le projet
-.\scriptsadges.ps1 -Visible   # le meme lanceur, console ouverte, pour diagnostiquer
+.\scripts\badges.ps1 -Visible   # le meme lanceur, console ouverte, pour diagnostiquer
 .\scripts\exporter-badges.ps1   # rafraichir participants.json sans ouvrir l'app
 .\scripts\generer-polices.ps1   # seulement si l'on change de police
 ```
@@ -357,22 +385,108 @@ pour cette machine.
 
 > ⚠️ **Les 31 PIN du personnel sont toujours ceux de démonstration**, et ils sont
 > désormais imprimés sur 123 badges. Les figer avant la série ; les changer
-> après jette ces badges.
-> Et une feuille d'essai au réglet avant la série : marges « Aucune », échelle
+> après jette ces badges. **Faits le 15 septembre, avant impression.**
+> Reste une feuille d'essai au réglet avant la série : marges « Aucune », échelle
 > 100 %, la carte pliée doit faire 105 × 148,5 mm.
+
+## Les quotas par garage
+
+Trois freins anti-abus, tous réglables en direct dans `config` — `sql/26_quotas.sql`.
+
+| Frein | Valeur | Ce qu'il protège |
+|---|---|---|
+| Cases par garage | **5** | « il en faut pour tout le monde » |
+| Points d'**une** animation | **4 × son meilleur palier** → 20 ou 40 pts | le garage qui camperait devant une borne |
+| Points d'**un** stand | **3 × le plafond d'opération** → 60 pts | le fournisseur généreux avec un ami |
+
+**Le refus tombe au LANCEMENT de la partie, pas au résultat.** `api_participation`
+débite 2 points avant qu'on note le résultat : si le refus arrivait au résultat,
+le garage aurait payé sa partie pour s'entendre dire qu'il n'a droit à rien. Le
+résultat est quand même contrôlé, en ceinture, pour un résultat envoyé sans
+participation.
+
+**La dernière partie a le droit de dépasser** : un garage à 38/40 qui fait un
+carreau touche ses 10 points et finit à 48. Le quota est un frein à la
+répétition, pas une règle comptable.
+
+**Le rôle `admin` n'y est pas soumis** : il corrige et compense, le bloquer lui
+retirerait l'outil au moment où il en a besoin.
+
+L'animateur et le fournisseur voient un **bandeau or persistant** — pas un toast
+de quatre secondes qui disparaît pendant qu'ils relisent le nom du garage.
+
+## La console de santé
+
+En haut de l'écran de supervision, relevée toutes les dix secondes —
+`sql/25_sante_detail.sql`.
+
+| Mesure | D'où elle vient |
+|---|---|
+| **Réponse** | chronométrée **dans le navigateur**, aller-retour compris — le seul chiffre qui voit le wifi |
+| **Pool PostgREST** | les connexions `authenticator` **qui travaillent**, sur 11 |
+| **Verrous en attente** | doit rester à zéro |
+| **Transactions bloquées** | doit rester à zéro |
+| **Soldes ↔ journal** | `verifier_soldes()` — zéro, toujours |
+
+La **santé globale** est la **pire** des cinq, jamais leur moyenne : une moyenne
+noierait un écart de solde sous quatre barres vertes, or c'est exactement le seul
+cas où il faut tout arrêter.
+
+> ⚠️ Le tableau de bord Supabase, lui, **sera rouge vif le soir de l'événement
+> alors que tout ira bien** : il compte chaque refus voulu comme une erreur. Après
+> un passage des 114 tests il en affiche ~70 — les `CASE_DEJA_PRISE` du test de
+> concurrence, les `permission denied` qui prouvent que la clé publique ne lit
+> aucune table, les plafonds qui plafonnent. Se fier à la console, pas à lui.
+
+## Les règles du jeu
+
+Un bouton **Règles** dans la barre des cinq écrans de profil. Il ouvre un mode
+d'emploi et rend la main exactement où on était.
+
+**Une version par profil** : un garagiste n'a rien à faire des quotas de stand, un
+représentant se moque de la grille à 200 cases. Quatre ou cinq temps chacun — un
+gros chiffre, un picto au trait, un titre, une ligne.
+
+**Les chiffres viennent de la base, pas du texte.** Coût d'une case, plafond de
+cases, participation : tout est lu dans la réponse de l'API. Des règles qui
+mentent sont pires que pas de règles.
+
+## Les présentations
+
+Deux diaporamas HTML, à la charte de l'application. `wrangler.jsonc` ne sert que
+`app/` : **ils ne sont jamais déployés**.
+
+| Fichier | Pour qui |
+|---|---|
+| `presentation/direction.html` | la direction Bony — 14 diapositives, les cinq interfaces en maquette |
+| `presentation/agents.html` | la réunion d'agents du matin — 12 diapositives, six maquettes d'écran |
+
+Celle des agents est **projetée dans une salle de réunion** : les échelles
+typographiques sont montées d'un cran et les maquettes de téléphone passent de
+238 à 320 px. Aucun code d'accès, et aucun numéro de case réel — la présentation
+se donne le matin même, devant ceux qui vont jouer.
+
+```powershell
+.\scripts\serveur.ps1 -Dossier presentation -Port 8125
+```
 
 ## Codes
 
-Stockés dans `config`, `animations` et `stands`. **Ce sont des codes de
-démonstration : à changer avant l'événement**, puis relancer `verifier_portes()`
-pour s'assurer qu'aucun ne heurte un code garage.
+Stockés dans `config`, `animations` et `stands`. **Les 31 PIN sont définitifs
+depuis le 15 septembre** — `sql/24_pins.sql`. Les anciens (9137, 4200, 1001-1006,
+2001-2023) étaient des codes de démonstration, et surtout ils étaient
+**séquentiels** : qui lisait « 2001 » au dos d'un badge retourné ouvrait les
+vingt-trois stands en comptant jusqu'à 2023. Les nouveaux sont tirés d'une graine
+fixe et ne se déduisent pas les uns des autres.
 
-| Usage | Code |
-|---|---|
-| Supervision Bony | `9137` |
-| Poste d'accueil | `4200` |
-| Animations | `1001` à `1006` |
-| Stands | `2001` à `2023` |
+| Usage | Combien | Où le lire |
+|---|---|---|
+| Supervision Bony | 1 | `sql/24_pins.sql` — **sur aucun badge** |
+| Poste d'accueil | 1, partagé par les deux hôtesses | `sql/24_pins.sql` |
+| Animations | 6 | idem, et au verso du badge de l'animateur |
+| Stands | 23, chacun partagé par 5 badges | idem |
+
+La liste lisible est dans `exports/Codes personnel Forum 2026.xlsx`, hors dépôt.
 
 Tous les PIN contiennent un `0` ou un `1`. Ce n'est pas un hasard :
 l'alphabet de génération des codes garage exclut `O`, `I`, `0` et `1`, donc un PIN
@@ -387,11 +501,11 @@ donne accès à aucune table, uniquement aux fonctions vérifiées.
 
 `exports/` est ignoré : les exports contiennent les codes d'accès des garages.
 `badges/participants.json` l'est pour la même raison — c'est la liste des
-434 badges avec leur code. `badges/marques.json` et les traces de lancement le
+442 badges avec leur code. `badges/marques.json` et les traces de lancement le
 sont parce qu'elles ne valent que pour cette machine.
 
 > Deux fichiers versionnés contiennent malgré tout des codes : `sql/10_garages.sql`
-> (les 1 407 invités, décision d'origine) et `sql/20_inscrits.sql` (les inscrits,
+> (les 1 457 invités, décision d'origine) et `sql/20_inscrits.sql` (les inscrits,
 > avec e-mails et téléphones). Cohérent avec le premier, mais le second ajoute des
 > numéros de téléphone. Une ligne de `.gitignore` suffit à l'en sortir, au prix de
 > la reproductibilité de l'import.

@@ -5,12 +5,18 @@
 > l'application, pourquoi elle est construite ainsi, ce qui a été fait, ce qui
 > reste, les pièges rencontrés, et la méthode de travail attendue.
 >
-> Dernière mise à jour : **15 septembre 2026**. Événement : **jeudi 17 septembre 2026**.
-> Il reste **deux jours**.
+> Dernière mise à jour : **16 septembre 2026, au soir**. Événement :
+> **jeudi 17 septembre 2026** — c'est **demain**.
 >
 > Les §1 à §14 décrivent l'application. Le **§15** décrit le générateur de
 > badges, ajouté les 14 et 15 septembre : c'est un outil local, séparé, qui ne
 > touche pas à l'application et n'est jamais déployé.
+>
+> 🔴 **LA SEULE CHOSE QUI RESTE À FAIRE AVANT LE FORUM** :
+> `.\scripts\push-sql.ps1 -File sql\99_remise_a_zero.sql`
+> La base porte encore les traces des tests et de la simulation. Sans cette
+> remise à zéro, des cases sont déjà prises et des garages arrivent avec un
+> solde fictif. **Rien d'autre n'est bloquant.**
 >
 > ⚠️ **L'événement s'appelle « Le Grand Bal des FOURNISSEURS ».** Les commits et
 > les captures antérieurs au 15 septembre disent « des Points » : c'était une
@@ -29,13 +35,14 @@
 | **Pour qui** | Bony Automobile, Clermont-Ferrand — distributeur de pièces automobiles |
 | **Quand** | Jeudi 17 septembre 2026, toute la journée puis cocktail dînatoire |
 | **Où** | Grande Halle d'Auvergne, Cournon-d'Auvergne |
-| **Public** | 1 407 garages invités ; **212 personnes inscrites au Forum**, 320 annoncées |
+| **Public** | **1 457 garages** en base ; **211 personnes inscrites** retenues, 320 annoncées |
 | **Remplace** | Les jetons en carton de l'édition précédente |
 | **En ligne** | https://forum-2026.bonyauto-mobile.workers.dev/ — **et rien d'autre**, voir §10 |
 | **Dépôt** | `MarketBony/Forum-2026` — **privé**, doit le rester |
 | **Coût** | 0 € (Cloudflare Workers gratuit + Supabase gratuit) |
-| **État** | Fonctionnel de bout en bout, 114 tests verts, en attente de décisions |
-| **Badges** | 434 badges prêts, 218 feuilles A4 — voir §15 |
+| **État** | **Terminé et déployé** (`gbp-v22`), 114 tests verts, plus aucune décision bloquante |
+| **Badges** | **442 badges**, 221 feuilles A4 — voir §15 |
+| **Éprouvé** | simulation de 400 garages par l'API réelle : **0 échec sur 5 831 appels** — voir §8 |
 
 > Le chiffre de « ~150 attendus » qui figurait ici jusqu'au 11 septembre était une
 > estimation. Le listing consolidé du 14 septembre l'a remplacée par une mesure :
@@ -48,6 +55,73 @@ au service marketing. Technique sans être développeur : il comprend
 l'architecture, lit du SQL, mais n'écrit pas le code. Il tutoie, va droit au but,
 et **demande des preuves chiffrées plutôt que des affirmations**. Quand il dit
 qu'une chose ne va pas sur le terrain, c'est son terrain : il a raison.
+
+---
+
+## 1 bis. Le jour J, en une page
+
+> Pour une session ouverte le matin du Forum. Tout le reste du document explique
+> le pourquoi ; celle-ci dit quoi faire.
+
+### Avant l'ouverture
+
+```powershell
+# 1. Remettre la base à zéro. OBLIGATOIRE. Elle préserve la grille.
+.\scripts\push-sql.ps1 -File sql\99_remise_a_zero.sql
+
+# 2. Vérifier que tout est à zéro et que la composition a survécu
+.\scripts\push-sql.ps1 -Quiet -Query "select (select count(*) from journal) as journal, (select count(*) from grille where garage_id is not null) as cases_prises, (select count(*) from verifier_soldes()) as ecarts, (select count(*) from grille where nature='lot') as lots, (select count(*) from grille where nature='billet') as tickets"
+# attendu : journal=0  cases_prises=0  ecarts=0  lots=85  tickets=15
+
+# 3. Vérifier que le site servi est bien à jour
+(New-Object System.Net.WebClient).DownloadString(
+  'https://forum-2026.bonyauto-mobile.workers.dev/sw.js?t=' + (Get-Random)
+) -match "const VERSION = '([^']+)'" ; $Matches[1]
+```
+
+### Pendant la journée
+
+- **La console de santé** est en haut de l'écran de supervision. Tant que la
+  santé globale est verte, il n'y a rien à faire. Le **tableau de bord Supabase,
+  lui, sera rouge vif** : il compte chaque refus voulu comme une erreur. Ne pas
+  s'y fier.
+- **Exporter le journal toutes les heures** : `.\scripts\exporter-journal.ps1`.
+  C'est la seule vraie sauvegarde de la soirée.
+- **Une panne ?** `.\scripts\diagnostic.ps1` répond à la seule question utile :
+  « est-ce la base, ou la couche devant ? »
+
+### Le soir
+
+1. Supervision → **Grand tirage au sort** → *Lancer la révélation*.
+2. 95 secondes. Un clic sur la scène fait tomber le nom tout de suite, un second
+   passe au lot suivant.
+3. Le récapitulatif reste affiché, et sert au stand des lots.
+4. **Un dernier export du journal** avant de fermer.
+
+### Les réglages, tous en direct dans `config`
+
+| Clé | Valeur au 16/09 | Ce qu'elle fait |
+|---|---|---|
+| `cout_grille` | `20` | le prix d'une case |
+| `cases_max_garage` | `5` | cases par garage · `0` = illimité |
+| `bonus_inscription` | `10` | les points offerts à l'arrivée |
+| `appareils_max` | `6` | téléphones par garage · **une place prise ne se rend pas** |
+| `quota_animation_x` | `4` | × le meilleur palier = points max d'UNE animation par garage |
+| `quota_stand_x` | `3` | × le plafond d'opération = points max d'UN stand par garage |
+| `revelation` | `immediate` | `differee` = tout se révèle le soir |
+| `tentatives_max` | `8` | essais de code par appareil sur 5 minutes |
+| `tirage_revele` | `non` | passe à `oui` quand la révélation a eu lieu |
+
+### Les gestes qui sauvent
+
+| Situation | Geste |
+|---|---|
+| Il reste des cases en fin de journée | monter `cases_max_garage`, ou le passer à `0` (illimité) |
+| La grille se vide trop vite | **on ne baisse jamais le plafond** : ce serait pénaliser ceux qui ont déjà acheté. Le frein, ce sont les quotas — `quota_animation_x`, `quota_stand_x` |
+| Une animation est désertée | `update animations set cout = 0 where nom = '…'` |
+| Un garage n'a pas son code | l'accueil le retrouve et le lit — `sql/09_accueil.sql` sait déjà le faire |
+| Un garage a épuisé ses 6 appareils | c'est un plafond dur ; `update config set valeur='8' where cle='appareils_max'` |
+| Une erreur de points | **jamais de modification** : une écriture inverse, par la supervision |
 
 ---
 
@@ -88,7 +162,7 @@ décrochés dans la grille jouent un grand tirage sur l'écran géant.
 | **Garage** | son code à 4 caractères | voir son solde et ses opérations, acheter une case |
 | **Animateur** | le code de son animation | chercher un garage, lancer une partie, noter le résultat |
 | **Fournisseur** | le code de son stand | chercher un garage, créditer une opération |
-| **Accueil** | le code hôtesse | chercher parmi les 1 407 invités, **lire un code**, voir le compteur d'arrivées |
+| **Accueil** | le code hôtesse | chercher parmi les 1 457 invités, **lire un code**, voir le compteur d'arrivées |
 | **Équipe Bony** | le code direction | supervision, remise des lots, corrections, **détail des tickets d'or**, écran de projection |
 
 L'accueil ne voit **ni les soldes ni le journal** : c'est du personnel d'extra,
@@ -149,7 +223,7 @@ pour le socle, `sql/15_fournisseurs.sql` pour `bareme_stand`, et
 | Table | Rôle |
 |---|---|
 | `config` | réglages clé/valeur — codes, coûts, plafonds, mode de révélation |
-| `garages` | les 1 407 invités : compte Bony, nom, commune, CP, e-mail, **code**, solde |
+| `garages` | les 1 457 invités : compte Bony, nom, commune, CP, e-mail, **code**, solde |
 | `appareils` | un téléphone = un jeton ; porte le rôle et le rattachement |
 | `animations` | les 4 jeux, leur mise et leur code |
 | `bareme` | les résultats possibles de chaque jeu et leurs points |
@@ -236,7 +310,7 @@ ne compterait jamais. La fonction renvoie `{erreur, detail, restantes}` en HTTP 
 *Ce bug a réellement existé et a été corrigé dans `sql/08_frein.sql`.*
 
 **3. Aucun code garage ne doit valoir un PIN du personnel**, sinon l'un des deux
-est bloqué. `verifier_portes()` le contrôle — **0 collision** sur 1 407 codes
+est bloqué. `verifier_portes()` le contrôle — **0 collision** sur 1 457 codes
 garage et 11 codes personnel. **À relancer après tout changement de PIN.**
 
 ### Les codes déterministes
@@ -327,6 +401,16 @@ machines à ≤ 2 cœurs ou ≤ 2 Go.
 | `405e7b5` | **une seule porte** : le même champ pour les cinq profils |
 | `83856e4` | présentation à la direction, en HTML |
 | `ebe8b34` | dimensionnement mesuré contre un rapport d'incident |
+| `42cd267` | **renommage** en « des Fournisseurs », barème du prestataire, révélation du soir |
+| `5c9b45b` | **case ↔ lot scellé** — le classeur d'étiquetage est sorti |
+| `c22fe46` | le piège des deux origines et le service worker qui survit à son domaine |
+| `0555b4c` | déconnexion garage sans brûler de place d'appareil, détail des tickets d'or |
+| `f6b4eec` | un `catch {}` vide immobilisait la tablette sur « Chargement… » |
+| `7095314` | **31 PIN définitifs**, la console de santé, le verre qui se mesure |
+| `385dd6c` | **la simulation** de 400 garages, et le voyant de pool qui mentait |
+| `7e31ee8` | **les quotas par garage**, deux listes repliables |
+| `85a0f72` | **les règles du jeu**, une version par profil |
+| `e892bc6` | **la présentation agents** pour la réunion du matin |
 
 ### Le nettoyage des données
 
@@ -340,7 +424,7 @@ Trois tables curatives dans `scripts/importer-garages.ps1` :
   correction ne puisse jamais s'appliquer par ricochet ;
 - `$UNIFIEES` — fait converger les orthographes multiples d'une même commune.
 
-Résultat : **576 communes distinctes, aucune en double orthographe, 1 407 codes
+Résultat : **576 communes distinctes, aucune en double orthographe, 1 457 codes
 intacts.**
 
 **Les 20 raisons sociales tronquées ont été laissées telles quelles.** Le nom
@@ -353,10 +437,12 @@ un code postal — c'est de la donnée publique ; un nom d'entreprise, non.
 
 ---
 
-## 8. Le dimensionnement — la question ouverte
+## 8. Le dimensionnement — question close, et mesurée
 
-C'est le sujet en cours au moment de ce passage de relais, et il n'est **pas
-clos**.
+Le sujet a été clos le 15 septembre par une simulation de 400 garages jouée par
+l'API réelle : **0 échec sur 5 831 appels, 300 req/s de pointe contre ~20
+attendus**. Le détail est plus bas ; l'historique qui suit explique pourquoi la
+question s'était posée.
 
 ### Le déclencheur
 
@@ -419,21 +505,70 @@ Elle est en partie fondée et il faut le dire à la session suivante :
 
 - les 800 requêtes ont été tirées **depuis une seule machine**, pas depuis 150
   téléphones différents sur le wifi d'une halle ;
-- **le wifi de la Grande Halle n'a jamais été testé** et reste, à mon avis, le
-  risque le plus probable de la soirée — bien avant Supabase ;
+- **le wifi de la Grande Halle** restait le risque le plus probable de la
+  soirée, bien avant Supabase. *Bastien l'a vérifié sur place le 15 septembre.*
+  Il reste que ce banc mesure Supabase, pas le réseau de la halle ;
 - rien ne remplace une répétition sur place.
 
-### Décision sur le plan payant
+### La simulation du 15 septembre — la question est close
 
-L'utilisateur a dit qu'il paierait 10–20 € s'il le faut. Ma recommandation, à
-confirmer avec lui : **Supabase Pro (~25 $/mois), pris vers le 14, coupé le 18**
-— et **pas** Cloudflare, qui n'a rien à vendre ici (ressources statiques pures,
-~4 000 requêtes sur la soirée, quota gratuit de 100 000/jour).
+`scripts/simuler-forum.ps1` joue **une journée entière par l'API réelle** :
+arrivées, animations, stands, grille jusqu'à épuisement, révélation du soir.
+Rien en SQL direct — une injection ne prouverait ni les plafonds, ni
+l'idempotence, ni la concurrence, ni le pool.
 
-Les trois raisons de payer **ne sont pas la charge** :
-1. un projet gratuit **se met en veille après 7 jours sans activité** ;
-2. `"backups": []` — il n'y a **aucune sauvegarde** aujourd'hui ;
-3. aucun canal de support en cas d'incident Supabase le soir même.
+**400 garages joués** contre 212 inscrits réels, et **13 écritures par garage**
+contre 8 au modèle : la surestimation porte sur combien ils sont *et* sur ce que
+chacun fait. La journée est compressée en 35 secondes.
+
+```
+Duree ................... 35,1 s
+Appels .................. 5 831
+Debit moyen ............. 166 req/s
+Debit de POINTE ......... 300 req/s   (charge attendue au Forum : ~20)
+Reussites ............... 5 831
+ECHECS DURS ............. 0
+
+api_points_achat   2000 appels   mediane 201 ms   p99 330 ms
+api_participation  1600 appels   mediane 182 ms   p99 346 ms
+api_resultat       1600 appels   mediane 199 ms   p99 283 ms
+api_jouer_case      200 appels   mediane 1 100 ms  p99 1 132 ms
+
+lignes_journal 5 800 · cles_distinctes 5 800 · ecarts_solde 0
+cases_prises 200 · cases_libres 0 · tickets_or 15
+```
+
+5 800 clés d'idempotence pour 5 800 lignes : **aucun double crédit**. Zéro écart
+de solde sur 400 garages. Les 200 cases parties, les 15 tickets décrochés, la
+révélation jouée.
+
+**Le point de rupture**, cherché au-delà : 0 échec jusqu'à **800 requêtes
+simultanées** (deux passages), 0 échec à 1 200 et 2 000 mais avec des latences de
+5 à 10 s, et ça casse entre 2 000 et 3 000 — où ma machine saturait ses sockets
+autant que Supabase. Le pire cas réel au Forum, c'est 400 téléphones qui se
+réveillent ensemble.
+
+> Le débit mesuré varie d'un passage à l'autre (91 à 330 req/s à 800 simultanées)
+> selon l'état de la machine cliente. **Le nombre d'échecs, lui, est
+> invariablement zéro.** C'est celui-là qui compte.
+
+### Décision sur le plan payant : NON, et c'est mesuré
+
+**Pas pour la charge.** 300 req/s de pointe sans un échec contre ~20 attendus,
+c'est **quinze fois la marge** ; 800 simultanées sans un échec contre 400
+téléphones au pire. Le plan gratuit n'est pas le facteur limitant.
+
+Les trois raisons de payer n'ont jamais été la charge, et elles ont fondu :
+1. **la mise en veille après 7 jours** — sans objet à deux jours de l'événement ;
+2. **l'absence de sauvegarde** — celle du plan Pro est prise la nuit et ne
+   contiendrait **rien de la soirée du 17**. Ce qui protège vraiment, c'est
+   `scripts/exporter-journal.ps1`, à lancer toutes les heures ;
+3. **le canal de support** — le seul argument qui tienne encore : 25 $
+   d'assurance pour avoir quelqu'un à qui écrire si Supabase lui-même tombe.
+   C'est un arbitrage, pas une question technique.
+
+*Décision de Bastien le 15 septembre : « on garde le plan gratuit pour l'instant
+et j'arbitrerai demain si je prends le payant par précaution ».*
 
 > ⚠️ **Une sauvegarde quotidienne est prise la nuit : elle ne contiendra rien de
 > la soirée du 17.** Ce qui protège vraiment les données du jour J, c'est
@@ -601,13 +736,27 @@ halle, le rendu sur téléphone étroit de la présentation : tout ce qui n'a pa
 
 ---
 
-## 11. Ce qui reste — état au 15 septembre 2026
+## 11. Ce qui reste — état au 16 septembre 2026, veille du Forum
 
-### Décisions attendues de Bony
+### 🔴 La seule manœuvre obligatoire
 
-> **Mise à jour du 15 septembre 2026.** Les listings d'inscription sont arrivés et
-> sont en base (§15). Ce qui reste tient en quatre lignes, et la n°4 est devenue
-> **bloquante** : elle décide du sort de 123 badges déjà fabriqués.
+```powershell
+.\scripts\push-sql.ps1 -File sql\99_remise_a_zero.sql
+```
+
+La base porte les traces des 114 tests et de la simulation de 400 garages. Sans
+cette remise à zéro, des cases sont déjà prises et des garages arrivent avec un
+solde fictif. **C'est la seule chose qui rendrait le Forum injouable si on
+l'oubliait.** Elle préserve la composition de la grille — les 100 lots et les 15
+tickets d'or restent en place, seuls les achats et le journal sont effacés.
+
+Après elle, vérifier que tout est à zéro :
+
+```powershell
+.\scripts\push-sql.ps1 -Quiet -Query "select (select count(*) from grille where garage_id is not null) as cases_prises, (select count(*) from journal) as journal, (select count(*) from verifier_soldes()) as ecarts"
+```
+
+### Les décisions de Bony — toutes rendues
 
 | # | Sujet | État |
 |---|---|---|
@@ -615,24 +764,43 @@ halle, le rendu sur téléphone étroit de la présentation : tout ce qui n'a pa
 | 2 | **Mode de révélation** | `immediate` aujourd'hui ; `differee` possible en une ligne |
 | 2bis | ~~Attribution des 15 gros lots~~ | ✅ **collés aux tickets à l'avance**, le soir est une révélation |
 | 3 | ~~Nombre de billets~~ | ✅ **15 tickets d'or** sur 200 cases, un par gros lot |
-| 4 | **Codes définitifs du personnel** | 🔴 **BLOQUANT** — 31 PIN de démonstration, imprimés sur 123 badges |
-| 5 | ~~Barèmes et plafonds~~ | ✅ fournisseurs **par catégorie** ; 6 animations sur le barème du prestataire, recalibré en 10/5/3/2/0 |
-| 6 | **Répétition sur place** | non planifiée — **c'est le point le plus important** |
-| 7 | ~~Les listings de participants~~ | ✅ **434 badges** en base, voir §15 |
-| 8 | **Les arbitrages de badges** | 8 points en attente, tous listés en fin de §15 |
-| 9 | **Un 3ᵉ palier aux fléchettes** | demandé au prestataire — sans lui le jeu perd des points en moyenne |
-| 10 | **« TOP SCORE EN 45 SECONDES »** | seuil sur ardoise (retenu) ou classement journalier ? le second demande du code |
-| 11 | **Constructeurs et derniers inscrits** | listings annoncés par Bastien, à pousser avec `importer-inscriptions.ps1` |
+| 4 | ~~Codes définitifs du personnel~~ | ✅ **31 PIN définitifs** poussés le 15/09 — `sql/24_pins.sql` |
+| 5 | ~~Barèmes et plafonds~~ | ✅ fournisseurs **par catégorie** ; 6 animations en **10/5/3/2/0** |
+| 6 | ~~Répétition sur place~~ | ✅ le wifi de la halle a été vérifié par Bastien |
+| 7 | ~~Les listings de participants~~ | ✅ **442 badges** en base, voir §15 |
+| 8 | ~~Les arbitrages de badges~~ | ✅ tous tranchés le 15/09, détail en fin de §15 |
+| 9 | ~~Un 3ᵉ palier aux fléchettes~~ | ✅ « Les 3 fléchettes dans la cible » à 2 pts — **marque-place assumé** |
+| 10 | ~~« TOP SCORE EN 45 SECONDES »~~ | ✅ seuil sur ardoise — **consigne à donner de vive voix** |
+| 11 | **Constructeurs** | 🟡 le seul listing encore attendu ; la catégorie est prête et vide |
 
-**Pourquoi la n°4 est devenue bloquante.** Tant qu'aucun badge n'était imprimé,
-changer un PIN ne coûtait rien. Aujourd'hui les 115 badges exposants, les 6
-animateurs et les 2 hôtesses portent ces codes au verso : les changer après
-l'impression jette 123 badges. Soit on fige les PIN avant d'imprimer, soit on
-garde ceux de démonstration — mais on ne fait pas les deux dans le désordre.
+### Ce qui reste en dehors du code
 
-*Nuance : la vue `v_badges` résout le code à la lecture. Changer un PIN **avant**
-l'impression ne demande aucune retouche de `participants`, juste un nouvel
-export. C'est le papier déjà sorti qui est irrattrapable, pas la donnée.*
+> 1. **Relancer `99_remise_a_zero.sql`.** Voir ci-dessus. C'est le seul point dur.
+> 2. **Dire aux animateurs du BASKET ARCADE et du BLAZZPOD** d'écrire le score à
+>    battre sur une ardoise. Le prestataire a écrit « TOP SCORE EN 45 SECONDES,
+>    4 PTS À GAGNER » : ça donne un plafond, aucun seuil, et l'application
+>    demande un RÉSULTAT, pas un nombre. C'est la seule consigne humaine qui
+>    manque au dispositif.
+> 3. **Le listing constructeurs**, quand Bastien l'aura, avec
+>    `importer-inscriptions.ps1`. Renault est inscrit — deux personnes avec des
+>    identifiants `EXTERN` — mais n'a aucun code en base.
+> 4. **Exporter le journal toutes les heures** le jour J :
+>    `.\scripts\exporter-journal.ps1`. Le plan gratuit n'a aucune sauvegarde, et
+>    celle du plan payant ne contiendrait rien de la soirée de toute façon.
+
+### Ce qui n'a jamais été éprouvé, et qu'il faut dire
+
+> - **Le mode hors ligne sur un vrai téléphone en mode avion.** Bastien a
+>   tranché : « on en a pas besoin, c'est un plus que je ne testerai pas ».
+> - **L'écran de projection sur le vrai écran LED.** Vérifié au navigateur à
+>   800 px, 1 280 × 720 et 1 920 × 1 080 — jamais en salle, jamais avec le rendu
+>   couleur d'un projecteur. La taille du nom et le contraste du fond violet ne
+>   se jugent que sur place.
+> - **La présentation agents sur le vidéoprojecteur de la salle de réunion.**
+>   Zéro débordement mesuré à 1 440 × 810 et 1 920 × 1 080, mais la lisibilité à
+>   dix mètres ne se mesure pas depuis un navigateur.
+> - **Le QR des badges lu par un vrai capteur**, sur papier, sous des néons. Il a
+>   été décodé par une bibliothèque indépendante, jamais photographié.
 
 ### 🔒 Case ↔ lot : scellé le 15 septembre 2026
 
@@ -1024,18 +1192,29 @@ plutôt que depuis la base, ils recevront un code qui ne marche pas. **Propositi
 faite, décision en attente** : leur rendre leur code généré et faire chercher les
 garages de test par numéro de compte. ~20 minutes.
 
-**B. Le ping anti-veille.** Un projet Supabase gratuit s'endort après 7 jours sans
-activité. Personne ne touchera au projet entre le 11 et le 17. Un appel quotidien
-à `api_sante()` suffit à l'empêcher, gratuitement. **Proposé, non mis en place.**
+**B. ~~Le ping anti-veille.~~** Sans objet : le projet est touché tous les jours
+depuis le 11 septembre, et l'événement est le 17. *Verbatim de Bastien : « osef,
+c'est dans 2 jours l'event ».*
 
-**C. La gigue sur le sondage.** Les 150 téléphones qui démarrent ensemble sondent
-ensemble. La mesure dit que 800 requêtes simultanées passent sans broncher, donc
-**ce n'est pas nécessaire** — mais c'est dix lignes. Proposé, décliné faute de
-justification chiffrée.
+**C. La gigue sur le sondage.** Les téléphones qui démarrent ensemble sondent
+ensemble. La simulation dit que 300 req/s de pointe passent sans un échec, et le
+banc de rupture que 800 simultanées aussi : **ce n'est pas nécessaire.** Dix
+lignes si le besoin apparaissait un jour.
 
-**D. Le mode hors ligne sur un vrai téléphone en mode avion.** Jamais fait.
+**D. Le mode hors ligne sur un vrai téléphone en mode avion.** Jamais fait, et
+**ne le sera pas** : *« on en a pas besoin, donc c'est un plus que je ne
+testerai pas ».* Le code est en place et les écritures partent bien en file ;
+c'est le comportement réel sur un téléphone qui n'est pas éprouvé.
 
 **E. `SAINT SULPICE L APOI`, CP 15310.** Non identifié, laissé intact.
+
+**F. Les seuils des trois jeux à score.** BASKET ARCADE et BLAZZPOD ont un palier
+intermédiaire (« Score honorable », 2 pts) qui est un **marque-place** : le
+prestataire n'a donné qu'un plafond, pas de seuil. L'animateur écrit le score à
+battre sur une ardoise et note par rapport à lui — **consigne à donner de vive
+voix, elle n'est nulle part ailleurs.** Même chose pour le troisième palier des
+fléchettes, « Les 3 fléchettes dans la cible » à 2 pts, ajouté parce que les deux
+seuls paliers du prestataire faisaient perdre des points au jeu en moyenne.
 
 ---
 
@@ -1052,17 +1231,27 @@ justification chiffrée.
 .\scripts\test-bingo.ps1        # 29 : les deux modes, la revelation, 200 cases, plafond
 
 # Serveur local (le service worker ne fonctionne pas depuis file://)
-.\scripts\serveur.ps1           # http://localhost:8123
+.\scripts\serveur.ps1                                   # l'application, http://localhost:8123
+.\scripts\serveur.ps1 -Dossier presentation -Port 8125  # les deux présentations
 
 # Dimensionnement
 .\scripts\mesurer-charge.ps1    # coût unitaire, taille du pool, rythme d'une soirée
 .\scripts\trouver-plafond.ps1   # rafale montante jusqu'à la rupture
 
+# LA SIMULATION — une journée entière par l'API réelle, jusqu'à ce que les
+# 200 cases soient prises. SANS -Appliquer elle n'écrit RIEN.
+# ⚠️ Avec -Appliquer elle REMET LA BASE À ZÉRO, puis la remplit. Il faut
+#    relancer 99_remise_a_zero.sql après.
+.\scripts\simuler-forum.ps1
+.\scripts\simuler-forum.ps1 -Appliquer
+
 # LE JOUR J
 .\scripts\diagnostic.ps1        # « est-ce la base, ou la couche devant ? »
 .\scripts\exporter-journal.ps1  # journal, soldes et lots en CSV — toutes les heures
 
-# Remise à zéro après la répétition générale
+# 🔴 REMISE À ZÉRO — obligatoire avant le Forum, et après toute répétition.
+#    Elle efface les achats, le journal, les soldes et les appareils ; elle
+#    PRÉSERVE la composition de la grille (100 lots, 15 tickets d'or).
 .\scripts\push-sql.ps1 -File sql\99_remise_a_zero.sql
 
 # Réimporter les garages depuis l'export Sarbacane
@@ -1090,27 +1279,38 @@ justification chiffrée.
 
 ## 13. Les codes
 
-> Le dépôt est **privé** et doit le rester. Ces codes sont des codes de
-> démonstration : **ils doivent être changés avant le 17**, et
-> `verifier_portes()` relancé ensuite.
+> ⚠️ **LES 31 PIN SONT DÉFINITIFS DEPUIS LE 15 SEPTEMBRE.** Les anciens — 9137,
+> 4200, 1001-1006, 2001-2023 — étaient des codes de démonstration **et ils
+> étaient séquentiels** : qui lisait « 2001 » au dos d'un badge retourné ouvrait
+> les vingt-trois stands en comptant jusqu'à 2023. Ils ne valent plus rien.
 
-| Profil | Code | Combien |
+| Profil | Combien | Où le lire |
 |---|---|---|
-| Supervision Bony | `9137` | 1 |
-| Poste d'accueil | `4200` | 1, **partagé par les deux hôtesses** |
-| Les 6 animations | `1001` à `1006` | 6 — BASKET ARCADE, FLÉCHETTES, ATELIER PÉTANQUE, BORNE D'ARCADE, BLAZZPOD, CORN HOLE |
-| Les 23 stands | `2001` à `2023` | 23 — **chacun partagé par les 5 badges du stand** |
+| Supervision Bony | 1 | `sql/24_pins.sql` — **sur aucun badge**, ne se remet à personne |
+| Poste d'accueil | 1, **partagé par les deux hôtesses** | `sql/24_pins.sql` |
+| Les 6 animations | 6 | `sql/24_pins.sql`, et au verso du badge de chaque animateur |
+| Les 23 stands | 23, **chacun partagé par les 5 badges du stand** | idem |
 
-> ⚠️ **Ces 31 PIN sont désormais imprimés sur 123 badges** (§15). Les changer
-> après impression jette ces badges. Les changer AVANT ne demande qu'un nouvel
-> export : la vue `v_badges` résout le code à la lecture.
+**La liste lisible est dans `exports/Codes personnel Forum 2026.xlsx`** — hors
+dépôt, comme tout ce qui porte un code. Les valeurs elles-mêmes sont dans
+`sql/24_pins.sql`, versionné : c'est la même décision que pour
+`sql/10_garages.sql`, qui porte les 1 457 codes garage depuis l'origine. Le dépôt
+est privé, et il doit le rester.
 
-Garages de démonstration : `GRND` (460 pts), `BNY2` (68 pts), `TEST` (10 pts),
-`BAL2` / `FRUM` / `JEUX` (vierges). **Voir §11-A : ce sont de vrais clients.**
+**La garantie anti-collision est structurelle.** L'alphabet des codes garage
+exclut 0, 1, O et I ; un PIN qui contient un 0 ou un 1 ne peut donc PAS heurter
+un code garage — impossible par construction, pas improbable. Les 31 en
+contiennent tous un, et `sql/24_pins.sql` refuse de passer si ce n'est pas le
+cas. `verifier_portes()` le recontrôle : **0 collision sur 1 457 codes garage et
+31 PIN.**
 
-Cases truquées pour une démonstration : **3** (coffret à outils), **7** (enceinte),
-**11** (bon d'achat 100 €), **17 / 34 / 58 / 76 / 93** (billets), **1 / 2 / 4 / 6**
-(perdantes).
+Garages de démonstration : `GRND`, `BNY2`, `TEST`, `BAL2`, `FRUM`, `JEUX`.
+**Ce sont de vrais clients** — voir « Travaux techniques identifiés, non faits »
+au §11.
+
+> Les « cases truquées » qui figuraient ici jusqu'au 11 septembre n'existent
+> plus : la grille porte les 100 vrais lots depuis `sql/18_lots.sql`, et
+> l'affectation case ↔ lot est **scellée** (§11).
 
 `.env.local` contient les accès Supabase et **n'est pas versionné**. Il faudra le
 recopier à la main sur le nouveau poste : URL, `SUPABASE_PROJECT_REF`,
@@ -1123,13 +1323,13 @@ recopier à la main sur le nouveau poste : URL, `SUPABASE_PROJECT_REF`,
 |---|---|
 | `.env.local` | les accès Supabase |
 | `exports/` | journal, soldes et lots — noms de garages et codes de retrait |
-| `badges/participants.json` | les 434 badges avec leur code, lu par le générateur |
+| `badges/participants.json` | les 442 badges avec leur code, lu par le générateur |
 | `badges/marques.json` | ce qui a déjà été imprimé — local à la machine |
 | `badges/_etat.json`, `_export-etat.json`, `_journal-lancement.txt` | traces de lancement |
 | `Badges — Forum 2026.lnk` | le raccourci, il porte un chemin absolu |
 
 > **Deux fichiers versionnés contiennent malgré tout des codes** :
-> `sql/10_garages.sql` (les 1 407 invités, décision d'origine) et
+> `sql/10_garages.sql` (les 1 457 invités, décision d'origine) et
 > `sql/20_inscrits.sql` (les inscrits, avec e-mails et téléphones). C'est
 > cohérent avec le premier, mais le second ajoute des numéros de téléphone. Le
 > dépôt est privé ; si ce n'est pas acceptable, une ligne de `.gitignore` suffit
@@ -1206,7 +1406,7 @@ porte le code d'accès de son porteur.
 
 ### Le virage du 14 septembre — à comprendre avant tout
 
-Le générateur croisait d'abord deux sources : les 1 407 invités en base, et les
+Le générateur croisait d'abord deux sources : les 1 457 invités en base, et les
 fichiers d'inscription. Le fichier consolidé de Bastien a montré que ce
 croisement ne pouvait pas marcher : **l'identifiant d'invitation n'est pas une
 clé.** `BONY00250` a servi à trois sociétés successives (onglet `TRANSFERTS_ID`)
@@ -1221,7 +1421,7 @@ seule fois, à l'écriture**, et **le générateur ne fait plus que lire**. Tout
 l'import Excel a été retiré de l'outil. C'est la décision structurante ; ne pas
 la défaire sans relire ce paragraphe.
 
-### Les 1 407 invités restent en base, et c'est volontaire
+### Les 1 457 invités restent en base, et c'est volontaire
 
 `garages` n'est pas un carnet d'adresses : **`garages.code` EST le contrôle
 d'accès**. Un garagiste qui se présente sans s'être inscrit doit pouvoir entrer.
@@ -1268,8 +1468,9 @@ signalé comme tel. Il **ne devine jamais** : les homonymes sont listés à part
 pas importés ; une société franchement absente reçoit un nouveau garage et un
 code généré par le même algorithme déterministe que `importer-garages.ps1`.
 
-Mesuré sur le listing du 14 septembre : 212 inscrits au Forum, **206 retenus**
-(3 doublons, 3 homonymes écartés), **311 badges garage et équipe Bony** — les
+Mesuré sur le listing consolidé du 15 septembre : 212 inscrits au Forum,
+**211 retenus** (3 doublons écartés, 3 homonymes arbitrés en comptes neufs),
+**319 badges garage et équipe Bony** — les
 115 exposants, 6 animateurs et 2 hôtesses viennent d'ailleurs, voir plus bas.
 91 sociétés retrouvées par leur nom, 4 par l'identifiant, 46 créées,
 **0 badge sans code utilisable**.
@@ -1292,16 +1493,16 @@ le nom en base, qui porte le PIN.
 > n'est pas utilisé** : Bastien a préféré 5 badges interchangeables par stand.
 > Il resservira le jour où les exposants voudront leur nom.
 
-### État au 15 septembre 2026
+### État au 16 septembre 2026
 
 | Catégorie | Lignes | Badges |
 |---|---|---|
-| Garage | 142 | 242 |
+| Garage | 147 | 250 |
 | Exposant | 23 | 115 |
 | Équipe Bony | 64 | 69 |
 | Animation | 6 | 6 |
 | Hôtesse | 2 | 2 |
-| **Total** | **237** | **434 badges · 218 feuilles A4** |
+| **Total** | **242** | **442 badges · 221 feuilles A4** |
 
 ### La mécanique papier
 
@@ -1333,7 +1534,7 @@ le 14 septembre.
 > « simplifier » en CSS.
 
 Les dégradés, la guirlande et le QR sont définis **une fois** dans `<defs>` et
-repris par `<use>` : à 434 badges, recopier le tracé à chaque exemplaire ferait
+repris par `<use>` : à 442 badges, recopier le tracé à chaque exemplaire ferait
 des mégaoctets de DOM pour un dessin identique.
 
 ### L'export PDF
@@ -1349,12 +1550,12 @@ Mesuré le 15 septembre, sur les fichiers produits :
 
 | Export | Temps | Pages |
 |---|---|---|
-| Garage, 242 badges | 5 s | 121 |
+| Garage, 250 badges | 5 s | 125 |
 | Exposant, 115 badges | 3 s | 58 |
 | Équipe Bony, 69 badges | 3 s | 35 |
 | Animation / Hôtesse | 2 s | 3 / 1 |
 
-Et à l'époque où les 1 407 garages y étaient tous : **17 s** pour un PDF de
+Et à l'époque où les 1 457 garages y étaient tous : **17 s** pour un PDF de
 704 pages, 38 s pour les mêmes en 27 PDF par lettre initiale.
 
 Vérifié **sur les fichiers**, pas à l'œil : toutes les pages à
@@ -1428,32 +1629,37 @@ reconstruit en une impression si on la perd.
    tableau côté page, et `JSON.stringify` d'un tableau **jette les propriétés
    nommées** : tout ce qui avait été imprimé était oublié sans un message.
 
-### Ce qui reste à faire, et qui n'appartient pas au code
+### Les huit arbitrages — tous rendus le 15 septembre
 
-> 1. **Figer les PIN du personnel** (décision n°4) avant d'imprimer. Les badges
->    exposants, animation et hôtesse portent ces codes ; les changer après coup
->    jette 123 badges.
-> 2. **Une feuille d'essai au réglet** avant la série : la carte pliée doit
->    faire 105 × 148,5 mm et entrer dans la pochette.
-> 3. **Scanner le QR avec un vrai téléphone.** Il a été décodé par une
->    bibliothèque indépendante — pas seulement regardé — mais jamais lu par un
->    capteur, sur du papier, sous des néons.
-> 4. **Dire qui reçoit le code supervision.** Les badges `EQUIPE_BONY` n'en
->    portent aucun, délibérément : `9137` ouvre la remise des lots, les
->    corrections et l'écran de projection ; l'imprimer sur 69 badges reviendrait
->    à le distribuer à tout le monde. Les deux ou trois personnes concernées le
->    reçoivent par `code_force`, nommément.
-> 5. **Arbitrer trois homonymes garage** non importés : `BOUSQUET`,
->    `GARAGE DU STADE`, `GARAGE SAQUET`. Rien dans le listing ne permet de les
->    départager.
-> 6. **Trancher `IXELL / MOTRIO`.** La liste de Bony les écrit sur une ligne,
->    la base en a deux, avec deux PIN. Ils sont séparés aujourd'hui, 5 badges
->    chacun.
-> 7. **Les deux hôtesses partagent le même code** : il n'y a qu'un `pin_accueil`
->    dans `config`. Deux codes distincts demanderaient une modification de
->    `sql/13_porte.sql` et un nouveau passage des 114 tests.
-> 8. **La catégorie `CONSTRUCTEUR` est prête et vide.** Renault est inscrit —
->    deux personnes avec des identifiants `EXTERN` — mais n'a aucun code en base.
+| # | Sujet | Décision de Bastien |
+|---|---|---|
+| 1 | ~~Figer les PIN~~ | ✅ faits avant impression — `sql/24_pins.sql` |
+| 2 | **Feuille d'essai au réglet** | 🟡 à faire avant la série : la carte pliée doit faire 105 × 148,5 mm |
+| 3 | **Scanner le QR** | 🟡 jamais lu par un vrai capteur, sur papier, sous des néons |
+| 4 | ~~Qui reçoit le code supervision~~ | ✅ **personne.** Il est secret et n'apparaît sur aucun badge |
+| 5 | ~~Les trois homonymes~~ | ✅ **un compte neuf au nom de l'inscrit**, les existants intacts |
+| 6 | ~~`IXELL` / `MOTRIO`~~ | ✅ **deux fournisseurs sur un stand partagé**, on garde deux entrées |
+| 7 | ~~Les deux hôtesses~~ | ✅ **même code**, « ça ne change rien » |
+| 8 | **La catégorie `CONSTRUCTEUR`** | 🟡 prête et vide, le listing n'est pas encore à jour |
+
+**Sur le n°5.** *Verbatim : « si homonyme on crée le compte de l'inscrit, et y'aura
+un doublon dans la base au cas où un deuxième garage a le même nom dans un lieu
+différent ».* `importer-inscriptions.ps1` a donc gagné `-CreerHomonymes` : le
+script ne devine toujours pas — il refuse par défaut — mais l'opérateur peut lui
+dire de créer un **troisième** compte, avec son propre code, sans toucher aux
+deux existants.
+
+| Nouveau compte | Code | Existants laissés intacts |
+|---|---|---|
+| BOUSQUET | `PH9Y` | Jussac `YCPQ` · Montfranc `7MQS` |
+| GARAGE DU STADE | `U2UG` | Aubière `R83R` · Bagnac `B4TQ` |
+| GARAGE SAQUET | `HCZF` | La Cavalerie `3KRC` · Nant `YULB` |
+
+**Sur le n°4.** Le code de supervision ouvre la remise des lots, les corrections
+et l'écran de projection. L'imprimer sur 69 badges reviendrait à le distribuer à
+tout le monde ; le remettre nommément à deux ou trois personnes avait été
+envisagé, puis écarté. Il reste dans `sql/24_pins.sql` et dans l'export, et nulle
+part ailleurs.
 
 Signalé aussi : un PIN de stand est **partagé par les cinq badges du stand**. Il
 est au verso, donc contre la poitrine, mais quelqu'un qui lit `2001` sur un badge
