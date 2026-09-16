@@ -557,6 +557,84 @@ body.service .bouton.creux {
 .mvt .md.moins { color:var(--terracotta-clair) }
 
 /* =====================================================================
+   La vitrine — équipe Bony et invités constructeur
+
+   Un écran qu'on pose sur une table et qu'on regarde de temps en temps,
+   pas un écran qu'on pilote. Tout y est plus calme que sur la
+   supervision : aucun bouton d'action, aucune alerte rouge, et le seul
+   mouvement est celui des chiffres qui montent à l'ouverture.
+   ===================================================================== */
+
+/* La barre de santé de la vitrine n'a pas les cinq mesures de la
+   console : pas de filet de séparation à afficher au-dessus. */
+.console.vit { padding:var(--e4) var(--e5) }
+.console.vit .cglobal { margin-top:0; border-top:0; padding-top:0 }
+.console.vit .cgt .cpuce { margin-right:var(--e2); vertical-align:baseline }
+
+/* --- les podiums ---------------------------------------------------- */
+.podium { display:flex; flex-direction:column; gap:var(--e1) }
+.pod {
+  display:flex; align-items:center; gap:var(--e3);
+  padding:var(--e3) var(--e4); border-radius:var(--r1);
+  background:var(--surface-plate);
+}
+/* Les trois premiers se détachent, et seulement eux : au-delà, un
+   podium n'est plus un podium, c'est une liste. */
+.pod.r1 { background:linear-gradient(90deg, rgba(197,150,60,.20), var(--surface-plate) 62%) }
+.pod.r2 { background:linear-gradient(90deg, rgba(197,150,60,.11), var(--surface-plate) 52%) }
+.pod.r3 { background:linear-gradient(90deg, rgba(197,150,60,.06), var(--surface-plate) 44%) }
+.podrang {
+  flex:0 0 26px; height:26px; border-radius:var(--r-plein);
+  display:grid; place-items:center;
+  font-family:var(--serif); font-weight:700; font-size:14px;
+  color:var(--nuit); background:rgba(241,231,210,.34);
+}
+.pod.r1 .podrang { background:linear-gradient(140deg,var(--or-pale),var(--or)) }
+.pod.r2 .podrang { background:rgba(241,231,210,.62) }
+.pod.r3 .podrang { background:rgba(230,199,126,.44) }
+.podcorps { flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:5px }
+.podnom {
+  font-weight:600; line-height:1.25; color:var(--txt);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.podnom small {
+  display:block; font-size:11px; font-weight:500; color:var(--txt-3);
+  letter-spacing:.02em; text-transform:none;
+}
+/* La barre part à zéro et pousse au rendu. `width` est posé en style
+   inline par le gabarit ; le `transform` scale part de 0 et évite de
+   faire recalculer une largeur à chaque image. */
+.podbar { display:block; height:4px; border-radius:var(--r-plein); background:rgba(241,231,210,.10) }
+.podbar i {
+  display:block; height:100%; border-radius:inherit;
+  background:linear-gradient(90deg,var(--or-fonce),var(--or-clair));
+  transform:scaleX(0); transform-origin:left center;
+  transition:transform .9s var(--sortie);
+}
+.podbar i.pousse { transform:scaleX(1) }
+.podval { flex:0 0 auto; text-align:right; line-height:1.15 }
+.podval b {
+  display:block; font-family:var(--serif); font-weight:700; font-size:20px;
+  color:var(--or-clair); font-variant-numeric:tabular-nums;
+}
+.podval span { font-size:10.5px; color:var(--txt-3); white-space:nowrap }
+
+/* --- une ligne de journal qui vient d'arriver ------------------------
+   Elle s'allume une fois et redevient normale. Pas de clignotement : on
+   veut dire « ça bouge », pas réclamer l'attention toutes les trente
+   secondes pendant six heures. */
+.mvt.neuf { animation:mvtNeuf 2.4s ease-out both }
+@keyframes mvtNeuf {
+  0%   { background:rgba(197,150,60,.24); border-radius:var(--r1) }
+  100% { background:transparent }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  .podbar i { transition:none; transform:scaleX(1) }
+  .mvt.neuf { animation:none }
+}
+
+/* =====================================================================
    Fiche d'un garage, vue par le personnel
    ===================================================================== */
 .fiche { text-align:center; padding:var(--e6) var(--e5) }

@@ -157,7 +157,7 @@ décrochés dans la grille jouent un grand tirage sur l'écran géant.
         └──────────────┘
 ```
 
-### Les cinq profils
+### Les six profils
 
 | Profil | Entre avec | Peut faire |
 |---|---|---|
@@ -166,6 +166,7 @@ décrochés dans la grille jouent un grand tirage sur l'écran géant.
 | **Fournisseur** | le code de son stand | chercher un garage, créditer une opération |
 | **Accueil** | le code hôtesse | chercher parmi les 1 457 invités, **lire un code**, voir le compteur d'arrivées |
 | **Équipe Bony** | le code direction | supervision, remise des lots, corrections, **détail des tickets d'or**, écran de projection |
+| **Vitrine** | un code personnel | **lecture seule** — compteurs, podiums, journal en direct. 119 équipe Bony + 21 constructeurs, voir §19 |
 
 L'accueil ne voit **ni les soldes ni le journal** : c'est du personnel d'extra,
 deux pouvoirs et pas un de plus.
@@ -1462,6 +1463,103 @@ recopier à la main sur le nouveau poste : URL, `SUPABASE_PROJECT_REF`,
 - **`exports/`** — sortie de `exporter-journal.ps1`, **ignorée par git** (contient
   les codes d'accès des garages).
 - **`badges/`** — le générateur de badges. Voir **§15**, il a sa propre section.
+
+---
+
+## 19. La vitrine — équipe Bony et invités constructeur
+
+Ajoutée le 17 septembre, à la demande de Bastien : *« on va créer une nouvelle
+interface pour l'équipe Bony mec. Et pour le constructeur aussi. Elle contiendra
+les infos de ce que l'on retrouve de manière générale dans l'onglet direction
+mais ce sera que de la vitrine. »*
+
+### Un sixième profil, en lecture seule
+
+| | |
+|---|---|
+| **Qui** | 119 équipe Bony + 21 constructeurs = **140 personnes** |
+| **Rôle** | `vitrine` — il n'existe qu'ici, et il n'écrit rien |
+| **Une seule fonction** | `api_vitrine(p_jeton)`, et c'est tout |
+| **Codes** | **140 codes nominatifs** + 1 code de secours |
+
+**Ce n'est pas un `admin` bridé côté navigateur.** Le code supervision ouvre la
+remise des lots, les corrections de points, l'écran de projection et le détail
+des tickets d'or ; le donner à 140 personnes reviendrait à le publier. La
+vitrine est un rôle à part, et **une restriction qui ne vit que dans le front
+n'est pas une restriction**. Vérifié sur la vraie base, avec un jeton de
+vitrine — les sept portes sont fermées :
+
+| Tentative | |
+|---|---|
+| `api_corriger` — ajouter des points | refusé |
+| `api_supervision` — le tableau direction | refusé |
+| `api_tirage_etat` — les tickets nommés | refusé |
+| `api_tirage_lancer` — la révélation | refusé |
+| `api_lots` — le suivi des lots | refusé |
+| `api_journal_complet` — l'export CSV | refusé |
+| `api_accueil_chercher` — lire un code garage | refusé |
+
+### Un code par personne
+
+*Verbatim : « un code différent pour tout le monde, ça évite les fuites si y'a
+qu'un code unique ».* Un code qui circule ne se révoque pas ; 140 codes
+distincts se coupent un par un (`participants.actif = false`).
+
+Ils vivent dans **`participants.code_force`**, qui est le champ que `v_badges`
+résout en priorité : poser le code là suffit à le faire apparaître sur le badge,
+sans toucher au générateur ni à la vue. Même algorithme que les codes garage —
+MD5 d'une graine fixe, alphabet sans `O`, `I`, `0` ni `1`, variante incrémentée
+tant qu'il y a collision. **Déterministe, donc rejouable sans jamais changer un
+code déjà imprimé** : un code posé n'est jamais repris.
+
+Mesuré : **140 codes, 140 distincts, 0 collision** avec les 1 456 codes garage,
+les 31 PIN du personnel et le code de secours. `verifier_portes()` couvre
+désormais ces 140 codes et rend toujours zéro ligne — sans ça, un code de
+vitrine qui vaudrait le code d'un garage ouvrirait le portefeuille de ce garage,
+et personne ne le verrait avant que quelqu'un s'en plaigne.
+
+**Le code de secours** est dans `config.pin_vitrine`, *« pour les couillons qui
+sont pas sur la liste »*. Il ouvre la même vitrine, sans nom, et il n'est sur
+**aucun badge** : il se donne de vive voix et se change en une ligne.
+
+### Ce que l'écran montre
+
+- **La barre de santé du Forum**, et rien de plus. La console de supervision
+  détaille le pool, les verrous et les transactions bloquées ; ces chiffres
+  n'apprennent rien à un invité Renault, et `api_vitrine` **ne les envoie même
+  pas** — le verdict est calculé en base, on ne transmet qu'un pourcentage.
+- **Le Forum en un coup d'œil** : sept compteurs.
+- **Trois podiums** : garages, stands, animations. Le classement des garages se
+  fait sur les points **gagnés**, pas sur le solde — un garage qui joue tout ce
+  qu'il gagne finirait à zéro et disparaîtrait du podium alors que c'est lui le
+  plus actif de la salle.
+- **Le journal en direct**, 40 lignes. Noms de garages en clair : arbitrage du
+  17 septembre, les constructeurs voient exactement la même chose que l'équipe
+  Bony.
+- **Les tickets d'or, en compteurs seulement.**
+
+> ⚠️ **LES TICKETS D'OR NE SONT JAMAIS NOMMÉS.** « 9 décrochés sur 15 », et rien
+> d'autre : ni qui les détient, ni quel gros lot est dessous. Cet écran est
+> ouvert sur 140 téléphones dans la salle, dont ceux de gens qui parlent aux
+> garagistes toute la journée. Le détail reste à la direction, et à elle seule.
+
+### Un seul appel, et pourquoi
+
+`api_vitrine` rend **tout l'écran en un aller-retour** : compteurs, podiums,
+journal, santé. 140 téléphones pendant six heures, et le pool PostgREST plafonne
+à 11 connexions — chaque aller-retour évité est une connexion qui reste libre
+pour un garagiste qui achète une case. Pour la même raison, la vitrine **ne
+télécharge pas** le cache des 1 456 garages : elle ne cherche jamais personne.
+
+### Les animations
+
+Les chiffres montent à l'ouverture, en sortie cubique, **une seule fois**. Les
+rejouer à chaque rafraîchissement — toutes les trente secondes pendant six
+heures — transformerait un écran d'information en machine à sous. Les barres des
+podiums poussent à chaque rendu, elles sont assez discrètes pour le supporter.
+Une ligne de journal qui vient d'arriver s'allume une fois et redevient normale :
+on veut dire « ça bouge », pas réclamer l'attention en continu. Tout est neutralisé
+sous `prefers-reduced-motion`.
 
 ---
 

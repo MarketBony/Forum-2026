@@ -8,7 +8,7 @@
 //
 //  Changer VERSION à chaque déploiement force le renouvellement.
 // =====================================================================
-const VERSION = 'gbp-v25';
+const VERSION = 'gbp-v26';
 const COQUILLE = [
   './',
   './index.html',

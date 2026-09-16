@@ -30,6 +30,9 @@ const S = {
   codeZoom: null,       // code affiché en très grand
   lots: null,
   tirage: null,       // etat du grand tirage du soir
+  vitrine: null,      // la vue lecture seule de l'equipe Bony et des constructeurs
+  vitrineVue: false,  // les chiffres ne se comptent qu'a la PREMIERE ouverture
+  vitrineHaut: null,  // signature de la 1re ligne de journal deja vue
   panne: null,        // derniere panne de chargement, affichee plutot qu'avalee
   quota: null,        // refus de quota sur le garage vise — bandeau persistant
   deplie: {},         // sections longues de la supervision ouvertes en entier
@@ -619,6 +622,21 @@ function reglesDe(role) {
       ['cadeau', 'Il n\'est pas dans la liste ?', `Remettez-lui un badge vierge et appelez l'équipe Bony. Personne ne reste à la porte.`],
     ],
     note: `Vous ne voyez ni les soldes ni le journal : ce n'est pas votre rôle, et c'est volontaire.`,
+  };
+
+  //  La vitrine : on parle a des gens qui REGARDENT. Pas un geste a
+  //  apprendre, pas un bouton a trouver — juste ce que l'ecran raconte,
+  //  et ce qu'il ne racontera pas.
+  if (role === 'vitrine') return {
+    script: 'Votre écran', titre: 'suit le Forum tout seul',
+    temps: [
+      ['ecran', 'Rien à faire', `L'écran se met à jour tout seul, toutes les trente secondes. Laissez-le ouvert, il vit avec la salle.`],
+      ['grille', "Le Forum en un coup d’œil", `Combien de garages sont entrés, combien de points circulent, où en est la grille de deux cents cases.`],
+      ['ticket', 'Les podiums', `Les garages qui marquent le plus, les stands qui distribuent le plus, les animations les plus jouées. Ça bouge toute la journée.`],
+      ['horloge', 'Le journal en direct', `Chaque mouvement de points, à la minute. C'est là qu'on voit la salle travailler.`],
+      ['cadeau', "Les tickets d’or", `Vous voyez combien sont décrochés, jamais par qui : le suspense est le même pour vous que pour la salle.`],
+    ],
+    note: `Votre code est personnel et il n'ouvre que cet écran — aucune écriture, aucun réglage. Ne le prêtez pas : c'est le seul moyen de savoir qui regarde.`,
   };
 
   return {
@@ -1370,6 +1388,173 @@ function revelRecapito() {
 }
 
 // =====================================================================
+//  La vitrine — équipe Bony et invités constructeur
+//
+//  LECTURE SEULE, ET C'EST LA BASE QUI LE GARANTIT, PAS CET ÉCRAN. Le
+//  rôle `vitrine` n'a accès qu'à api_vitrine ; aucune fonction
+//  d'écriture ne l'accepte. Retirer un bouton d'ici ne protégerait rien
+//  — voir sql/30_vitrine.sql.
+//
+//  Elle sera ouverte sur ~140 téléphones pendant six heures et se
+//  rafraîchit seule au rythme participant. UN SEUL APPEL par
+//  rafraîchissement : le pool PostgREST plafonne à 11 connexions, et
+//  chacune prise ici est une case que quelqu'un n'achète pas.
+// =====================================================================
+
+// La barre de santé, et RIEN DE PLUS. La console de supervision montre
+// le pool, les verrous et les transactions bloquées ; ces chiffres
+// n'apprennent rien à un invité constructeur, et le serveur ne les
+// envoie même pas jusqu'ici — api_vitrine ne rend que le verdict.
+function santeVitrine(h) {
+  if (!h) return '';
+  const verdict = h.ton === 'ok' ? 'Tout tourne'
+                : h.ton === 'tiede' ? 'Sous tension' : 'Ralenti';
+  return `<div class="console vit">
+      <div class="cglobal ${h.ton}">
+        <div class="cgt"><span><span class="cpuce ${h.ton}"></span>Santé du Forum</span><b>${h.pct}<i>%</i></b></div>
+        <div class="cgb"><span style="width:${h.pct}%"></span></div>
+        <div class="cgv">${verdict} · ${h.ecritures_min} mouvement${h.ecritures_min > 1 ? 's' : ''}
+          la dernière minute, ${h.ecritures_10min} sur les dix dernières</div>
+      </div>
+    </div>`;
+}
+
+// Un podium. LA BARRE EST PROPORTIONNELLE AU PREMIER, PAS AU TOTAL :
+// sur cinq lignes, une part du total donne cinq traits minuscules là où
+// une part du meilleur donne une silhouette qui se lit de loin.
+function podium(titre, lignes, valeur, legende) {
+  if (!lignes || !lignes.length) {
+    return `<div class="section"><p class="etiq">${esc(titre)}</p>
+      <div class="groupe"><p class="vide">Rien encore. Ça va venir.</p></div></div>`;
+  }
+  const max = Math.max(...lignes.map(valeur), 1);
+  return `<div class="section"><p class="etiq">${esc(titre)}</p>
+    <div class="podium">${lignes.map((x, i) => `
+      <div class="pod r${i + 1}">
+        <span class="podrang">${i + 1}</span>
+        <span class="podcorps">
+          <span class="podnom">${esc(x.nom)}${x.ville ? `<small>${esc(x.ville)}</small>` : ''}</span>
+          <span class="podbar"><i style="width:${Math.round(valeur(x) / max * 100)}%"></i></span>
+        </span>
+        <span class="podval"><b data-compte="${valeur(x)}">0</b><span>${esc(legende(x))}</span></span>
+      </div>`).join('')}</div></div>`;
+}
+
+function vueVitrine() {
+  const v = S.vitrine;
+  if (!v) return ecranAttente('Le Forum en direct', null);
+
+  // Les lignes arrivées depuis le dernier passage sont marquées : sur un
+  // écran qu'on regarde de loin, c'est le mouvement qui dit que ça vit.
+  const sig = (j) => `${j.heure}|${j.garage}|${j.libelle}|${j.delta}`;
+  const journal = v.journal || [];
+  let neuves = 0;
+  if (S.vitrineHaut) {
+    const i = journal.findIndex((j) => sig(j) === S.vitrineHaut);
+    neuves = i < 0 ? 0 : i;
+  }
+  S.vitrineHaut = journal.length ? sig(journal[0]) : null;
+
+  const restants = v.billets_total - v.billets_vendus;
+
+  return `<div class="ecran">
+      ${barre('Le Forum en direct', null, `<button class="lien" data-a="regles">Règles</button>
+        <button class="lien" data-a="quitter">Quitter</button>`)}
+      ${bandeauReseau()}
+      ${santeVitrine(v.sante)}
+      <div class="entete">
+        <div class="script">Le Forum</div>
+        <h1 class="titre">en un coup d'œil</h1>
+        <p class="sous">${esc(v.libelle)} · relevé de ${esc(v.heure)}, il se met à jour tout seul</p>
+      </div>
+      <div class="indics">
+        <div class="indic"><div class="iv"><b data-compte="${v.garages_actifs}">0</b></div>
+          <div class="il">Garages entrés, sur ${v.garages_invites} invités</div></div>
+        <div class="indic"><div class="iv"><b data-compte="${v.points_emis}">0</b></div>
+          <div class="il">Points distribués depuis ce matin</div></div>
+        <div class="indic"><div class="iv"><b data-compte="${v.points_circulation}">0</b></div>
+          <div class="il">Points encore dans les poches</div></div>
+        <div class="indic"><div class="iv"><b data-compte="${v.operations}">0</b></div>
+          <div class="il">Opérations conclues sur les stands</div></div>
+        <div class="indic"><div class="iv"><b data-compte="${v.parties_jouees}">0</b></div>
+          <div class="il">Parties jouées aux animations</div></div>
+        <div class="indic"><div class="iv"><b data-compte="${v.lots_gagnes}">0</b></div>
+          <div class="il">Lots gagnés · ${v.lots_remis} déjà remis</div></div>
+        <div class="indic large">
+          <div class="iv"><b data-compte="${v.cases_jouees}">0</b> / ${v.cases_total}</div>
+          <div class="il">Cases jouées sur la grille · ${v.cases_libres} encore libres, à ${v.cout_grille} points</div>
+          <div class="jauge"><span style="width:${Math.round(v.cases_jouees / Math.max(v.cases_total, 1) * 100)}%"></span></div>
+        </div>
+      </div>
+
+      ${podium('Les garages qui marquent le plus', v.podium_garages,
+        (x) => x.points, () => 'points')}
+      ${podium('Les stands qui distribuent le plus', v.podium_stands,
+        (x) => x.points, (x) => `points · ${x.operations} op.`)}
+      ${podium('Les animations les plus jouées', v.podium_animations,
+        (x) => x.parties, () => 'parties')}
+
+      ${sectionRepliable('vjournal', 'Journal en direct', journal,
+        (j, i) => `<div class="mvt${i < neuves ? ' neuf' : ''}"><span class="mh">${esc(j.heure)}</span>
+            <span class="ml">${esc(j.garage + ' · ' + j.libelle)}</span>
+            <span class="md ${j.delta > 0 ? 'plus' : 'moins'}">${j.delta > 0 ? '+' : ''}${j.delta}</span>
+          </div>`, 'mouvements')}
+
+      <div class="section">
+        <p class="etiq">Les tickets d'or</p>
+        <div class="groupe">
+          <div class="rangee">
+            <span class="principal">
+              <span class="nom">Décrochés à cette heure</span>
+              <span class="detail">Chacun cache un gros lot, déjà attribué</span></span>
+            <span class="valeur"><b>${v.billets_vendus}</b><span>/ ${v.billets_total}</span></span>
+          </div>
+        </div>
+        <!-- La phrase de situation vit ICI et pas dans .detail : cette
+             classe coupe à l'ellipse sur une ligne, et la moitié du sens
+             partait avec. -->
+        <p class="sous">${v.tirage_revele
+          ? 'La révélation a eu lieu. Les gros lots se retirent au stand des lots.'
+          : restants > 0
+            ? `${restants} dorme${restants > 1 ? 'nt' : ''} encore sous la grille, quelque part entre les deux cents cases.`
+            : 'Tous décrochés. Rendez-vous ce soir sur scène pour savoir qui gagne quoi.'}</p>
+        <!-- AUCUN NOM, AUCUN LOT, JAMAIS. Cet écran est ouvert sur 140
+             téléphones dans la salle ; le détail des tickets d'or reste
+             à la direction, et à elle seule. Arbitrage du 17 septembre. -->
+        <p class="sous">La soirée ne tire rien au sort : chaque ticket porte déjà son gros lot.
+          Elle ouvre les enveloppes.</p>
+      </div>
+    </div>`;
+}
+
+// LES CHIFFRES MONTENT UNE SEULE FOIS, à la première ouverture. Les
+// rejouer à chaque rafraîchissement — toutes les trente secondes,
+// pendant six heures — transformerait un écran d'information en machine
+// à sous, et empêcherait de lire un chiffre qui bouge tout le temps.
+function animerVitrine() {
+  const doux = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // Les barres des podiums partent de zéro à CHAQUE rendu : elles sont
+  // reconstruites par rendre(), donc l'animation repart d'elle-même, et
+  // elle est assez discrète pour supporter la répétition.
+  if (!doux) requestAnimationFrame(() => $$('.podbar i').forEach((b) => b.classList.add('pousse')));
+  if (S.vitrineVue) { $$('[data-compte]').forEach((el) => { el.textContent = el.dataset.compte; }); return; }
+  S.vitrineVue = true;
+  $$('[data-compte]').forEach((el) => {
+    const fin = parseInt(el.dataset.compte, 10) || 0;
+    if (doux || fin === 0) { el.textContent = fin; return; }
+    const debut = performance.now(), duree = 900;
+    const pas = (t) => {
+      const p = Math.min(1, (t - debut) / duree);
+      // Sortie cubique : le chiffre part vite et se pose, au lieu de
+      // s'arrêter net sur sa valeur.
+      el.textContent = Math.round(fin * (1 - Math.pow(1 - p, 3)));
+      if (p < 1) requestAnimationFrame(pas);
+    };
+    requestAnimationFrame(pas);
+  });
+}
+
+// =====================================================================
 //  Rendu
 // =====================================================================
 const VUES = {
@@ -1378,6 +1563,7 @@ const VUES = {
   espace: vueParticipant,
   grille: vueGrille,
   revelation: vueRevelation,
+  vitrine: vueVitrine,
   animateur: vueAnimateur,
   fournisseur: vueFournisseur,
   admin: vueAdmin,
@@ -1395,7 +1581,7 @@ function rendre(garderFocus) {
   // Verre allégé, sans flou : les seuls écrans animateur et fournisseur,
   // ceux qui tournent cinq heures dans une main.
   const avecDecor = ['accueil', 'espace', 'grille', 'revelation',
-                     'projection', 'admin', 'lots', 'tickets', 'regles',
+                     'projection', 'admin', 'vitrine', 'lots', 'tickets', 'regles',
                      'accueil_hotesse'].includes(S.vue);
   const enService = ['animateur', 'fournisseur'].includes(S.vue);
   document.body.classList.toggle('decore', avecDecor);
@@ -1428,6 +1614,10 @@ function rendre(garderFocus) {
     const encore = $('#' + idChamp);
     if (encore) { encore.focus(); try { encore.setSelectionRange(pos, pos); } catch {} }
   }
+
+  // Les animations de la vitrine se posent APRÈS l'écriture du DOM :
+  // elles lisent des éléments qui n'existaient pas une ligne plus haut.
+  if (S.vue === 'vitrine') animerVitrine();
 }
 
 // =====================================================================
@@ -1489,6 +1679,13 @@ async function chargerSupervision() {
   catch { S.sante = null; }
 }
 
+// La vitrine tient en un seul appel : compteurs, podiums, journal et
+// barre de sante. Voir sql/30_vitrine.sql.
+async function chargerVitrine() {
+  try { S.vitrine = await api.lire.vitrine(); S.panne = null; }
+  catch (e) { if (!sessionMorte(e)) S.panne = e.detail || e.message; }
+}
+
 async function chargerAccueil() {
   try { S.accueil = await api.lire.accueilEtat(); S.panne = null; }
   catch (e) { if (!sessionMorte(e)) S.panne = e.detail || e.message; }
@@ -1520,6 +1717,7 @@ function sondage() {
     if (document.hidden) return;
     if (S.vue === 'espace') { if (await chargerEtat()) rendre(); }
     else if (S.vue === 'admin') { await chargerSupervision(); rendre(); }
+    else if (S.vue === 'vitrine') { await chargerVitrine(); rendre(); }
   }, rythme);
 }
 
@@ -1652,8 +1850,12 @@ async function agir(a, el) {
           rendre();
           toast('Connecté', esc(r.libelle));
           if (r.role === 'accueil') { await chargerAccueil(); rendre(); }
-          else { api.rafraichirGarages().then(() => rendre()).catch(() => {}); }
+          // La vitrine ne cherche jamais un garage : inutile de lui
+          // telecharger le cache des 1 456, c'est 200 Ko pour rien sur
+          // le wifi de la halle.
+          else if (r.role !== 'vitrine') { api.rafraichirGarages().then(() => rendre()).catch(() => {}); }
           if (r.role === 'admin') { await chargerSupervision(); rendre(); }
+          if (r.role === 'vitrine') { await chargerVitrine(); rendre(); }
           sondage();
           return;
         }
@@ -1975,6 +2177,7 @@ document.addEventListener('visibilitychange', async () => {
   if (document.hidden) return;
   if (S.vue === 'espace') { if (await chargerEtat()) rendre(); }
   if (S.vue === 'admin') { await chargerSupervision(); rendre(); }
+  if (S.vue === 'vitrine') { await chargerVitrine(); rendre(); }
 });
 
 // =====================================================================
@@ -2008,6 +2211,7 @@ document.addEventListener('visibilitychange', async () => {
         : (role === 'accueil' ? 'accueil_hotesse' : role);
   rendre();
   if (role === 'admin') { await chargerSupervision(); rendre(); }
+  else if (role === 'vitrine') { await chargerVitrine(); rendre(); }
   else if (role === 'accueil') { await chargerAccueil(); rendre(); }
   else api.rafraichirGarages().then(() => rendre()).catch(() => {});
   if (S.r) sondage();          // session morte entre-temps : rien à sonder

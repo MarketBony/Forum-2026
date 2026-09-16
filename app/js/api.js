@@ -158,6 +158,12 @@ export const lire = {
     return d;
   },
   tirage:      ()       => appel('api_tirage_etat', { p_jeton: jeton() }),
+  // La vitrine tient en UN SEUL appel : compteurs, podiums, journal et
+  // barre de santé. Elle sera ouverte sur 140 téléphones pendant six
+  // heures, et le pool PostgREST plafonne à 11 connexions — chaque
+  // aller-retour évité en est une qui reste libre pour un garagiste qui
+  // achète une case.
+  vitrine:     ()       => appel('api_vitrine', { p_jeton: jeton() }),
   // Poste d'accueil : le seul endroit où un code de garage est lisible
   accueilChercher: (q) => appel('api_accueil_chercher', { p_jeton: jeton(), p_q: q }),
   accueilEtat:     ()  => appel('api_accueil_etat', { p_jeton: jeton() }),
