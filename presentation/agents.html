@@ -392,6 +392,21 @@ body{
 
 <div id="deck">
 
+<!-- =====================================================================
+     SEPT DIAPOSITIVES, ET C'EST UN PLAFOND.
+     La version du 15 septembre en comptait douze. Demande de Bastien le
+     16 : « faut me la condenser, c'est trop long, et y'a un peu trop de
+     textes par endroits ». Les fusions :
+        02 absorbe « ce qui change » et « l'entrée »
+        03 absorbe « gagner des points » et « les animations »
+        05 absorbe « la grille » et « le verdict »
+        06 absorbe « le ticket d'or » et le soir de « la journée »
+        07 absorbe « à retenir » et la clôture
+     « La journée en quatre temps » a sauté : elle redisait le reste du
+     dossier dans l'ordre. Avant d'ajouter une diapositive, en retirer
+     une — une réunion d'agents dure vingt minutes, pas une heure.
+     ===================================================================== -->
+
 <!-- ================= 1 · COUVERTURE ================= -->
 <section class="dia couv" data-t="Couverture">
   <div class="guirlande" aria-hidden="true">
@@ -409,63 +424,33 @@ body{
     <div class="regle ap"></div>
     <p class="souscouv ap">
       Cette année, les jetons tiennent dans votre téléphone.<br>
-      Jeudi 17 septembre · Grande Halle d'Auvergne
+      Grande Halle d'Auvergne · aujourd'hui
     </p>
     <p class="mention ap" style="margin-top:28px">Réunion d'agents</p>
   </div>
   <div class="souris" aria-hidden="true"><i></i>Faire défiler</div>
 </section>
 
-<!-- ================= 2 · CE QUI CHANGE ================= -->
-<section class="dia" data-t="Ce qui change">
-  <div class="corps">
-    <div class="ap">
-      <span class="num">01 — CE QUI CHANGE</span>
-      <div class="script" style="margin-top:14px">Plus de jetons</div>
-      <h2 class="titre">en carton. <em>Tout est dans<br>votre téléphone.</em></h2>
-    </div>
-    <p class="chapo ap">
-      Vous arrivez, vous tapez les quatre caractères de votre invitation, et votre
-      compte de points s'ouvre. Rien à installer, rien à créer, aucun mot de passe.
-      Vous gagnez des points toute la journée, et vous les dépensez sur une grille
-      où se cachent cent lots.
-    </p>
-    <div class="cartes c3">
-      <div class="verre carte ap">
-        <span class="etiq">Vous n'avez rien à faire</span>
-        <h3>Pas de compte à créer</h3>
-        <p>Votre code est déjà sur votre invitation. Il ouvre votre solde, et il le rouvre si vous fermez la page.</p>
-      </div>
-      <div class="verre carte ap">
-        <span class="etiq">Rien à perdre</span>
-        <h3>Vos points vous suivent</h3>
-        <p>Ils sont dans le téléphone, pas dans une poche. Impossible d'en faire tomber un sous une table.</p>
-      </div>
-      <div class="verre carte ap">
-        <span class="etiq">Toute la journée</span>
-        <h3>Votre solde en direct</h3>
-        <p>À chaque partie, à chaque stand, vous voyez le compte monter. Vous savez toujours où vous en êtes.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ================= 3 · L'ENTRÉE ================= -->
+<!-- ================= 2 · L'ENTRÉE ================= -->
 <section class="dia" data-t="L entrée">
   <div class="corps deux penche">
     <div>
       <div class="ap">
-        <span class="num">02 — L'ENTRÉE</span>
-        <div class="script" style="margin-top:14px">Quatre caractères,</div>
-        <h2 class="titre">et c'est parti</h2>
+        <span class="num">01 — L'ENTRÉE</span>
+        <div class="script" style="margin-top:14px">Plus de jetons en carton,</div>
+        <h2 class="titre">tout est dans<br><em>votre téléphone</em></h2>
       </div>
+      <p class="chapo ap">
+        Vous tapez les quatre caractères de votre invitation, et votre compte
+        s'ouvre. Rien à installer, aucun mot de passe.
+      </p>
       <div class="liste ap">
         <div class="pt"><i></i><b>Votre code est sur l'invitation</b>
-          <span>Quatre caractères, en gros. C'est votre clé, et elle ne sert qu'à vous.</span></div>
-        <div class="pt"><i></i><b>Vous l'avez perdu ?</b>
-          <span>L'accueil vous le redonne en trois secondes. Personne ne reste à la porte.</span></div>
+          <span>Perdu ? L'accueil vous le redonne en trois secondes.</span></div>
         <div class="pt"><i class="vert"></i><b>Dix points offerts en arrivant</b>
-          <span>Votre compte ne démarre pas à zéro : vous avez déjà de quoi commencer.</span></div>
+          <span>Votre compte ne démarre pas à zéro.</span></div>
+        <div class="pt"><i></i><b>Vos points ne tombent pas d'une poche</b>
+          <span>Ils sont dans le téléphone, et le solde monte en direct.</span></div>
       </div>
     </div>
     <div class="scene ap">
@@ -495,11 +480,11 @@ body{
   </div>
 </section>
 
-<!-- ================= 4 · GAGNER DES POINTS ================= -->
+<!-- ================= 3 · GAGNER DES POINTS ================= -->
 <section class="dia" data-t="Gagner des points">
   <div class="corps">
     <div class="ap">
-      <span class="num">03 — GAGNER</span>
+      <span class="num">02 — GAGNER</span>
       <div class="script" style="margin-top:14px">Deux façons</div>
       <h2 class="titre">de faire monter le compteur</h2>
     </div>
@@ -507,16 +492,17 @@ body{
       <div class="verre carte">
         <span class="etiq">Les six animations</span>
         <h3 style="font-size:clamp(20px,1.7vw,27px)">Vous jouez, vous marquez</h3>
-        <p>Pétanque, corn hole, fléchettes, basket, Blazzpod et la borne d'arcade.
-           Deux points pour lancer une partie, et jusqu'à dix si vous réussissez.
-           <b style="color:var(--or-clair)">Un coup réussi, vous ne perdez rien ; un coup manqué, ça vous aura coûté deux points.</b></p>
+        <p>Pétanque, corn hole, fléchettes, basket, Blazzpod, borne d'arcade.
+           Deux points pour lancer, jusqu'à dix si vous réussissez. L'animateur
+           vous retrouve et note le résultat : vous n'avez rien à saisir.
+           <b style="color:var(--or-clair)">Chaque jeu a sa limite — au bout de quelques parties, il faut aller voir ailleurs.</b></p>
       </div>
       <div class="verre carte">
         <span class="etiq">Les vingt-trois stands</span>
         <h3 style="font-size:clamp(20px,1.7vw,27px)">Vous discutez, vous marquez</h3>
-        <p>Chaque opération conclue sur un stand fournisseur vous rapporte des points —
-           jusqu'à vingt d'un coup. C'est là que les gros points se gagnent, et
-           c'est aussi pour ça que le Forum existe.</p>
+        <p>Chaque opération conclue sur un stand vous rapporte jusqu'à vingt points
+           d'un coup. C'est là que les gros points se gagnent, et c'est aussi
+           pour ça que le Forum existe.</p>
       </div>
     </div>
     <div class="cartes c4 ap">
@@ -536,72 +522,24 @@ body{
   </div>
 </section>
 
-<!-- ================= 5 · LES ANIMATIONS ================= -->
-<section class="dia" data-t="Les animations">
-  <div class="corps deux penche-g">
-    <div>
-      <div class="ap">
-        <span class="num">04 — LES ANIMATIONS</span>
-        <div class="script" style="margin-top:14px">L'animateur</div>
-        <h2 class="titre">note, vous jouez</h2>
-      </div>
-      <p class="chapo ap">
-        Vous vous présentez, il vous retrouve dans la liste, il lance la partie.
-        Deux points sont débités. Vous jouez. Il note le résultat, et les points
-        tombent tout de suite sur votre compte.
-      </p>
-      <div class="liste ap">
-        <div class="pt"><i></i><b>Rien à saisir de votre côté</b>
-          <span>Vous donnez votre nom, c'est tout. Vous n'avez même pas à sortir votre téléphone.</span></div>
-        <div class="pt"><i class="terra"></i><b>Chaque jeu a sa limite</b>
-          <span>On ne peut pas camper devant une borne toute la journée : au bout de quelques parties,
-                il faut aller voir ailleurs. Il y a six jeux, et il en faut pour tout le monde.</span></div>
-      </div>
-    </div>
-    <div class="scene ap">
-      <div>
-        <div class="tel">
-          <div class="ecr">
-            <div class="m-barre"><svg viewBox="0 0 62.09 63.05"><path d="M57.36,24.68c-.41-.47-.85-.93-1.32-1.37.45-1.28.77-2.59.95-3.9.73-5.19-.63-10.07-3.84-13.76-3.16-3.64-7.73-5.64-12.86-5.64h-17.54l-4.05,22.05h23.55c3.27,0,6.34.86,8.89,2.49-3.14,5.81-9.41,9.71-15.66,9.71H5.25L0,63.05h36.5c12.26,0,23.64-9.97,25.36-22.22.86-6.09-.74-11.83-4.5-16.16h0ZM57.91,40.27c-1.46,10.36-11.06,18.78-21.4,18.78H4.81l3.76-20.81h26.92c7.41,0,14.74-4.34,18.74-11.08.04.04.08.09.11.13,2.99,3.44,4.25,8.04,3.56,12.98h0ZM53.04,18.85c-.09.64-.22,1.28-.39,1.92-3.04-1.78-6.62-2.71-10.39-2.71h-18.65l2.42-14.06h14.26c3.96,0,7.45,1.52,9.84,4.27,2.43,2.8,3.46,6.56,2.9,10.58h0Z"/></svg><b>Atelier pétanque</b><em>Retour</em></div>
-            <div style="margin-top:6px">
-              <div class="m-titre" style="font-size:17px">Garage des Volcans</div>
-              <div class="m-sous" style="margin-top:4px">Participation débitée. Sélectionnez le résultat.</div>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:9px;margin-top:6px">
-              <div class="m-note gagne"><span class="nl">Tir · 3 boules sur 3</span><span class="np">+10</span></div>
-              <div class="m-note moyen"><span class="nl">Tir · 2 boules sur 3</span><span class="np">+5</span></div>
-              <div class="m-note moyen"><span class="nl">Pointeur · 3 cerceaux</span><span class="np">+5</span></div>
-              <div class="m-note moyen"><span class="nl">Pointeur · 2 cerceaux</span><span class="np">+3</span></div>
-              <div class="m-note moyen"><span class="nl">Tir · 1 boule sur 3</span><span class="np">+2</span></div>
-              <div class="m-note nul"><span class="nl">Rien de marqué</span><span class="np">0</span></div>
-            </div>
-          </div>
-        </div>
-        <span class="tel-lg">L'écran de l'animateur, à la pétanque</span>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ================= 6 · VOTRE ESPACE ================= -->
+<!-- ================= 4 · VOTRE ESPACE ================= -->
 <section class="dia" data-t="Votre espace">
   <div class="corps deux penche">
     <div>
       <div class="ap">
-        <span class="num">05 — VOTRE ESPACE</span>
+        <span class="num">03 — VOTRE ESPACE</span>
         <div class="script" style="margin-top:14px">Votre solde,</div>
         <h2 class="titre">et tout ce qui l'a fait</h2>
       </div>
       <p class="chapo ap">
-        Un seul écran : votre compte en gros, le bouton pour tenter un lot, et la liste
-        de tout ce que vous avez gagné dans la journée. Chaque ligne est datée et
-        nommée — vous pouvez toujours vérifier d'où vient un point.
+        Votre compte en gros, un bouton pour tenter un lot, et la liste de tout
+        ce que vous avez gagné. Chaque ligne est datée et nommée.
       </p>
       <div class="liste ap">
         <div class="pt"><i></i><b>Votre code reste affiché</b>
-          <span>Notez-le : il rouvre votre solde si vous fermez l'application ou changez de téléphone.</span></div>
+          <span>Il rouvre votre solde si vous changez de téléphone.</span></div>
         <div class="pt"><i class="vert"></i><b>Un bouton, une action</b>
-          <span>« Tenter un lot ». C'est le seul geste que vous ferez sur ce téléphone.</span></div>
+          <span>« Tenter un lot ». C'est le seul geste que vous ferez.</span></div>
       </div>
     </div>
     <div class="scene ap">
@@ -618,11 +556,19 @@ body{
             </div>
             <div class="m-bouton">Tenter un lot · 20 pts</div>
             <span class="m-etiq">Mes opérations</span>
+            <!-- QUATRE LIGNES, PAS CINQ. À cinq, la dernière débordait de
+                 53 px sous le bord de l'écran du téléphone et se coupait en
+                 plein milieu — invisible tant qu'on ne regarde pas de près,
+                 très visible sur un export 1920×1080 posé dans un PPTX.
+                 La ligne « Achat — FACOM » est partie plutôt que le bonus de
+                 bienvenue : elle redisait « Achat — MICHELIN », alors que les
+                 quatre restantes montrent chacune un mouvement différent —
+                 un achat, un gain de jeu, une participation débitée, le
+                 bonus d'arrivée. -->
             <div class="m-groupe">
               <div class="m-rangee"><span class="p"><span class="n">Achat — MICHELIN</span><span class="d">15 h 12 · 13 à 24 pneus</span></span><span class="v vert">+10</span></div>
               <div class="m-rangee"><span class="p"><span class="n">Atelier pétanque · tir 2 sur 3</span><span class="d">14 h 48</span></span><span class="v vert">+5</span></div>
               <div class="m-rangee"><span class="p"><span class="n">Atelier pétanque · participation</span><span class="d">14 h 47</span></span><span class="v">−2</span></div>
-              <div class="m-rangee"><span class="p"><span class="n">Achat — FACOM</span><span class="d">11 h 30 · 200 à 699 €</span></span><span class="v vert">+10</span></div>
               <div class="m-rangee"><span class="p"><span class="n">Bienvenue au Forum</span><span class="d">09 h 41</span></span><span class="v vert">+10</span></div>
             </div>
           </div>
@@ -633,19 +579,20 @@ body{
   </div>
 </section>
 
-<!-- ================= 7 · LA GRILLE ================= -->
+<!-- ================= 5 · LA GRILLE ET LES LOTS ================= -->
 <section class="dia" data-t="La grille">
   <div class="corps deux penche-g">
     <div>
       <div class="ap">
-        <span class="num">06 — LA GRILLE</span>
+        <span class="num">04 — LA GRILLE</span>
         <div class="script" style="margin-top:14px">Deux cents cases,</div>
         <h2 class="titre">cent lots dessous</h2>
       </div>
       <p class="chapo ap">
-        Vingt points la case. Vous choisissez un numéro, vous appuyez, et vous savez
-        tout de suite. <b style="color:var(--or-pale)">Une case sur deux est gagnante</b> —
-        il y a exactement cent lots pour deux cents cases.
+        Vingt points la case. Vous appuyez, vous savez tout de suite :
+        <b style="color:var(--or-pale)">une case sur deux est gagnante</b>.
+        Un code de retrait s'affiche, vous le présentez au stand des lots,
+        et c'est réglé.
       </p>
       <div class="repart ap" aria-hidden="true">
         <span class="lot"></span><span class="billet"></span><span class="perdu"></span>
@@ -679,77 +626,23 @@ body{
   </div>
 </section>
 
-<!-- ================= 8 · LE VERDICT ================= -->
-<section class="dia" data-t="Le verdict">
-  <div class="corps deux">
-    <div>
-      <div class="ap">
-        <span class="num">07 — LE VERDICT</span>
-        <div class="script" style="margin-top:14px">Gagné ?</div>
-        <h2 class="titre">Le lot vous attend<br>au stand</h2>
-      </div>
-      <p class="chapo ap">
-        Un code de retrait s'affiche sur votre téléphone. Vous le présentez au stand
-        des lots, on vous remet le cadeau, et c'est réglé. Pas de ticket à garder,
-        pas de file à la sortie.
-      </p>
-      <div class="cartes c3 ap">
-        <div class="verre carte" style="align-items:center;text-align:center">
-          <div class="chiffre">100</div><div class="legende">lots à gagner</div>
-        </div>
-        <div class="verre carte" style="align-items:center;text-align:center">
-          <div class="chiffre sobre">1<span style="font-size:.55em"> sur </span>2</div><div class="legende">cases gagnantes</div>
-        </div>
-        <div class="verre carte" style="align-items:center;text-align:center">
-          <div class="chiffre terra">15</div><div class="legende">gros lots<br>remis le soir</div>
-        </div>
-      </div>
-    </div>
-    <div class="scene ap">
-      <div>
-        <div class="tel">
-          <div class="ecr">
-            <div class="m-barre"><svg viewBox="0 0 62.09 63.05"><path d="M57.36,24.68c-.41-.47-.85-.93-1.32-1.37.45-1.28.77-2.59.95-3.9.73-5.19-.63-10.07-3.84-13.76-3.16-3.64-7.73-5.64-12.86-5.64h-17.54l-4.05,22.05h23.55c3.27,0,6.34.86,8.89,2.49-3.14,5.81-9.41,9.71-15.66,9.71H5.25L0,63.05h36.5c12.26,0,23.64-9.97,25.36-22.22.86-6.09-.74-11.83-4.5-16.16h0ZM57.91,40.27c-1.46,10.36-11.06,18.78-21.4,18.78H4.81l3.76-20.81h26.92c7.41,0,14.74-4.34,18.74-11.08.04.04.08.09.11.13,2.99,3.44,4.25,8.04,3.56,12.98h0ZM53.04,18.85c-.09.64-.22,1.28-.39,1.92-3.04-1.78-6.62-2.71-10.39-2.71h-18.65l2.42-14.06h14.26c3.96,0,7.45,1.52,9.84,4.27,2.43,2.8,3.46,6.56,2.9,10.58h0Z"/></svg><b>Garage</b><em>Retour</em></div>
-            <div class="m-verre m-revele" style="margin-top:22px">
-              <div class="rk">Bravo,</div>
-              <div class="rt">c'est gagné !</div>
-              <div class="rlot">MINIATURE SYMBIOZ 1/43
-                <div class="rcode">4E199</div>
-                <div class="rnote">Code de retrait, à présenter au stand des lots</div>
-              </div>
-              <div class="rcase">Case n°37</div>
-            </div>
-            <div style="margin-top:auto;display:flex;flex-direction:column;gap:10px">
-              <div class="m-bouton">Retenter ma chance</div>
-              <div class="m-bouton creux">Revenir à mon solde</div>
-            </div>
-          </div>
-        </div>
-        <span class="tel-lg">Le verdict, à l'instant où vous appuyez</span>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ================= 9 · LE TICKET D'OR ================= -->
+<!-- ================= 6 · LE TICKET D'OR ================= -->
 <section class="dia" data-t="Le ticket d or">
   <div class="corps deux penche">
     <div>
       <div class="ap">
-        <span class="num">08 — LE TICKET D'OR</span>
+        <span class="num">05 — LE TICKET D'OR</span>
         <div class="script" style="margin-top:14px">Quinze cases</div>
         <h2 class="titre">ne disent pas<br><em>ce qu'elles cachent</em></h2>
       </div>
       <p class="chapo ap">
-        Derrière chacune, un gros lot. Mais vous ne saurez lequel qu'au cocktail,
+        Derrière chacune, un gros lot. Vous ne saurez lequel qu'au cocktail,
         sur l'écran géant, quand les quinze noms seront annoncés un par un.
       </p>
       <div class="liste ap">
         <div class="pt"><i class="terra"></i><b>Quinze tickets, quinze gros lots</b>
-          <span>Personne ne repart les mains vides : si vous décrochez un ticket, un gros lot est à vous.
-                Le soir ne décide pas qui gagne — il décide qui gagne quoi.</span></div>
-        <div class="pt"><i></i><b>Du sac cuir Alpine à l'avion en bois</b>
-          <span>Il y a de quoi attendre la fin de soirée.</span></div>
+          <span>Personne ne repart les mains vides. Le soir ne décide pas qui gagne,
+                il décide qui gagne quoi — du sac cuir Alpine à l'avion en bois.</span></div>
         <div class="pt"><i class="vert"></i><b>Il faut être là</b>
           <span>La révélation se fait sur scène, au cocktail. C'est le seul moment où l'on saura.</span></div>
       </div>
@@ -780,93 +673,48 @@ body{
   </div>
 </section>
 
-<!-- ================= 10 · LA JOURNÉE ================= -->
-<section class="dia" data-t="La journée">
+<!-- ================= 7 · CLÔTURE =================
+     La version du 15 disait « À jeudi ». Or cette réunion se tient le
+     matin même du Forum : on ne donne pas rendez-vous à un jour où l'on
+     est déjà. Les trois choses à retenir sont montées ici, ce qui a
+     supprimé une diapositive sans rien perdre. -->
+<section class="dia couv" data-t="Et maintenant">
   <div class="corps">
     <div class="ap">
-      <span class="num">09 — LE DÉROULÉ</span>
-      <div class="script" style="margin-top:14px">Une journée,</div>
-      <h2 class="titre">quatre temps</h2>
+      <div class="script">Et maintenant,</div>
+      <h2 class="titre" style="font-size:clamp(38px,6.2vw,86px)">place au Forum</h2>
     </div>
-    <div class="frise">
-      <div class="verre moment ap">
-        <div class="h">Matin</div>
-        <h3>Vous arrivez</h3>
-        <p>L'accueil vous remet votre badge. Vous tapez votre code, vous avez dix points.</p>
+    <div class="cartes c3 ap" style="margin-top:clamp(22px,3.4vh,40px);text-align:left">
+      <div class="verre carte">
+        <span class="etiq">1</span>
+        <h3>Gardez votre code</h3>
+        <p>Quatre caractères, sur l'invitation. L'accueil dépanne, mais ça vous fera gagner du temps.</p>
       </div>
-      <div class="verre moment ap">
-        <div class="h">Journée</div>
-        <h3>Vous jouez, vous discutez</h3>
-        <p>Les six animations, les vingt-trois stands. Le compteur monte.</p>
+      <div class="verre carte">
+        <span class="etiq">2</span>
+        <h3>Passez sur les stands</h3>
+        <p>Les animations font plaisir ; ce sont les stands qui remplissent le compteur.</p>
       </div>
-      <div class="verre moment ap">
-        <div class="h">Au fil</div>
-        <h3>Vous tentez la grille</h3>
-        <p>Vingt points la case, cinq cases. Les lots se retirent au stand, tout de suite.</p>
-      </div>
-      <div class="verre moment ap">
-        <div class="h">Le soir</div>
-        <h3>Le cocktail, et l'écran géant</h3>
-        <p>Les quinze gros lots sont révélés un par un. C'est le moment à ne pas manquer.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ================= 11 · À RETENIR ================= -->
-<section class="dia" data-t="À retenir">
-  <div class="corps">
-    <div class="ap">
-      <span class="num">10 — À RETENIR</span>
-      <div class="script" style="margin-top:14px">Si vous ne retenez</div>
-      <h2 class="titre">que trois choses</h2>
-    </div>
-    <div class="etapes ap" style="grid-template-columns:repeat(3,minmax(0,1fr))">
-      <div class="verre etape">
-        <div class="rang">1</div>
-        <h3>Votre code est sur l'invitation</h3>
-        <p>Quatre caractères. Apportez-la, ou retenez-le. L'accueil dépanne, mais ça vous fera gagner du temps.</p>
-      </div>
-      <div class="verre etape">
-        <div class="rang">2</div>
-        <h3>Jouez, mais passez sur les stands</h3>
-        <p>Les animations font plaisir ; ce sont les stands qui remplissent le compteur. Vingt points l'opération.</p>
-        <span class="pts">C'est là que ça se joue</span>
-      </div>
-      <div class="verre etape">
-        <div class="rang">3</div>
+      <div class="verre carte">
+        <span class="etiq">3</span>
         <h3>Restez pour le cocktail</h3>
-        <p>Les quinze gros lots ne se remettent que sur scène, le soir. Un ticket d'or ne sert à rien si vous êtes parti.</p>
-        <span class="pts">Le moment à ne pas manquer</span>
+        <p>Un ticket d'or ne sert à rien si vous êtes parti : les gros lots ne se remettent que sur scène.</p>
       </div>
-    </div>
-    <p class="chapo ap" style="margin-top:clamp(22px,3vh,36px);max-width:68ch">
-      Et si quelque chose ne marche pas : l'équipe Bony est sur place toute la journée,
-      au stand des lots. Personne ne restera bloqué devant un écran.
-    </p>
-  </div>
-</section>
-
-<!-- ================= 12 · CLÔTURE ================= -->
-<section class="dia couv" data-t="Rendez-vous">
-  <div class="corps">
-    <div class="ap">
-      <div class="script">À jeudi</div>
-      <h2 class="titre">Grande Halle<br>d'Auvergne</h2>
     </div>
     <div class="regle ap"></div>
     <p class="souscouv ap">
-      Jeudi 17 septembre 2026 · Cournon-d'Auvergne<br>
-      Toute la journée, puis cocktail dînatoire et grand tirage.
+      Grande Halle d'Auvergne · toute la journée, puis cocktail dînatoire
+      et révélation des gros lots.<br>
+      L'équipe Bony est sur place, au stand des lots : personne ne restera bloqué devant un écran.
     </p>
-    <p class="mention ap" style="margin-top:30px">Forum Pièces Bony 2026 · Le Grand Bal des Fournisseurs</p>
+    <p class="mention ap" style="margin-top:26px">Forum Pièces Bony 2026 · Le Grand Bal des Fournisseurs</p>
   </div>
 </section>
 
 </div>
 
 <nav id="rail" aria-label="Navigation entre les diapositives"></nav>
-<div id="pied"><b id="ici">01</b> / <span id="total">12</span></div>
+<div id="pied"><b id="ici">01</b> / <span id="total">07</span></div>
 
 <script>
 (function(){
