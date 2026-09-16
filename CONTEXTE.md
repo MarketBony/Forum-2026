@@ -5,18 +5,21 @@
 > l'application, pourquoi elle est construite ainsi, ce qui a été fait, ce qui
 > reste, les pièges rencontrés, et la méthode de travail attendue.
 >
-> Dernière mise à jour : **16 septembre 2026, au soir**. Événement :
-> **jeudi 17 septembre 2026** — c'est **demain**.
+> Dernière mise à jour : **16 septembre 2026, tard le soir**, juste après la
+> remise à zéro. Événement : **jeudi 17 septembre 2026** — c'est **demain**.
 >
 > Les §1 à §14 décrivent l'application. Le **§15** décrit le générateur de
-> badges, ajouté les 14 et 15 septembre : c'est un outil local, séparé, qui ne
-> touche pas à l'application et n'est jamais déployé.
+> badges : outil local, séparé, jamais déployé. Le **§16** décrit la vitrine,
+> ajoutée le 16 au soir. Le **§17** dit où en est le projet à cette minute et
+> ce qui reste ouvert — **à lire en premier si vous reprenez la main**.
 >
-> 🔴 **LA SEULE CHOSE QUI RESTE À FAIRE AVANT LE FORUM** :
-> `.\scripts\push-sql.ps1 -File sql\99_remise_a_zero.sql`
-> La base porte encore les traces des tests et de la simulation. Sans cette
-> remise à zéro, des cases sont déjà prises et des garages arrivent avec un
-> solde fictif. **Rien d'autre n'est bloquant.**
+> 🟢 **TOUT EST PRÊT. LA BASE EST À ZÉRO.**
+> Journal 0 · cases 0 · soldes 0 · écarts 0 · `tirage_revele = non` ·
+> 85 lots + 15 tickets · 516 badges imprimés · déployé en `gbp-v27`.
+>
+> 🔴 **NE PAS RELANCER `99_remise_a_zero.sql`.** Elle est passée le 16 au soir,
+> après la simulation de 400 garages. La relancer pendant le Forum effacerait
+> une vraie journée. Voir §17.
 >
 > ⚠️ **L'événement s'appelle « Le Grand Bal des FOURNISSEURS ».** Les commits et
 > les captures antérieurs au 15 septembre disent « des Points » : c'était une
@@ -40,8 +43,9 @@
 | **En ligne** | https://forum-2026.bonyauto-mobile.workers.dev/ — **et rien d'autre**, voir §10 |
 | **Dépôt** | `MarketBony/Forum-2026` — **privé**, doit le rester |
 | **Coût** | 0 € (Cloudflare Workers gratuit + Supabase gratuit) |
-| **État** | **Terminé et déployé** (`gbp-v22`), 114 tests verts, plus aucune décision bloquante |
-| **Badges** | **516 badges**, 258 feuilles A4 — voir §15 |
+| **État** | **Terminé, déployé (`gbp-v27`), base à zéro** — 114 tests verts, voir §17 |
+| **Badges** | **516 badges**, 258 feuilles A4, **imprimés** — voir §15 |
+| **Profils** | **six** : garage, animateur, fournisseur, accueil, direction, **vitrine** (§16) |
 | **Éprouvé** | simulation de 400 garages par l'API réelle : **0 échec sur 5 831 appels** — voir §8 |
 
 > Le chiffre de « ~150 attendus » qui figurait ici jusqu'au 11 septembre était une
@@ -65,18 +69,25 @@ qu'une chose ne va pas sur le terrain, c'est son terrain : il a raison.
 
 ### Avant l'ouverture
 
-```powershell
-# 1. Remettre la base à zéro. OBLIGATOIRE. Elle préserve la grille.
-.\scripts\push-sql.ps1 -File sql\99_remise_a_zero.sql
+> 🔴 **La remise à zéro est DÉJÀ FAITE** (16 au soir). Ne pas la relancer.
+> Il ne reste qu'à **vérifier**, et à ouvrir.
 
-# 2. Vérifier que tout est à zéro et que la composition a survécu
+```powershell
+# 1. Vérifier que tout est encore à zéro et que la composition a survécu
 .\scripts\push-sql.ps1 -Quiet -Query "select (select count(*) from journal) as journal, (select count(*) from grille where garage_id is not null) as cases_prises, (select count(*) from verifier_soldes()) as ecarts, (select count(*) from grille where nature='lot') as lots, (select count(*) from grille where nature='billet') as tickets"
 # attendu : journal=0  cases_prises=0  ecarts=0  lots=85  tickets=15
+# Si journal > 0, le Forum a COMMENCÉ : ne touchez à rien.
 
-# 3. Vérifier que le site servi est bien à jour
+# 2. Vérifier que le site servi est bien à jour
 (New-Object System.Net.WebClient).DownloadString(
   'https://forum-2026.bonyauto-mobile.workers.dev/sw.js?t=' + (Get-Random)
 ) -match "const VERSION = '([^']+)'" ; $Matches[1]
+# attendu : gbp-v27
+
+# 3. Sur CHAQUE appareil de service (projection, supervision, accueil) :
+#    Ctrl + Maj + R une fois. Le service worker garde l'ancienne version
+#    en cache, et c'est le piège qui fait croire qu'un correctif n'est
+#    pas parti.
 ```
 
 ### Pendant la journée
@@ -168,7 +179,7 @@ décrochés dans la grille jouent un grand tirage sur l'écran géant.
 | **Fournisseur** | le code de son stand | chercher un garage, créditer une opération |
 | **Accueil** | le code hôtesse | chercher parmi les 1 457 invités, **lire un code**, voir le compteur d'arrivées |
 | **Équipe Bony** | le code direction | supervision, remise des lots, corrections, **détail des tickets d'or**, écran de projection |
-| **Vitrine** | un code personnel | **lecture seule** — compteurs, podiums, journal en direct. 119 équipe Bony + 21 constructeurs, voir §19 |
+| **Vitrine** | un code personnel | **lecture seule** — compteurs, podiums, journal en direct. 119 équipe Bony + 21 constructeurs, voir §16 |
 
 L'accueil ne voit **ni les soldes ni le journal** : c'est du personnel d'extra,
 deux pouvoirs et pas un de plus.
@@ -741,25 +752,24 @@ halle, le rendu sur téléphone étroit de la présentation : tout ce qui n'a pa
 
 ---
 
-## 11. Ce qui reste — état au 16 septembre 2026, veille du Forum
+## 11. Ce qui reste — état au 16 septembre 2026, tard le soir
 
-### 🔴 La seule manœuvre obligatoire
+### 🟢 Plus rien de bloquant
 
-```powershell
-.\scripts\push-sql.ps1 -File sql\99_remise_a_zero.sql
-```
+**La remise à zéro est passée**, après la simulation de 400 garages. Relevé
+juste après : journal **0** · cases prises **0** · soldes **0** · écarts **0** ·
+`tirage_revele = non` · 85 lots + 15 tickets en place.
 
-La base porte les traces des 114 tests et de la simulation de 400 garages. Sans
-cette remise à zéro, des cases sont déjà prises et des garages arrivent avec un
-solde fictif. **C'est la seule chose qui rendrait le Forum injouable si on
-l'oubliait.** Elle préserve la composition de la grille — les 100 lots et les 15
-tickets d'or restent en place, seuls les achats et le journal sont effacés.
+> 🔴 **`99_remise_a_zero.sql` ne doit plus être relancée.** Pendant le Forum,
+> elle effacerait une vraie journée. Le détail de la passation est au **§17**.
 
-Après elle, vérifier que tout est à zéro :
+Le seul geste avant l'ouverture est de **vérifier** :
 
 ```powershell
 .\scripts\push-sql.ps1 -Quiet -Query "select (select count(*) from grille where garage_id is not null) as cases_prises, (select count(*) from journal) as journal, (select count(*) from verifier_soldes()) as ecarts"
 ```
+
+Si `journal` n'est pas à zéro, **le Forum a commencé** : ne toucher à rien.
 
 ### Les décisions de Bony — toutes rendues
 
@@ -776,34 +786,40 @@ Après elle, vérifier que tout est à zéro :
 | 8 | ~~Les arbitrages de badges~~ | ✅ tous tranchés le 15/09, détail en fin de §15 |
 | 9 | ~~Un 3ᵉ palier aux fléchettes~~ | ✅ « Les 3 fléchettes dans la cible » à 2 pts — **marque-place assumé** |
 | 10 | ~~« TOP SCORE EN 45 SECONDES »~~ | ✅ seuil sur ardoise — **consigne à donner de vive voix** |
-| 11 | **Constructeurs** | 🟡 le seul listing encore attendu ; la catégorie est prête et vide |
+| 11 | ~~Constructeurs~~ | ✅ **21 invités Renault** importés le 16/09 — `sql/27_collaborateurs.sql` |
+| 12 | ~~Une interface pour l'équipe Bony et les constructeurs~~ | ✅ **la vitrine**, 140 codes nominatifs — §16 |
+| 13 | **Supabase Pro** | 🟡 **la seule décision encore ouverte** — voir §17, les mesures disent que ce n'est pas nécessaire |
 
 ### Ce qui reste en dehors du code
 
-> 1. **Relancer `99_remise_a_zero.sql`.** Voir ci-dessus. C'est le seul point dur.
-> 2. **Dire aux animateurs du BASKET ARCADE et du BLAZZPOD** d'écrire le score à
+> 1. **Dire aux animateurs du BASKET ARCADE et du BLAZZPOD** d'écrire le score à
 >    battre sur une ardoise. Le prestataire a écrit « TOP SCORE EN 45 SECONDES,
 >    4 PTS À GAGNER » : ça donne un plafond, aucun seuil, et l'application
 >    demande un RÉSULTAT, pas un nombre. C'est la seule consigne humaine qui
 >    manque au dispositif.
-> 3. **Le listing constructeurs**, quand Bastien l'aura, avec
->    `importer-inscriptions.ps1`. Renault est inscrit — deux personnes avec des
->    identifiants `EXTERN` — mais n'a aucun code en base.
-> 4. **Exporter le journal toutes les heures** le jour J :
->    `.\scripts\exporter-journal.ps1`. Le plan gratuit n'a aucune sauvegarde, et
->    celle du plan payant ne contiendrait rien de la soirée de toute façon.
+> 2. **Exporter le journal toutes les heures** le jour J :
+>    `.\scripts\exporter-journal.ps1`. Le plan gratuit n'a aucune sauvegarde —
+>    relevé le 16 au soir : `"backups": []`.
+> 3. **`Ctrl + Maj + R` sur les postes de service** avant d'ouvrir. Le service
+>    worker resert l'ancienne version sans rien dire.
+> 4. **Un garage absent des 1 456** ne peut pas être servi par l'accueil : aucune
+>    fonction `api_*` ne crée de garage. Arbitrage de Bastien le 16 au soir :
+>    **pas de création de compte**. Le cas se traite à la main, à sa demande.
 
 ### Ce qui n'a jamais été éprouvé, et qu'il faut dire
 
 > - **Le mode hors ligne sur un vrai téléphone en mode avion.** Bastien a
 >   tranché : « on en a pas besoin, c'est un plus que je ne testerai pas ».
-> - **L'écran de projection sur le vrai écran LED.** Vérifié au navigateur à
->   800 px, 1 280 × 720 et 1 920 × 1 080 — jamais en salle, jamais avec le rendu
->   couleur d'un projecteur. La taille du nom et le contraste du fond violet ne
->   se jugent que sur place.
+> - ~~**L'écran de projection sur le vrai écran LED.**~~ ✅ **Testé sur place par
+>   Bastien le 16 septembre au soir**, en même temps que le wifi de la halle.
+>   C'était la plus grosse inconnue du dispositif, et la seule qu'aucun script
+>   n'aurait pu lever.
 > - **La présentation agents sur le vidéoprojecteur de la salle de réunion.**
->   Zéro débordement mesuré à 1 440 × 810 et 1 920 × 1 080, mais la lisibilité à
->   dix mètres ne se mesure pas depuis un navigateur.
+>   Zéro débordement mesuré à 1 280 × 720, 1 366 × 768 et 1 920 × 1 080, mais la
+>   lisibilité à dix mètres ne se mesure pas depuis un navigateur.
+> - **La vitrine sur 140 appareils réels.** Mesurée en rafale depuis UNE machine :
+>   0 échec sur 420 appels, médiane 275 ms à concurrence réaliste. Ce n'est pas
+>   la même chose que 140 téléphones sur le wifi de la halle.
 > - **Le QR des badges lu par un vrai capteur**, sur papier, sous des néons. Il a
 >   été décodé par une bibliothèque indépendante, jamais photographié.
 
@@ -1317,8 +1333,9 @@ seuls paliers du prestataire faisaient perdre des points au jeu en moyenne.
 
 # LA SIMULATION — une journée entière par l'API réelle, jusqu'à ce que les
 # 200 cases soient prises. SANS -Appliquer elle n'écrit RIEN.
-# ⚠️ Avec -Appliquer elle REMET LA BASE À ZÉRO, puis la remplit. Il faut
-#    relancer 99_remise_a_zero.sql après.
+# ⚠️ Avec -Appliquer elle REMET LA BASE À ZÉRO, puis la remplit. NE PAS
+#    LA LANCER avant ou pendant le Forum : elle prend 200 cases sur 200.
+#    Elle a servi le 16 au soir, et la base a été remise à zéro après.
 .\scripts\simuler-forum.ps1
 .\scripts\simuler-forum.ps1 -Appliquer
 
@@ -1326,10 +1343,12 @@ seuls paliers du prestataire faisaient perdre des points au jeu en moyenne.
 .\scripts\diagnostic.ps1        # « est-ce la base, ou la couche devant ? »
 .\scripts\exporter-journal.ps1  # journal, soldes et lots en CSV — toutes les heures
 
-# 🔴 REMISE À ZÉRO — obligatoire avant le Forum, et après toute répétition.
-#    Elle efface les achats, le journal, les soldes et les appareils ; elle
-#    PRÉSERVE la composition de la grille (100 lots, 15 tickets d'or).
-.\scripts\push-sql.ps1 -File sql\99_remise_a_zero.sql
+# 🔴 REMISE À ZÉRO — DÉJÀ PASSÉE le 16 septembre au soir. NE PLUS LA
+#    LANCER avant le Forum : elle efface les achats, le journal, les
+#    soldes et les appareils. Pendant la journée, c'est une vraie
+#    journée qui disparaît. Elle ne sert plus qu'après une répétition,
+#    et seulement sur décision de Bastien. Voir §17.
+# .\scripts\push-sql.ps1 -File sql\99_remise_a_zero.sql
 
 # Réimporter les garages depuis l'export Sarbacane
 .\scripts\importer-garages.ps1  # régénère sql\10_garages.sql
@@ -1523,103 +1542,6 @@ req/s, la vitrine consomme donc ~21 % d'**une** connexion sur les onze du pool.
 > Ce banc part d'UNE machine et d'UNE connexion : il mesure Supabase, pas le
 > wifi de la Grande Halle. Le wifi reste le risque le plus probable, et aucun
 > script ne le testera.
-
----
-
-## 19. La vitrine — équipe Bony et invités constructeur
-
-Ajoutée le 16 septembre, à la demande de Bastien : *« on va créer une nouvelle
-interface pour l'équipe Bony mec. Et pour le constructeur aussi. Elle contiendra
-les infos de ce que l'on retrouve de manière générale dans l'onglet direction
-mais ce sera que de la vitrine. »*
-
-### Un sixième profil, en lecture seule
-
-| | |
-|---|---|
-| **Qui** | 119 équipe Bony + 21 constructeurs = **140 personnes** |
-| **Rôle** | `vitrine` — il n'existe qu'ici, et il n'écrit rien |
-| **Une seule fonction** | `api_vitrine(p_jeton)`, et c'est tout |
-| **Codes** | **140 codes nominatifs** + 1 code de secours |
-
-**Ce n'est pas un `admin` bridé côté navigateur.** Le code supervision ouvre la
-remise des lots, les corrections de points, l'écran de projection et le détail
-des tickets d'or ; le donner à 140 personnes reviendrait à le publier. La
-vitrine est un rôle à part, et **une restriction qui ne vit que dans le front
-n'est pas une restriction**. Vérifié sur la vraie base, avec un jeton de
-vitrine — les sept portes sont fermées :
-
-| Tentative | |
-|---|---|
-| `api_corriger` — ajouter des points | refusé |
-| `api_supervision` — le tableau direction | refusé |
-| `api_tirage_etat` — les tickets nommés | refusé |
-| `api_tirage_lancer` — la révélation | refusé |
-| `api_lots` — le suivi des lots | refusé |
-| `api_journal_complet` — l'export CSV | refusé |
-| `api_accueil_chercher` — lire un code garage | refusé |
-
-### Un code par personne
-
-*Verbatim : « un code différent pour tout le monde, ça évite les fuites si y'a
-qu'un code unique ».* Un code qui circule ne se révoque pas ; 140 codes
-distincts se coupent un par un (`participants.actif = false`).
-
-Ils vivent dans **`participants.code_force`**, qui est le champ que `v_badges`
-résout en priorité : poser le code là suffit à le faire apparaître sur le badge,
-sans toucher au générateur ni à la vue. Même algorithme que les codes garage —
-MD5 d'une graine fixe, alphabet sans `O`, `I`, `0` ni `1`, variante incrémentée
-tant qu'il y a collision. **Déterministe, donc rejouable sans jamais changer un
-code déjà imprimé** : un code posé n'est jamais repris.
-
-Mesuré : **140 codes, 140 distincts, 0 collision** avec les 1 456 codes garage,
-les 31 PIN du personnel et le code de secours. `verifier_portes()` couvre
-désormais ces 140 codes et rend toujours zéro ligne — sans ça, un code de
-vitrine qui vaudrait le code d'un garage ouvrirait le portefeuille de ce garage,
-et personne ne le verrait avant que quelqu'un s'en plaigne.
-
-**Le code de secours** est dans `config.pin_vitrine`, *« pour les couillons qui
-sont pas sur la liste »*. Il ouvre la même vitrine, sans nom, et il n'est sur
-**aucun badge** : il se donne de vive voix et se change en une ligne.
-
-### Ce que l'écran montre
-
-- **La barre de santé du Forum**, et rien de plus. La console de supervision
-  détaille le pool, les verrous et les transactions bloquées ; ces chiffres
-  n'apprennent rien à un invité Renault, et `api_vitrine` **ne les envoie même
-  pas** — le verdict est calculé en base, on ne transmet qu'un pourcentage.
-- **Le Forum en un coup d'œil** : sept compteurs.
-- **Trois podiums** : garages, stands, animations. Le classement des garages se
-  fait sur les points **gagnés**, pas sur le solde — un garage qui joue tout ce
-  qu'il gagne finirait à zéro et disparaîtrait du podium alors que c'est lui le
-  plus actif de la salle.
-- **Le journal en direct**, 40 lignes. Noms de garages en clair : arbitrage du
-  16 septembre, les constructeurs voient exactement la même chose que l'équipe
-  Bony.
-- **Les tickets d'or, en compteurs seulement.**
-
-> ⚠️ **LES TICKETS D'OR NE SONT JAMAIS NOMMÉS.** « 9 décrochés sur 15 », et rien
-> d'autre : ni qui les détient, ni quel gros lot est dessous. Cet écran est
-> ouvert sur 140 téléphones dans la salle, dont ceux de gens qui parlent aux
-> garagistes toute la journée. Le détail reste à la direction, et à elle seule.
-
-### Un seul appel, et pourquoi
-
-`api_vitrine` rend **tout l'écran en un aller-retour** : compteurs, podiums,
-journal, santé. 140 téléphones pendant six heures, et le pool PostgREST plafonne
-à 11 connexions — chaque aller-retour évité est une connexion qui reste libre
-pour un garagiste qui achète une case. Pour la même raison, la vitrine **ne
-télécharge pas** le cache des 1 456 garages : elle ne cherche jamais personne.
-
-### Les animations
-
-Les chiffres montent à l'ouverture, en sortie cubique, **une seule fois**. Les
-rejouer à chaque rafraîchissement — toutes les trente secondes pendant six
-heures — transformerait un écran d'information en machine à sous. Les barres des
-podiums poussent à chaque rendu, elles sont assez discrètes pour le supporter.
-Une ligne de journal qui vient d'arriver s'allume une fois et redevient normale :
-on veut dire « ça bouge », pas réclamer l'attention en continu. Tout est neutralisé
-sous `prefers-reduced-motion`.
 
 ---
 
@@ -2055,3 +1977,215 @@ part ailleurs.
 Signalé aussi : un PIN de stand est **partagé par les cinq badges du stand**. Il
 est au verso, donc contre la poitrine, mais quelqu'un qui lit `2001` sur un badge
 retourné peut ouvrir le stand FAAB sur son propre téléphone.
+
+---
+
+## 16. La vitrine — équipe Bony et invités constructeur
+
+Ajoutée le 16 septembre, à la demande de Bastien : *« on va créer une nouvelle
+interface pour l'équipe Bony mec. Et pour le constructeur aussi. Elle contiendra
+les infos de ce que l'on retrouve de manière générale dans l'onglet direction
+mais ce sera que de la vitrine. »*
+
+### Un sixième profil, en lecture seule
+
+| | |
+|---|---|
+| **Qui** | 119 équipe Bony + 21 constructeurs = **140 personnes** |
+| **Rôle** | `vitrine` — il n'existe qu'ici, et il n'écrit rien |
+| **Une seule fonction** | `api_vitrine(p_jeton)`, et c'est tout |
+| **Codes** | **140 codes nominatifs** + 1 code de secours |
+
+**Ce n'est pas un `admin` bridé côté navigateur.** Le code supervision ouvre la
+remise des lots, les corrections de points, l'écran de projection et le détail
+des tickets d'or ; le donner à 140 personnes reviendrait à le publier. La
+vitrine est un rôle à part, et **une restriction qui ne vit que dans le front
+n'est pas une restriction**. Vérifié sur la vraie base, avec un jeton de
+vitrine — les sept portes sont fermées :
+
+| Tentative | |
+|---|---|
+| `api_corriger` — ajouter des points | refusé |
+| `api_supervision` — le tableau direction | refusé |
+| `api_tirage_etat` — les tickets nommés | refusé |
+| `api_tirage_lancer` — la révélation | refusé |
+| `api_lots` — le suivi des lots | refusé |
+| `api_journal_complet` — l'export CSV | refusé |
+| `api_accueil_chercher` — lire un code garage | refusé |
+
+### Un code par personne
+
+*Verbatim : « un code différent pour tout le monde, ça évite les fuites si y'a
+qu'un code unique ».* Un code qui circule ne se révoque pas ; 140 codes
+distincts se coupent un par un (`participants.actif = false`).
+
+Ils vivent dans **`participants.code_force`**, qui est le champ que `v_badges`
+résout en priorité : poser le code là suffit à le faire apparaître sur le badge,
+sans toucher au générateur ni à la vue. Même algorithme que les codes garage —
+MD5 d'une graine fixe, alphabet sans `O`, `I`, `0` ni `1`, variante incrémentée
+tant qu'il y a collision. **Déterministe, donc rejouable sans jamais changer un
+code déjà imprimé** : un code posé n'est jamais repris.
+
+Mesuré : **140 codes, 140 distincts, 0 collision** avec les 1 456 codes garage,
+les 31 PIN du personnel et le code de secours. `verifier_portes()` couvre
+désormais ces 140 codes et rend toujours zéro ligne — sans ça, un code de
+vitrine qui vaudrait le code d'un garage ouvrirait le portefeuille de ce garage,
+et personne ne le verrait avant que quelqu'un s'en plaigne.
+
+**Le code de secours** est dans `config.pin_vitrine`, *« pour les couillons qui
+sont pas sur la liste »*. Il ouvre la même vitrine, sans nom, et il n'est sur
+**aucun badge** : il se donne de vive voix et se change en une ligne.
+
+### Ce que l'écran montre
+
+- **La barre de santé du Forum**, et rien de plus. La console de supervision
+  détaille le pool, les verrous et les transactions bloquées ; ces chiffres
+  n'apprennent rien à un invité Renault, et `api_vitrine` **ne les envoie même
+  pas** — le verdict est calculé en base, on ne transmet qu'un pourcentage.
+- **Le Forum en un coup d'œil** : sept compteurs.
+- **Trois podiums** : garages, stands, animations. Le classement des garages se
+  fait sur les points **gagnés**, pas sur le solde — un garage qui joue tout ce
+  qu'il gagne finirait à zéro et disparaîtrait du podium alors que c'est lui le
+  plus actif de la salle.
+- **Le journal en direct**, 40 lignes. Noms de garages en clair : arbitrage du
+  16 septembre, les constructeurs voient exactement la même chose que l'équipe
+  Bony.
+- **Les tickets d'or, en compteurs seulement.**
+
+> ⚠️ **LES TICKETS D'OR NE SONT JAMAIS NOMMÉS.** « 9 décrochés sur 15 », et rien
+> d'autre : ni qui les détient, ni quel gros lot est dessous. Cet écran est
+> ouvert sur 140 téléphones dans la salle, dont ceux de gens qui parlent aux
+> garagistes toute la journée. Le détail reste à la direction, et à elle seule.
+
+### Un seul appel, et pourquoi
+
+`api_vitrine` rend **tout l'écran en un aller-retour** : compteurs, podiums,
+journal, santé. 140 téléphones pendant six heures, et le pool PostgREST plafonne
+à 11 connexions — chaque aller-retour évité est une connexion qui reste libre
+pour un garagiste qui achète une case. Pour la même raison, la vitrine **ne
+télécharge pas** le cache des 1 456 garages : elle ne cherche jamais personne.
+
+### Les animations
+
+Les chiffres montent à l'ouverture, en sortie cubique, **une seule fois**. Les
+rejouer à chaque rafraîchissement — toutes les trente secondes pendant six
+heures — transformerait un écran d'information en machine à sous. Les barres des
+podiums poussent à chaque rendu, elles sont assez discrètes pour le supporter.
+Une ligne de journal qui vient d'arriver s'allume une fois et redevient normale :
+on veut dire « ça bouge », pas réclamer l'attention en continu. Tout est neutralisé
+sous `prefers-reduced-motion`.
+
+---
+
+## 17. Passation — où en est le projet le 16 septembre au soir
+
+> **Si vous reprenez la main, commencez ici.** Cette section dit l'état exact à
+> la minute de la passation, ce qui est fait, ce qui reste ouvert, et les deux
+> ou trois gestes qui feraient des dégâts.
+
+### L'état, relevé et pas supposé
+
+| | |
+|---|---|
+| En ligne | `gbp-v27`, `js/app.js` identique au dépôt, octet pour octet |
+| Base | journal **0** · cases prises **0** · soldes **0** · inscrits **0** |
+| Intégrité | écarts **0** · collisions de code **0** · badges sans code **0** |
+| Grille | 85 lots + 15 tickets d'or, composition intacte |
+| Soirée | `tirage_revele = non` |
+| Badges | **516**, tous imprimés |
+| Codes vitrine | **140** nominatifs + 1 de secours dans `config.pin_vitrine` |
+| Tests | 114 verts (53 + 32 + 29) |
+| Simulation | 400 garages, 5 800 écritures, 0 échec — puis remise à zéro |
+
+### 🔴 Les trois gestes à ne pas faire
+
+1. **Ne pas relancer `sql/99_remise_a_zero.sql`.** Elle est passée le 16 au soir.
+   La relancer pendant le Forum efface le journal, les soldes, les cases
+   achetées et les appareils connectés — une vraie journée. Avant de la lancer
+   un jour, lire le compteur `journal` : s'il n'est pas à zéro, le Forum a
+   commencé.
+2. **Ne pas régénérer les codes.** `sql/30_vitrine.sql` est écrit pour ne jamais
+   reprendre un code déjà posé, et `sql/10_garages.sql` dérive les codes du
+   numéro de compte — mais les **badges sont imprimés**. Un code qui change
+   après impression est un badge mort.
+3. **Ne pas oublier le `Ctrl + Maj + R`** sur un poste de service après un
+   déploiement. Le service worker resert l'ancienne version, et on croit qu'un
+   correctif n'est pas parti. Ça a coûté une mesure fausse le 16 (deux
+   spectacles du grand tirage qui se chevauchaient sans que rien ne le dise).
+
+### Ce qui a été fait le 16 septembre, dans l'ordre
+
+| | Ce qui a changé | Où |
+|---|---|---|
+| Tirage | 95 s → 80 s → 4 s/lot → **6,5 s par lot** ; titre décollé du lot ; récapitulatif derrière un bouton | §11 |
+| Badges | 55 collaborateurs Bony + 21 constructeurs ; agents en tête du PDF garage ; une seule raison sociale pour l'équipe Bony ; tri par nom de famille | §15 |
+| Présentation agents | 12 → **7 diapositives**, « À jeudi » corrigé, 7 JPEG 1920×1080 dans `Documents\Slides Forum 2026` | §14 |
+| **Vitrine** | sixième profil, lecture seule, 140 codes nominatifs | **§16** |
+| Émargement | `scripts/emargement.ps1`, 15 pages A4, aucun code dessus | §15 |
+| Listes SMS | `scripts/sms-listes.ps1`, deux listes E.164, messages GSM-7 | ci-dessous |
+| Charge vitrine | `scripts/charge-vitrine.ps1` | §15 |
+
+### Les listes SMS de la veille
+
+`scripts/sms-listes.ps1` produit deux fichiers (`.xlsx` **et** `.csv`) dans
+`exports/` : **agents** (réunion + Forum, 51 lignes) et **autres garages**
+(Forum seul, 93 lignes). Deux pièges y sont désamorcés, et aucun ne se voit :
+
+- **Quatre formats de numéro** cohabitaient dans le listing consolidé —
+  `470415669` (zéro initial mangé par Excel), `33466474685`, `+33473281919`,
+  `0565995186`. Tout est normalisé en **E.164**.
+- **89 numéros sur 145 sont des FIXES.** Un SMS sur un 04 ou un 05 n'arrive
+  jamais et la passerelle ne rend aucune erreur : elle accepte, le message
+  disparaît. La colonne `Type` les sépare et les **mobiles sont rangés en
+  tête** — 21 chez les agents, 34 chez les autres. On touche 55 personnes sur
+  145, pas 145.
+- Les messages sont écrits pour l'**alphabet GSM-7**. Un seul caractère hors de
+  cet alphabet bascule tout le message en UCS-2 : le segment tombe de 160 à 70
+  caractères et la facture double. « cocktail dînatoire » est donc devenu
+  « cocktail du soir » — le `î` n'existe pas en GSM-7, et l'écrire sans accent
+  serait une faute visible. Les `é`, `è` et `à`, eux, sont disponibles et gardés.
+
+### Ce qui reste ouvert
+
+**1. Supabase Pro — décision de Bastien, prise ce soir ou jamais.**
+État relevé : plan **gratuit**, instance **Micro** (`max_connections` 60,
+`shared_buffers` 224 Mo), base de **22 Mo** sur 500 autorisés,
+**`"backups": []` — aucune sauvegarde**, PITR désactivé.
+Les mesures disent que ce n'est pas nécessaire : ~25 req/s attendues au pic
+contre **314 req/s sans le moindre échec** (§8), soit ×12 de marge. Le plan Pro
+ne change d'ailleurs **pas** le pool PostgREST — seule la taille d'instance le
+fait, et c'est un supplément qui **impose un redémarrage de la base**.
+Ce que le Pro apporterait vraiment ici : les sauvegardes quotidiennes. Mais
+l'export CSV horaire est une meilleure protection pour un événement d'un jour.
+Facturation par organisation : `supabase.com/dashboard/org/kicrtzsusktftmmmromz/billing`.
+
+**2. Un garage absent des 1 456 ne peut pas être servi par l'accueil.**
+Vérifié : **aucune fonction `api_*` ne crée de garage**. Si quelqu'un se présente
+et n'est nulle part en base, l'hôtesse cherche, ne trouve rien, et n'a aucun
+moyen de lui donner un code. Bastien a tranché le 16 au soir : **pas de création
+de compte**. Le cas se traite par un `insert` manuel depuis le poste de
+direction, à sa demande.
+
+**3. Ce qui n'a jamais été éprouvé, et qu'il faut dire tel quel.**
+- La vitrine n'a **jamais tourné sur 140 appareils réels** — seulement en rafale
+  depuis une machine : 0 échec sur 420 appels, médiane 275 ms à concurrence
+  réaliste.
+- Les bancs de charge partent tous d'**une** machine et d'**une** connexion : ils
+  mesurent Supabase, pas le wifi de la halle. Bastien a confirmé le 16 au soir
+  que **le wifi et l'écran sont testés et OK** — c'est la meilleure nouvelle de
+  la préparation, et la seule qu'aucun script n'aurait pu donner.
+
+### Où sont les documents qui ne sont pas dans le dépôt
+
+`exports/` est ignoré par git et le restera : il porte des **noms, des numéros
+de téléphone et des codes d'accès**.
+
+| Fichier | Quoi |
+|---|---|
+| `exports/emargement-2026-09-16.pdf` | la liste des hôtesses, 15 pages |
+| `exports/sms-agents-*.xlsx` · `.csv` | 51 lignes, mobiles en tête |
+| `exports/sms-autres-garages-*.xlsx` · `.csv` | 93 lignes, mobiles en tête |
+| `exports/sms-messages-*.txt` | les deux textes, prêts à coller |
+| `badges/participants.json` | les 516 badges avec leur code |
+| `Documents\Slides Forum 2026\*.jpg` | les 7 diapositives en 1920 × 1080 |
+| `Documents\Badges Forum 2026\*.pdf` | les badges imprimables |

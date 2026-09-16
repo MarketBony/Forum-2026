@@ -9,8 +9,12 @@ l'édition précédente.
 > 📘 **Pour reprendre le projet, lire [`CONTEXTE.md`](CONTEXTE.md)** — l'histoire
 > complète, les décisions, la méthode, les pièges et ce qui reste à faire. Ce
 > README ne décrit que le fonctionnement courant.
+>
+> 🟢 **État au 16 septembre au soir** : déployé en `gbp-v27`, **base remise à
+> zéro**, 516 badges imprimés, 114 tests verts. La remise à zéro **ne doit plus
+> être relancée** — voir le §17 de `CONTEXTE.md`.
 
-## Cinq profils, une seule porte
+## Six profils, une seule porte
 
 | Profil | Entre avec | Peut faire |
 |---|---|---|
@@ -19,9 +23,16 @@ l'édition précédente.
 | **Fournisseur** | le code de son stand | créditer une opération conclue |
 | **Accueil** | le code hôtesse | chercher parmi les 1 457 invités, lire un code |
 | **Équipe Bony** | le code direction | supervision, lots, corrections, projection |
+| **Vitrine** | un code personnel | **lecture seule** : compteurs, podiums, journal en direct. 119 équipe Bony + 21 constructeurs |
 
 Tout le monde tape son code **dans le même champ** : `api_ouvrir` reconnaît
 elle-même de quelle porte il s'agit. Il n'y a pas d'écran « Équipe » à trouver.
+
+**La vitrine ne peut rien écrire, et c'est la base qui le garantit** : son rôle
+n'a accès qu'à `api_vitrine`. Vérifié avec un vrai jeton — `api_corriger`,
+`api_supervision`, `api_tirage_etat`, `api_tirage_lancer`, `api_lots`,
+`api_journal_complet` et `api_accueil_chercher` sont tous refusés. Une
+restriction qui ne vivrait que dans le front n'en serait pas une.
 
 ## Architecture
 
@@ -95,7 +106,7 @@ Fichiers numérotés et rejouables. `.\scripts\push-sql.ps1 -File sql\01_schema.
 | `19_participants.sql` | **qui porte un badge** — table `participants`, vue `v_badges` |
 | `20_inscrits.sql` | les garages et l'équipe Bony inscrits — **généré** |
 | `21_personnel.sql` | exposants (5 par stand), animateurs (1 par jeu), 2 hôtesses |
-| `99_remise_a_zero.sql` | purge après la répétition générale |
+| `99_remise_a_zero.sql` | purge après répétition — **passée le 16/09, ne plus la lancer** |
 
 ## ⚠️ Une seule URL
 
@@ -125,10 +136,16 @@ l'application si elle a été ajoutée à l'écran d'accueil, repartir de la bon
 
 ## Le jour J
 
+> 🔴 **La remise à zéro est DÉJÀ PASSÉE** (16 septembre au soir, après la
+> simulation de 400 garages). **Ne pas la relancer** : pendant le Forum, elle
+> effacerait le journal, les soldes, les cases achetées et les appareils
+> connectés — une vraie journée. Avant de l'envisager un jour, lire le compteur
+> `journal` : s'il n'est pas à zéro, le Forum a commencé.
+
 ```powershell
-# 🔴 AVANT L'OUVERTURE — obligatoire. Efface achats, journal, soldes et
-#    appareils ; PRÉSERVE la grille (100 lots, 15 tickets d'or).
-.\scripts\push-sql.ps1 -File sql\99_remise_a_zero.sql
+# Vérifier — et pas remettre à zéro.
+.\scripts\push-sql.ps1 -Quiet -Query "select (select count(*) from journal) as journal, (select count(*) from grille where garage_id is not null) as cases_prises, (select count(*) from verifier_soldes()) as ecarts"
+# attendu avant l'ouverture : 0 / 0 / 0
 
 .\scripts\diagnostic.ps1        # « est-ce la base, ou la couche devant ? »
 .\scripts\exporter-journal.ps1  # journal, soldes et lots en CSV — toutes les heures
@@ -136,9 +153,9 @@ l'application si elle a été ajoutée à l'écran d'accueil, repartir de la bon
 .\scripts\charge-vitrine.ps1   # ce que coûtent 140 vitrines ouvertes
 ```
 
-**La remise à zéro est la seule manœuvre qui rendrait le Forum injouable si on
-l'oubliait** : la base porte les traces des tests et de la simulation, donc des
-cases déjà prises et des soldes fictifs.
+**Après tout déploiement, `Ctrl + Maj + R` sur les postes de service.** Le
+service worker resert l'ancienne version depuis son cache, sans rien signaler :
+c'est ce qui fait croire qu'un correctif n'est pas parti.
 
 `diagnostic.ps1` interroge Postgres par l'API de management, qui **ne passe pas
 par PostgREST** : il répond donc même quand l'application est à l'arrêt. C'est ce

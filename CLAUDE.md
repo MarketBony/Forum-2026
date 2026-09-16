@@ -7,11 +7,16 @@ ne contient que les règles à respecter en permanence.
 Bastien Fuziol, service marketing de Bony Automobile — technique sans être
 développeur, tutoie, demande des preuves chiffrées.
 
-> 🔴 **AU 16 SEPTEMBRE, IL RESTE UNE SEULE MANŒUVRE OBLIGATOIRE :**
-> `.\scripts\push-sql.ps1 -File sql\99_remise_a_zero.sql`
-> La base porte les traces des tests et de la simulation. Sans elle, des cases
-> sont déjà prises et des garages arrivent avec un solde fictif. Tout le reste
-> est fait, déployé (`gbp-v22`) et éprouvé.
+> 🟢 **AU 16 SEPTEMBRE AU SOIR : LA BASE EST REMISE À ZÉRO, TOUT EST PRÊT.**
+> Journal 0 · cases prises 0 · soldes 0 · écarts 0 · `tirage_revele = non` ·
+> 85 lots + 15 tickets en place. Déployé en `gbp-v27`, 114 tests verts.
+>
+> 🔴 **NE RELANCE PLUS `99_remise_a_zero.sql`.** Elle a déjà été passée le
+> 16 au soir, après la simulation. La relancer pendant le Forum effacerait
+> une vraie journée : le journal, les soldes, les cases achetées et les
+> appareils connectés. **Ce fichier ne doit plus être exécuté avant le
+> Forum 2027.** S'il faut vraiment repartir de zéro un jour J, c'est une
+> décision de Bastien, pas une étape de routine.
 
 ---
 
@@ -59,7 +64,20 @@ n'a pas été testé.
 - **Windows, PowerShell 5.1.** Pas de `&&` ni de `||` : `; if ($?) { }`.
 - **Pas de Node, pas de build.** Modules ES natifs servis tels quels. C'est
   délibéré : ne pas introduire de chaîne de compilation.
-- **Tous les `.ps1` ont un BOM UTF-8.** Sans lui, PowerShell 5.1 les lit en CP1252
+- **Les scripts d'exploitation, en un coup d'oeil.**
+
+| Script | Quoi |
+|---|---|
+| `test-porte` · `test-invariants` · `test-bingo` | les 114 tests, contre la vraie base |
+| `exporter-journal.ps1` | la sauvegarde de la soirée, toutes les heures |
+| `exporter-badges.ps1` | ce que lit le générateur de badges |
+| `emargement.ps1` | la liste papier des hôtesses — **aucun code dessus** |
+| `sms-listes.ps1` | les deux listes de diffusion, numéros en E.164 |
+| `charge-vitrine.ps1` | ce que coûtent 140 vitrines ouvertes |
+| `simuler-forum.ps1` | une journée entière par l'API réelle |
+| `diagnostic.ps1` | « est-ce la base, ou la couche devant ? » |
+
+**Tous les `.ps1` ont un BOM UTF-8.** Sans lui, PowerShell 5.1 les lit en CP1252
   et les comparaisons accentuées cassent silencieusement. **Le conserver.**
 - **`System.Net.Http.HttpClient`, jamais `Invoke-WebRequest`** dans les scripts de
   test : `Invoke-WebRequest` ne rend pas le corps des réponses 4xx, et son
@@ -87,9 +105,15 @@ n'a pas été testé.
 
 Front statique sur Cloudflare Workers (aucun code serveur), navigateur qui appelle
 directement les fonctions `api_*` de Supabase en RPC. **RLS active sur toutes les
-tables avec zéro policy** : les 23 fonctions `security definer` sont les seules
+tables avec zéro policy** : les fonctions `security definer` sont les seules
 portes d'entrée. Le journal est en **ajout seul** — une erreur se corrige par une
 écriture inverse, jamais par une modification.
+
+**Six profils, une seule porte** : garage, animateur, fournisseur, accueil,
+direction, et **vitrine** (lecture seule, équipe Bony et constructeurs, ajoutée
+le 16 septembre — §16 de `CONTEXTE.md`). Un profil en lecture seule se garantit
+**en base**, par les fonctions auxquelles son rôle a droit. Retirer un bouton du
+front ne protège rien.
 
 ### Invariants à ne pas casser
 
@@ -103,6 +127,8 @@ portes d'entrée. Le journal est en **ajout seul** — une erreur se corrige par
 | Le journal ne se modifie pas | trigger `journal_pas_de_modif` |
 | Aucun badge sans code utilisable | `verifier_badges()`, à relancer après tout import |
 | Un import de listing rejoué ne duplique rien | `cle_source` unique dans `participants` |
+| Aucun code de vitrine ne vaut un code garage | `verifier_portes()`, élargi aux 140 codes |
+| Un code déjà imprimé ne change jamais | `sql/30_vitrine.sql` ne repose jamais un `code_force` existant |
 
 **Le générateur de badges est un outil local, à part.** Il lit la table
 `participants` et n'écrit jamais dans l'application ; aucune fonction `api_*` ne
@@ -142,6 +168,30 @@ L'occupation, c'est `state = 'active'` **parmi** les connexions `authenticator`.
 
 **Une grille CSS à deux colonnes avec trois enfants** place le troisième en
 colonne 1 : déclarer `grid-column` explicitement.
+
+**Le service worker resert l'ancienne version, et personne ne le dit.** Après
+tout déploiement, `Ctrl + Maj + R` sur les postes de service. Le 16 septembre,
+une mesure du grand tirage a donné 5 s au lieu de 4 parce que deux spectacles se
+chevauchaient : le banc tournait sur une copie mise en cache. **Avant de croire
+une mesure, vérifier que le code mesuré est celui qu'on vient d'écrire.**
+
+**Un tri sur un champ vide remonte en tête.** Les badges d'accompagnant n'ont
+volontairement pas de nom ; triés par nom de famille, ils s'empilaient tous
+avant la lettre A. Le nom du porteur est gardé dans un champ qui ne s'imprime
+pas et ne sert qu'à trier.
+
+**Être invité n'est pas être inscrit.** `garages.profil` (A/B/C/D) vient du
+fichier d'invitation ; `participants.reunion_agents` dit qui s'est réellement
+inscrit à la réunion d'agents. Les deux diffèrent sur 20 lignes sur 145. Trier
+les badges sur la lettre donnait une pile fausse dans les deux sens.
+
+**Un SMS hors alphabet GSM-7 coûte trois fois plus cher.** Un seul `î`, une
+apostrophe typographique ou des points de suspension font basculer tout le
+message en UCS-2 : le segment tombe de 160 à 70 caractères. Les `é`, `è`, `à`
+sont disponibles ; les circonflexes et la cédille minuscule, non.
+
+**La moitié des numéros du listing sont des fixes.** Un SMS sur un 04 n'arrive
+jamais et la passerelle ne rend aucune erreur. Séparer les mobiles.
 
 ---
 
