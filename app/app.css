@@ -936,6 +936,16 @@ body.service .bouton.creux {
   flex:1; display:flex; flex-direction:column;
   align-items:center; justify-content:center; gap:var(--e3); width:100%;
 }
+/* LE TITRE DE SCÈNE DOIT SE DÉTACHER DU LOT. À 12 px d'écart — le gap
+   commun de la scène — « Le grand tirage » et le nom du lot se lisent
+   de loin comme une seule et même phrase : l'œil qui balaie l'écran ne
+   sait plus où s'arrête l'habillage et où commence le gain. L'écart est
+   donné en vh et pas en pixels : sur un vidéoprojecteur en 16:9, un
+   espace fixe se tasse à rien alors que le reste de la scène grandit. */
+.revelation .pscript { margin-bottom:clamp(16px,3.2vh,44px) }
+/* …sauf à la fin : le carton de clôture n'annonce plus un lot mais un
+   décompte, et le récapitulatif a besoin de toute la hauteur. */
+.revelation.fini .pscript { margin-bottom:0 }
 /* LA HIÉRARCHIE EST INVERSÉE PAR RAPPORT À L'INTUITION, et c'est voulu.
    Le lot est le SUJET de la phrase, pas sa chute : il s'annonce en
    étiquette, capitales espacées, taille modeste. Le nom du garage est la

@@ -627,7 +627,7 @@ function reglesDe(role) {
       ['ecran', 'L\'état de la base', `La console en haut de l\'écran. Tant que la santé globale est verte, tout va bien. Le tableau de bord Supabase, lui, comptera chaque refus voulu comme une erreur — ne vous y fiez pas.`],
       ['cadeau', 'La remise des lots', `« Suivi des lots » : le garage présente son code, vous le retrouvez, vous cochez « Remettre ».`],
       ['ticket', 'Les tickets d\'or', `Le détail de qui détient quoi. <b>Cet écran nomme les gros lots avant la révélation</b> — ne le montrez à personne.`],
-      ['scene', 'Le grand tirage', `Un bouton, et la révélation se déroule seule en 95 secondes. Un clic sur l'écran fait tomber le nom tout de suite, un second passe au lot suivant.`],
+      ['scene', 'Le grand tirage', `Un bouton, et la révélation se déroule seule en 80 secondes. Un clic sur l'écran fait tomber le nom tout de suite, un second passe au lot suivant.`],
       ['horloge', 'Toutes les heures', `Exportez le journal en CSV. C'est la seule vraie sauvegarde de la soirée.`],
     ],
     note: `Le code supervision n'est sur aucun badge. Ne le donnez pas.`,
@@ -1073,6 +1073,31 @@ function vueProjection() {
     </div>`;
   }
 
+  // --- le spectacle a déjà eu lieu : ON NE MONTRE RIEN ---------------
+  //  L'écran de projection est branché sur le vidéoprojecteur AVANT le
+  //  lancement, et c'est exactement cet écran que la salle regarde en
+  //  attendant. Il affichait jusqu'ici le récapitulatif complet — noms
+  //  des gagnants et lots — dès que le drapeau `tirage_revele` était
+  //  levé. Une répétition non remise à zéro, et toute la salle lisait
+  //  les quinze gagnants avant la première annonce.
+  //
+  //  Le récapitulatif reste à UN CLIC : l'équipe s'en sert au stand des
+  //  lots pour retrouver qui a gagné quoi. Mais il faut désormais le
+  //  demander, et ça ne s'ouvre pas tout seul sur un écran géant.
+  if (t.revele && S.revel && S.revel.masque) {
+    return `<div class="projection">
+      <div class="pscript">Le grand tirage</div>
+      <div class="ptitre">${n} gros lot${n > 1 ? 's' : ''} attribué${n > 1 ? 's' : ''}</div>
+      <div class="pinfo">Le spectacle a déjà eu lieu. Les noms ne s'affichent pas d'eux-mêmes :
+        cet écran est projeté, et la salle n'a rien à lire avant l'annonce.</div>
+      <div class="pactions">
+        <button class="bouton" data-a="tirage-recap">Afficher le récapitulatif</button>
+        <button class="bouton creux" data-a="tirage-rejouer">Rejouer l'animation</button>
+        <button class="bouton creux" data-a="admin">Quitter la projection</button>
+      </div>
+    </div>`;
+  }
+
   // --- la scène, montée une fois pour toute la durée du spectacle ----
   //  Les cartes du récapitulatif sont posées tout de suite mais masquées :
   //  c'est ce qui permet à chaque temps de n'être qu'un ajout de classe.
@@ -1115,7 +1140,7 @@ function vueProjection() {
 // ---------------------------------------------------------------------
 //  Le moteur de la révélation
 //
-//  DURÉE : ~60 secondes, quel que soit le nombre de tickets décrochés.
+//  DURÉE : REVEL_DUREE, quel que soit le nombre de tickets décrochés.
 //  Le budget est réparti au poids : un temps normal pour les premiers,
 //  un temps DOUBLE pour les trois derniers. C'est là que se trouvent les
 //  trois pièces uniques — le sac à dos Alpine, le weekender, et le sac
@@ -1123,14 +1148,23 @@ function vueProjection() {
 //  exactement l'inverse de ce qu'on veut.
 //
 //  Dans chaque temps : le LOT apparaît d'abord, seul. Le nom du garage
-//  ne tombe qu'à 45 % du temps imparti. Ce silence-là est tout le
+//  ne tombe qu'à la moitié du temps imparti. Ce silence-là est tout le
 //  spectacle ; sans lui on affiche un tableau, on ne révèle rien.
 // ---------------------------------------------------------------------
-// Durée totale du spectacle, hors carton de fin. 95 s pour 15 tickets :
-// une première version à 57 s a été jugée « un poil trop rapide » sur
-// scène, et elle l'était — on ne laisse pas à une salle qui dîne le temps
-// de lever les yeux, de comprendre le lot, puis de chercher qui a gagné.
-const REVEL_DUREE = 95000;
+// Durée totale du spectacle, hors carton de fin. Le réglage s'est fait
+// en trois passes, sur scène et pas au jugé :
+//   57 s → « un poil trop rapide » : la salle n'avait pas le temps de
+//          lever les yeux, de comprendre le lot, PUIS de chercher qui
+//          avait gagné.
+//   95 s → « un poil trop long » : le silence entre deux lots laissait
+//          l'attention retomber, et une salle qui dîne ne se rattrape
+//          pas d'elle-même.
+//   80 s → le compromis retenu le 16 septembre. 4,4 s par lot pour les
+//          douze premiers, 8,9 s pour les trois derniers.
+// NE PAS descendre plus bas sans rejouer le spectacle en entier : sous
+// 4 s, la roulette n'a plus la place de ralentir et le nom tombe avant
+// que le lot soit lu.
+const REVEL_DUREE = 80000;
 // Part du temps d'un ticket consacrée au SUSPENSE (roulette des noms).
 // Le reste laisse le nom du gagnant affiché, en clair, avant de passer.
 const REVEL_SUSPENSE = 0.5;
@@ -1784,10 +1818,12 @@ async function agir(a, el) {
       S.vue = 'projection'; rendre();
       try {
         S.tirage = await api.lire.tirage(); rendre();
-        // Déjà révélé : on revient sur un spectacle passé, on affiche le
-        // récapitulatif sans rejouer l'animation. Sinon l'équipe qui
-        // rouvre l'écran pour retrouver un code se retaperait 60 s.
-        if (S.tirage.revele) { S.revel = { fini: true }; rendre(); revelRecapito(); }
+        // Déjà révélé : on n'affiche NI l'animation, ni les gagnants. Un
+        // écran de garde, et deux boutons. Rejouer les 80 s serait une
+        // punition pour qui vient chercher un code de retrait ; déballer
+        // le récapitulatif serait pire, l'écran est branché au
+        // vidéoprojecteur. Voir vueProjection().
+        if (S.tirage.revele) { S.revel = { fini: true, masque: true }; rendre(); }
       } catch (e) { toast('Impossible', e.detail || e.message, 'negatif'); }
       return;
     }
@@ -1803,7 +1839,18 @@ async function agir(a, el) {
       finally { S.envoi = false; }
       return;
     }
+    case 'tirage-recap': {
+      // Le geste volontaire de l'équipe, au stand des lots.
+      S.revel = { fini: true };
+      rendre();
+      revelRecapito();
+      return;
+    }
     case 'tirage-rejouer': {
+      // Depuis l'écran de garde, la scène n'est pas montée : revelJouer()
+      // ne trouverait ni #scene ni #ptlot et rendrait la main sans un
+      // mot. On la monte d'abord, puis on joue.
+      if (S.revel && S.revel.masque) { S.revel = { rang: 0 }; rendre(); }
       revelJouer(0);
       return;
     }
