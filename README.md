@@ -128,11 +128,32 @@ l'application si elle a été ajoutée à l'écran d'accueil, repartir de la bon
 
 À rejouer après **toute** modification SQL. Ils tournent contre la vraie base.
 
+> 🔴 **Et ils l'effacent. Jamais pendant le Forum.** `test-invariants` et
+> `test-bingo` vident le journal, remettent les soldes à zéro et suppriment
+> tous les appareils avant de commencer ; `test-porte` inscrit de vrais garages
+> par `api_ouvrir`. Aucune ne nettoie derrière elle. Le jour J, la vérification
+> est le contrôle d'état ci-dessous, qui ne fait que lire. Voir le §18.4 de
+> [`CONTEXTE.md`](CONTEXTE.md).
+
 ```powershell
-.\scripts\test-porte.ps1        # 53 : la porte, le frein, les 31 PIN, les collisions
-.\scripts\test-invariants.ps1   # 32 : double crédit, quotas, solde négatif, plafonds, paliers
-.\scripts\test-bingo.ps1        # 29 : les deux modes, la revelation, 200 cases, plafond
+.\scripts\test-porte.ps1        # 53 : la porte, le frein, les 31 PIN — ⚠️ écrit
+.\scripts\test-invariants.ps1   # 32 : double crédit, quotas, solde négatif — ⚠️ efface
+.\scripts\test-bingo.ps1        # 29 : les deux modes, la revelation, 200 cases — ⚠️ efface
 ```
+
+## Tenue en charge — 344 appareils, mesurée
+
+```powershell
+.\scripts\banc-jour-j.ps1              # les six profils EN MEME TEMPS + la meute
+.\scripts\banc-jour-j.ps1 -Facteur 10  # dix fois le rythme reel
+```
+
+Les quatre bancs précédents mesuraient chacun un profil ; celui-ci les joue
+tous ensemble, puis fait appeler les 344 appareils dans la même milliseconde.
+**Régime nominal : 0 échec. Dix fois le rythme réel : 0 échec, 6 connexions
+actives sur 11. La meute : 344 requêtes simultanées écoulées en 1,7 s,
+0 échec.** Il refuse de démarrer si `journal > 0` et n'écrit rien dans le
+Forum. Tout est au §18 de [`CONTEXTE.md`](CONTEXTE.md).
 
 ## Le jour J
 

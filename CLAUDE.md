@@ -33,6 +33,18 @@ de production, sans mock.
 .\scripts\test-porte.ps1 ; .\scripts\test-invariants.ps1 ; .\scripts\test-bingo.ps1
 ```
 
+> 🔴 **MAIS PAS PENDANT LE FORUM : CES TESTS EFFACENT LA BASE.**
+> `test-invariants` et `test-bingo` commencent chacun par vider le journal — en
+> levant le verrou d'immuabilité —, remettre tous les soldes à zéro, supprimer
+> tous les appareils et libérer la grille. C'est `99_remise_a_zero.sql` sous un
+> autre nom. Et `test-porte` ouvre de vrais garages par `api_ouvrir` : elle
+> crée des appareils, verse le bonus d'arrivée et inscrit des garages qui ne
+> sont pas venus. **Aucune des trois ne nettoie derrière elle.**
+>
+> Le jour J, la vérification est le contrôle d'état du §1 bis de `CONTEXTE.md`,
+> et rien d'autre — `journal`, `cases_prises`, `ecarts`, `verifier_portes()`,
+> `verifier_badges()`, qui ne font que lire. Détail au **§18.4**.
+
 **Vérifier le déploiement après chaque `git push`.** Les builds Cloudflare ont
 échoué **en silence** deux fois sur une douzaine de poussées, et l'utilisateur a
 perdu une session à croire qu'un correctif ne marchait pas alors qu'il n'était
@@ -74,6 +86,7 @@ n'a pas été testé.
 | `emargement.ps1` | la liste papier des hôtesses — **aucun code dessus** |
 | `sms-listes.ps1` | les deux listes de diffusion, numéros en E.164 |
 | `charge-vitrine.ps1` | ce que coûtent 140 vitrines ouvertes |
+| `banc-jour-j.ps1` | **les six profils en même temps, plus la meute** — §18 |
 | `simuler-forum.ps1` | une journée entière par l'API réelle |
 | `diagnostic.ps1` | « est-ce la base, ou la couche devant ? » |
 

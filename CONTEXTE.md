@@ -11,7 +11,10 @@
 > Les §1 à §14 décrivent l'application. Le **§15** décrit le générateur de
 > badges : outil local, séparé, jamais déployé. Le **§16** décrit la vitrine,
 > ajoutée le 16 au soir. Le **§17** dit où en est le projet à cette minute et
-> ce qui reste ouvert — **à lire en premier si vous reprenez la main**.
+> ce qui reste ouvert — **à lire en premier si vous reprenez la main**. Le
+> **§18** est l'étude de tenue en charge, refaite le 16 au soir après la panne
+> de l'application GRID : il contient les mesures, le banc des 344 appareils,
+> et **le piège des trois batteries de tests, qui effacent la base**.
 >
 > 🟢 **TOUT EST PRÊT. LA BASE EST À ZÉRO.**
 > Journal 0 · cases 0 · soldes 0 · écarts 0 · `tirage_revele = non` ·
@@ -120,7 +123,7 @@ qu'une chose ne va pas sur le terrain, c'est son terrain : il a raison.
 | `cout_grille` | `20` | le prix d'une case |
 | `cases_max_garage` | `5` | cases par garage · `0` = illimité |
 | `bonus_inscription` | `10` | les points offerts à l'arrivée |
-| `appareils_max` | `6` | téléphones par garage · **une place prise ne se rend pas** |
+| `appareils_max` | `10` | téléphones par garage · **une place prise ne se rend pas** — passé de 6 à 10 le 16 au soir, voir §18 |
 | `quota_animation_x` | `4` | × le meilleur palier = points max d'UNE animation par garage |
 | `quota_stand_x` | `3` | × le plafond d'opération = points max d'UN stand par garage |
 | `revelation` | `immediate` | `differee` = tout se révèle le soir |
@@ -135,7 +138,7 @@ qu'une chose ne va pas sur le terrain, c'est son terrain : il a raison.
 | La grille se vide trop vite | **on ne baisse jamais le plafond** : ce serait pénaliser ceux qui ont déjà acheté. Le frein, ce sont les quotas — `quota_animation_x`, `quota_stand_x` |
 | Une animation est désertée | `update animations set cout = 0 where nom = '…'` |
 | Un garage n'a pas son code | l'accueil le retrouve et le lit — `sql/09_accueil.sql` sait déjà le faire |
-| Un garage a épuisé ses 6 appareils | c'est un plafond dur ; `update config set valeur='8' where cle='appareils_max'` |
+| Un garage a épuisé ses 10 appareils | c'est un plafond dur, et **l'accueil ne peut rien** ; `update config set valeur='15' where cle='appareils_max'` — effet immédiat, aucun déploiement |
 | Une erreur de points | **jamais de modification** : une écriture inverse, par la supervision |
 
 ---
@@ -274,13 +277,16 @@ et le signale en rouge s'il devient non nul.
 > Conséquence pratique : **on ne peut pas supprimer un appareil qui a écrit**
 > (clé étrangère depuis le journal), ni le détacher de son garage (contrainte
 > `appareils_garage_coherent`). Une place d'appareil prise ne se rend pas. C'est
-> pour cela que `appareils_max` est passé à **6**.
+> pour cela que `appareils_max` est passé à **6**, puis à **10** le 16 septembre
+> au soir : le plafond ne protège rien — le portefeuille est partagé par garage
+> de toute façon — alors qu'un garage enfermé dehors est une panne visible que
+> **l'accueil ne sait pas réparer**. Voir §18.
 
 > ⚠️ **ET C'EST POURQUOI SE DÉCONNECTER N'EFFACE PAS LE JETON.** `api_entrer` ne
 > compte l'appareil dans le plafond que si son jeton n'est pas *déjà* rattaché au
 > garage. Un jeton neuf à chaque retour, c'est donc une ligne de plus à chaque
-> aller-retour — et au sixième, le garage se retrouve enfermé dehors avec un
-> « Ce garage a déjà 6 appareils connectés ». Le bouton « Quitter » n'oublie donc
+> aller-retour — et au dixième, le garage se retrouve enfermé dehors avec un
+> « Ce garage a déjà 10 appareils connectés ». Le bouton « Quitter » n'oublie donc
 > que le **rôle** ; le jeton, qui est l'identité de l'appareil et non celle de la
 > session, reste. `oublierAppareil()` existe toujours mais n'est plus appelé :
 > c'est un outil de dépannage, pas un geste d'utilisateur.
@@ -1290,9 +1296,17 @@ depuis le 11 septembre, et l'événement est le 17. *Verbatim de Bastien : « os
 c'est dans 2 jours l'event ».*
 
 **C. La gigue sur le sondage.** Les téléphones qui démarrent ensemble sondent
-ensemble. La simulation dit que 300 req/s de pointe passent sans un échec, et le
-banc de rupture que 800 simultanées aussi : **ce n'est pas nécessaire.** Dix
-lignes si le besoin apparaissait un jour.
+ensemble, et `visibilitychange` (`app/js/app.js:2176`) relance une lecture dès
+qu'un écran revient au premier plan, sans dispersion : si toute la salle sort
+son téléphone à la même seconde, les 344 appareils appellent ensemble. C'est le
+correctif n° 4 de GRID (« disperser »), et il manque toujours.
+
+**Mesuré le 16 septembre au soir, et c'est ce qui clôt la question** —
+`banc-jour-j.ps1`, phase 2 : 344 requêtes **dans la même milliseconde**
+s'écoulent en **1 751 ms, zéro échec** (1 301 ms à dix fois le rythme réel).
+La gigue supprimerait donc un problème qu'on n'a pas, au prix d'un déploiement
+et d'un `Ctrl + Maj + R` sur tous les postes. **Décision : on ne la fait pas.**
+Dix lignes si le besoin apparaissait un jour. Détail au §18.
 
 **D. Le mode hors ligne sur un vrai téléphone en mode avion.** Jamais fait, et
 **ne le sera pas** : *« on en a pas besoin, donc c'est un plus que je ne
@@ -1319,9 +1333,24 @@ seuls paliers du prestataire faisaient perdre des points au jeu en moyenne.
 .\scripts\push-sql.ps1 -Query "select count(*) from garages" -Quiet
 
 # Les trois batteries de tests — 114 contrôles, à rejouer après tout changement SQL
-.\scripts\test-porte.ps1        # 53 : la porte, le frein, les 31 PIN, les collisions
-.\scripts\test-invariants.ps1   # 32 : double crédit, quotas, solde négatif, plafonds, paliers
-.\scripts\test-bingo.ps1        # 29 : les deux modes, la revelation, 200 cases, plafond
+#
+# 🔴 DEUX D'ENTRE ELLES EFFACENT LA BASE. test-invariants.ps1 et
+#    test-bingo.ps1 commencent par vider le journal (en levant le verrou
+#    d'immuabilité), remettre tous les soldes à zéro, effacer tous les
+#    appareils et libérer la grille. C'est 99_remise_a_zero.sql sous un
+#    autre nom. Et elles ne nettoient RIEN en sortant : elles laissent
+#    leurs garages témoins, leurs cases achetées et leurs lignes de
+#    journal derrière elles.
+#    => PENDANT LE FORUM, LES LANCER EFFACE LA JOURNÉE. Voir §18.
+#
+#    Et test-porte.ps1 n'est pas inoffensive non plus : elle ouvre de
+#    VRAIS garages par api_ouvrir, ce qui crée des appareils, verse le
+#    bonus d'arrivée et inscrit des garages qui ne sont pas venus. Elle
+#    vide aussi la table `tentatives`, donc le frein anti-devinette.
+#    AUCUNE DES TROIS ne se lance pendant le Forum.
+.\scripts\test-porte.ps1        # 53 : la porte, le frein, les 31 PIN — ⚠️ ÉCRIT (inscrit des garages)
+.\scripts\test-invariants.ps1   # 32 : double crédit, quotas, solde négatif — ⚠️ EFFACE TOUT D'ABORD
+.\scripts\test-bingo.ps1        # 29 : les deux modes, la revelation, 200 cases — ⚠️ EFFACE TOUT D'ABORD
 
 # Serveur local (le service worker ne fonctionne pas depuis file://)
 .\scripts\serveur.ps1                                   # l'application, http://localhost:8123
@@ -2147,6 +2176,12 @@ sous `prefers-reduced-motion`.
 
 ### Ce qui reste ouvert
 
+> 🟢 **Les points 1 et 3 ci-dessous ont été repris et tranchés le 16 au soir,
+> après une relecture du dossier de panne de GRID. Les mesures, le banc des
+> 344 appareils et la décision sont au §18.** Résumé : le plan payant n'achète
+> rien sur la charge, la vitrine a été mesurée à 13 ms sur un journal de vraie
+> soirée, et 344 appareils simultanés s'écoulent en 1,7 s sans un échec.
+
 **1. Supabase Pro — décision de Bastien, prise ce soir ou jamais.**
 État relevé : plan **gratuit**, instance **Micro** (`max_connections` 60,
 `shared_buffers` 224 Mo), base de **22 Mo** sur 500 autorisés,
@@ -2189,3 +2224,247 @@ de téléphone et des codes d'accès**.
 | `badges/participants.json` | les 516 badges avec leur code |
 | `Documents\Slides Forum 2026\*.jpg` | les 7 diapositives en 1920 × 1080 |
 | `Documents\Badges Forum 2026\*.pdf` | les badges imprimables |
+
+---
+
+## 18. La tenue en charge, reprise à zéro le 16 au soir
+
+> Écrit après une relecture du dossier GRID — l'autre application maison, même
+> architecture, tombée le 8 septembre 2026 avec **30 utilisateurs**. Bastien :
+> *« 200 appareils connectés en simultané et des requêtes en veux-tu en voilà,
+> ça m'inquiète fort. »* L'inquiétude était légitime, et la réponse est mesurée.
+>
+> Les trois documents de GRID sont dans `C:\Users\Operateur\Documents\RELTEL\`.
+> **`INCIDENT-ET-DIMENSIONNEMENT.md` est à lire** : il est écrit pour être
+> transposé à un projet de même architecture, et c'est exactement notre cas.
+
+### 18.1 Pourquoi la panne de GRID ne peut pas se reproduire ici
+
+GRID est tombé de **deux causes de conception**, pas de dimensionnement. Ni
+l'une ni l'autre n'existe dans le Forum, et ce n'est pas de la chance : les
+deux choix inverses sont commentés dans le code.
+
+| Ce qui a tué GRID | Dans le Forum | |
+|---|---|---|
+| Un trigger diffuse **un message par écriture à tous les postes** (Realtime) | `grep -ri "realtime\|websocket\|subscribe"` sur `app/` et `sql/` → **zéro occurrence**. Il n'y a aucune diffusion | absent |
+| Chaque poste répond par un rechargement complet = **16 requêtes** | sondage à intervalle fixe = **1 requête** (`api_etat`, `api_vitrine` ou `api_supervision`) | absent |
+| Coût = écrivains **×** spectateurs, donc quadratique | coût = appareils ÷ intervalle, **indépendant de l'activité de la salle** | absent |
+| 15 policies RLS et une vue d'autorisation évaluée **par ligne** → 333 à 538 ms la lecture | **RLS active partout, zéro policy** : il n'y a aucune vue d'autorisation à évaluer. `_exige_role()` lit une ligne d'`appareils` par sa clé | structurellement absent |
+| Pool PostgREST de **10** | pool de **11** | **identique** |
+
+**La différence n'est pas le nombre de téléphones, c'est le prix d'une
+requête.** Une lecture GRID coûtait 400 ms en base, une lecture Forum en coûte
+0,6 à 13. La saturation d'un pool, c'est *débit × temps de service* :
+
+```
+GRID    18 req/s x 0,4 s = 7,3 connexions en permanence, pool de 10
+        + des rafales de 400 requetes toutes les 14 s -> il en aurait fallu 11,4
+        -> la file grossit sans fin -> timeouts
+
+FORUM   12 req/s x ~5 ms = 0,06 connexion sur 11, soit 0,5 % du pool
+```
+
+### 18.2 Ce que coûte `api_vitrine` selon le volume du journal
+
+Le seul coût **non constant** de l'application, donc le seul analogue de la
+cause n° 2 de GRID. Mesuré sur la base de production, dans une transaction
+annulée par une exception : aucune ligne n'a survécu.
+
+| journal | `api_vitrine` p50 | p95 | `api_etat` p50 | `api_supervision` p50 |
+|---|---|---|---|---|
+| 0 | 4,44 ms | 6,88 ms | 0,587 ms | 5,15 ms |
+| 1 500 | 10,03 ms | 10,64 ms | 0,647 ms | 5,45 ms |
+| **3 000** *(une vraie soirée)* | **13,14 ms** | 14,01 ms | 0,647 ms | 6,40 ms |
+| 6 000 | 19,29 ms | 19,71 ms | 0,665 ms | 9,20 ms |
+| 12 000 | 31,80 ms | 33,51 ms | 0,672 ms | 21,84 ms |
+| 20 000 | **120,58 ms** | 144,25 ms | 0,681 ms | 34,28 ms |
+
+Trois choses à retenir :
+
+1. **`api_etat` est plat.** 0,59 ms à vide, 0,68 ms à 20 000 lignes. Les
+   téléphones des garagistes ne coûteront rien, quoi qu'il arrive dans la
+   soirée. Une vraie soirée pèse 2 000 à 3 000 lignes — la simulation de
+   400 garages en avait produit 5 800, soit près du double du réel.
+2. **Il y a un coude, entre 12 000 et 20 000 lignes** : le coût est multiplié
+   par 4 quand un plan bascule. C'est 7× une vraie soirée, donc hors
+   d'atteinte — mais si le journal explosait un jour, **la vitrine serait la
+   première à souffrir, et brutalement**.
+3. **La partie chère de `api_vitrine` n'est PAS celle qu'on croyait.**
+   Décomposition à 20 000 lignes :
+
+   ```
+   podium garages ................. 44,20 ms   <- le vrai cout
+   podiums stands + animations .... 29,44 ms   <-
+   verifier_soldes() .............. 22,25 ms
+   les 6 compteurs de journal ..... 13,90 ms
+   journal en direct (40 lignes) ..  0,40 ms
+   pg_stat_activity ...............  0,25 ms
+   ```
+
+   Les **podiums pèsent 74 ms sur 120** : trois `group by` sur tout le journal.
+   Le commentaire de `sql/25_sante_detail.sql:118` — « `verifier_soldes()` est
+   la partie chère, la clé à tourner sera de la sortir de la bande d'état » —
+   reste **vrai pour `api_sante_detail`**, sa propre fonction. Il est **faux
+   pour `api_vitrine`** : l'y appliquer ne récupérerait que 18 % du temps. Si
+   un jour il faut tourner une clé sur la vitrine, **ce sont les podiums qu'il
+   faut plafonner** (sur les dernières heures, ou en cache de 30 s).
+
+### 18.3 Le banc du jour J — `scripts/banc-jour-j.ps1`
+
+Les quatre bancs existants mesuraient chacun **un** profil. La panne de GRID
+n'est venue d'aucun profil isolé : elle est venue de la **simultanéité**.
+
+```powershell
+.\scripts\banc-jour-j.ps1              # regime + meute, 3 min
+.\scripts\banc-jour-j.ps1 -Facteur 10  # dix fois le rythme reel
+```
+
+344 appareils virtuels — 200 garages, 140 vitrines, 2 tablettes Bony,
+2 hôtesses — **tous dans le même `Task.WaitAll`**, au rythme exact de
+`app/config.js`. Puis **la meute** : les 344 dans la même milliseconde, trois
+fois. Une sonde relève `pg_stat_activity` toutes les 600 ms pendant ce temps.
+
+Trois garde-fous : il **refuse de démarrer si `journal > 0`** (le Forum a
+commencé), il est **en lecture seule** sur les données du Forum, et il pose ses
+344 sessions **en SQL plutôt que par `api_ouvrir`** — ouvrir 200 sessions par
+la porte consommerait une place d'appareil sur 200 vrais garages. Il les efface
+en sortant et le prouve.
+
+**Régime nominal, 12 req/s, 344 appareils, 3 minutes :**
+
+| profil | appels | p50 | p95 | p99 | échecs |
+|---|---|---|---|---|---|
+| garage `api_etat` | 1 198 | 98 ms | 293 ms | 382 ms | **0** |
+| vitrine `api_vitrine` | 838 | 101 ms | 296 ms | 364 ms | **0** |
+| Bony `api_supervision` | 36 | 97 ms | 169 ms | 204 ms | **0** |
+| accueil recherche | 87 | 97 ms | 263 ms | 389 ms | **0** |
+
+**À dix fois le rythme réel** (120 req/s soutenus, 13 652 requêtes) : **0 échec**,
+p50 inchangé, et **6 connexions actives sur 11 au pic, 0,30 en moyenne**.
+
+**La meute**, le scénario exact de GRID :
+
+| | tour 1 (froid) | tour 2 | tour 3 (chaud) |
+|---|---|---|---|
+| 344 requêtes simultanées écoulées en | 6 962 ms | 2 296 ms | **1 751 ms** |
+| échecs | 0 | 0 | 0 |
+
+Si toute la salle sort son téléphone à la même seconde, **tout le monde a son
+solde en moins de deux secondes et personne n'a d'erreur**. Le premier tour est
+lent parce qu'il paie l'établissement des connexions TLS et la croissance du
+pool de 5 à 11 : **c'est la première rafale de la journée qui sera la plus
+lente, jamais les suivantes.**
+
+> ⚠️ **`idle in transaction` est monté à 8 pendant la meute — et ce n'est PAS
+> un problème.** C'est littéralement la signature de GRID (§3.1 de leur
+> rapport). La différence tient à la colonne d'à côté : `actives` valait **1**
+> au même instant. Des connexions en `idle in transaction` avec zéro requête
+> active, c'est Postgres qui a fini et qui attend le client — le `ClientRead`.
+> Chez GRID c'était le symptôme d'un goulot **devant** la base ; ici c'est un
+> pool qui absorbe une rafale et rend la main. **Ne jamais lire `pool` ni
+> `idle in transaction` sans lire `actives` en même temps.**
+
+Pendant la meute, le débit réel atteint **~265 req/s avec 6 connexions
+occupées** : le plafond est donc autour de 480 req/s, cohérent avec les
+314 req/s mesurés le 15. À comparer aux **12 req/s attendus jeudi**.
+
+### 18.4 🔴 Les trois batteries de tests DÉTRUISENT la base
+
+**Trouvé en voulant les rejouer après le changement de `appareils_max`.** C'est
+le piège le plus dangereux de tout le dossier, parce qu'il est **recommandé par
+écrit** : `CLAUDE.md` et `README.md` disent tous les deux « rejouer les
+114 tests après toute modification SQL », sans dire ce qu'ils font.
+
+| Suite | Ce qu'elle fait à la base |
+|---|---|
+| `test-invariants.ps1` | **vide le journal** (en levant le verrou d'immuabilité), remet tous les soldes à 0, efface `inscrit_le`, **supprime tous les appareils**, libère la grille, vide `tentatives` |
+| `test-bingo.ps1` | **exactement la même chose**, puis achète des cases avec six garages témoins |
+| `test-porte.ps1` | n'efface rien, mais **ouvre de vrais garages par `api_ouvrir`** : elle crée des appareils, verse le bonus d'arrivée et **inscrit des garages qui ne sont pas venus**. Elle vide aussi `tentatives`, donc le frein anti-devinette |
+
+Les deux premières sont `99_remise_a_zero.sql` sous un autre nom — et ce
+fichier-là est interdit en rouge à trois endroits de la documentation. **Et
+aucune des trois ne nettoie derrière elle** : elles laissent leurs garages
+témoins, leurs cases achetées et leurs lignes de journal en base. Le seul
+chemin documenté pour revenir à zéro après les avoir lancées est précisément le
+script interdit.
+
+Si personne ne l'a vu, c'est que l'ordre des opérations du 16 au soir l'a
+masqué : tests → simulation → remise à zéro. La remise à zéro venait **après**.
+
+> **Règle, désormais :** pendant le Forum, aucune des trois. Après une
+> modification SQL faite le jour J — ce qui doit rester exceptionnel — la
+> vérification est le contrôle d'état de `§1 bis` et rien d'autre :
+> `journal`, `cases_prises`, `ecarts`, `verifier_portes()`, `verifier_badges()`.
+> Ces cinq-là ne font que **lire**.
+
+### 18.5 Ce qui a été changé, et ce qui ne l'a pas été
+
+**`appareils_max` : 6 → 10.** Le seul risque de panne *visible* trouvé pendant
+cette étude, et il n'a rien à voir avec la charge. `sql/13_porte.sql:185`
+refuse le 11ᵉ appareil d'un garage, et **une place prise ne se rend pas** —
+`journal.appareil_id` référence la ligne dès la première écriture. Scénario
+réaliste : un gros garage vient à cinq, l'un d'eux navigue en privé ou vide ses
+données, et la sixième personne reste dehors. **L'accueil ne peut rien pour
+elle.** Le plafond ne protège rien — le portefeuille est partagé par garage de
+toute façon. Passé à 10 le 16 au soir :
+
+```powershell
+.\scripts\push-sql.ps1 -Query "update config set valeur = '10' where cle = 'appareils_max'"
+```
+
+Effet immédiat, côté base, sans déploiement et sans recharger un seul
+téléphone. **Les 114 tests n'ont volontairement PAS été rejoués** — voir §18.4 :
+ils auraient effacé la base, et aucune fonction n'a été modifiée, seulement une
+valeur de `config` lue à l'exécution. État relevé après : `journal 0 ·
+cases 0 · écarts 0 · soldes 0 · 85 lots · 15 tickets · 0 collision de code ·
+0 badge sans code`.
+
+**Ce qui a été proposé et écarté :**
+
+- **La gigue sur le sondage** (point C du §11) — mesurée inutile, voir §18.3.
+  Elle coûterait un déploiement la veille au soir et un `Ctrl + Maj + R` sur
+  tous les postes, pour supprimer un problème qui s'écoule en 1,3 s sans un
+  échec.
+- **Un interrupteur `config` sur les podiums de la vitrine** — le seul levier
+  qui manque vraiment : si `api_vitrine` dérapait, il faudrait aujourd'hui
+  écrire du SQL en direct sous pression. Le mettre derrière une clé
+  transformerait ça en `update config`, **avec effet immédiat sur les
+  140 téléphones et sans déploiement**, puisque c'est une fonction en base.
+  Proposé, pas retenu : la probabilité mesurée est proche de zéro et la règle
+  « ne pas sur-concevoir » tranche. À garder en tête pour 2027.
+
+**Le levier qui n'existe pas, et qu'il faut connaître :** `sondageMs` est une
+constante de `app/config.js`, donc dans le navigateur. On peut rendre une
+requête **moins chère** en direct (c'est du SQL, effet immédiat partout) ; on ne
+peut **pas réduire leur nombre** sans un déploiement *et* un rechargement sur
+chaque appareil. C'est le seul angle mort du dispositif — sur un risque mesuré
+à 3 % d'occupation du pool.
+
+### 18.6 Les abonnements : la réponse est non, et elle est chiffrée
+
+| Dépense | Ce que ça change | Verdict |
+|---|---|---|
+| **Cloudflare payant** | **rien.** `wrangler.jsonc` n'a aucun champ `main` : il n'y a pas une ligne de code Worker, et [les requêtes vers des ressources statiques sont gratuites et illimitées](https://developers.cloudflare.com/workers/static-assets/billing-and-limitations) sur tous les plans. Cloudflare n'est même pas sur le chemin des données — tout part du téléphone vers Supabase | inutile |
+| **Supabase Pro seul** | **ne change pas le pool PostgREST.** Le pool suit la taille de l'instance, pas le plan. Apporte les sauvegardes quotidiennes et le PITR | ne répond pas à la question posée |
+| **Pro + compute Small** | pool et connexions plus larges ([60 → 90 connexions](https://supabase.com/docs/guides/platform/compute-and-disk)), **au prix d'un redémarrage de la base** — « moins de 2 minutes d'interruption ». Sans conséquence la veille, catastrophique à 11 h jeudi | à faire la veille ou pas du tout |
+| **Le banc du §18.3** | transforme la peur en chiffre | 0 € |
+
+Pour un événement d'une journée, la vraie protection des données n'est pas la
+sauvegarde nocturne du plan Pro, c'est `exporter-journal.ps1` **toutes les
+heures**.
+
+### 18.7 Ce qui reste non mesuré, et qu'il faut dire tel quel
+
+- **Le chemin d'écriture n'a pas été rejoué le 16 au soir** : impossible sans
+  salir le journal. Il a été éprouvé le 15 par `simuler-forum.ps1` —
+  5 800 écritures, 0 échec, 0 écart de solde. Ce n'est pas lui qui restait à
+  prouver.
+- **`api_garages_liste`** — les 1 456 garages téléchargés par les 29 appareils
+  du personnel à leur connexion — n'a jamais été chronométrée. Chargée une fois
+  par appareil, elle est négligeable *par construction* : c'est une déduction,
+  pas une mesure.
+- **Les 344 sessions partent d'UNE machine et d'UNE connexion.** Le p50 de
+  ~100 ms est presque entièrement l'aller-retour réseau du poste ; le coût
+  serveur est de 0,6 ms (`api_etat`) et 13 ms (`api_vitrine`). **Ce banc mesure
+  Supabase, pas le wifi de la Grande Halle**, qui reste le risque le plus
+  probable de la soirée et qu'aucun abonnement n'achète.
