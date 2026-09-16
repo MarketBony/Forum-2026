@@ -1685,6 +1685,50 @@ constructeurs. Les trois autres viennent à la réunion mais pas au Forum.
 > Les marquer mélangerait deux choses sous un même drapeau. Ceux d'entre eux
 > qui s'étaient inscrits par le formulaire sont déjà couverts.
 
+### L'équipe Bony : une seule société, et le tri par nom de famille
+
+Deux demandes du 17 septembre : *« l'équipe Bony : tu mets la même raison
+sociale à tout le monde »* et *« pour l'export il faut que ce soit par ordre
+alphabétique des NOMS DE FAMILLE »*.
+
+**Il y avait vingt et une raisons sociales pour 119 personnes**, toutes saisies
+à la main dans le formulaire : « BONY AUTOMOBILES », « BONY AUTOMOBILES figeac »,
+« eaa mozac », « SAS BONY AUTO MOBILE BSO », « E2A », « BONYAUTO-MOBILE »…
+Sur un badge, cette ligne est écrite plus gros que le nom de la personne : 21
+orthographes au cou de la même équipe, ça se voit de loin.
+`sql/29_equipe_bony.sql` les aligne sur **« Bony auto-mobile »**, graphie qui
+figurait déjà telle quelle sur trois lignes, saisies par leurs titulaires.
+
+> ⚠️ **On perd l'information de filiale.** EAA, BSO, SODAVI, E2A étaient la
+> seule trace de qui appartient à quelle enseigne, et elle n'est nulle part
+> ailleurs dans cette base. Arbitrage d'affichage assumé : le badge dit le
+> groupe, pas l'établissement. Si la filiale redevient utile, elle est à
+> reprendre dans le listing consolidé du 15.
+
+**Le tri par nom de famille a demandé trois corrections, toutes invisibles
+jusqu'à ce qu'on regarde la pile.**
+
+1. **Une fiche avait les deux champs à l'envers** — `prenom` = BRUCHET,
+   `nom` = PATRICK. Le badge annonçait « BRUCHET PATRICK » et le tri l'aurait
+   rangé à la lettre P, entre PAYA et PIZZI. L'adresse tranche : `patrick.bruchet@`.
+   Les 118 autres lignes ont été recoupées avec la partie locale de leur
+   adresse — aucune autre inversion.
+2. **Les badges d'accompagnant remontaient en tête.** Ils ne portent pas de nom,
+   volontairement — on ne connaît pas la personne qui accompagne — et un tri sur
+   une chaîne vide les empile avant la lettre A. Le nom du porteur est désormais
+   gardé dans un champ `triNom` qui **ne s'imprime pas** et ne sert qu'à trier :
+   chaque accompagnant suit son titulaire.
+3. **Le découpage par lettre sortait « f, h, v, z, a, b, c… »** : le tri des
+   groupes appliquait encore la règle « agents d'abord », et les lettres dont le
+   premier badge portait le drapeau réunion remontaient. La règle ne s'applique
+   plus que lorsque les deux piles coexistent, c'est-à-dire aux garages.
+
+**La règle « agents en tête » ne vaut donc QUE pour les garages.** Un badge Bony
+se cherche par le nom de la personne, jamais par sa présence à la réunion du
+matin ; scinder cette pile obligerait à regarder deux fois. Vérifié sur les
+124 lignes : ordre conforme au nom de famille, zéro écart, et les garages
+gardent leurs 77 agents en tête.
+
 **Avec « un PDF par lettre initiale »**, les deux séries restent deux tas :
 `badges-garage-agents-a`… puis `badges-garage-reste-a`… Le préfixe `reste-`
 n'est pas décoratif — avec la lettre nue, `badges-garage-a` se classait **avant**

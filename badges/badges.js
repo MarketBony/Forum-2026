@@ -227,6 +227,15 @@ function deplier(participants) {
         raison: p.raison_sociale || '',
         prenom: k === 0 ? (p.prenom || '') : '',
         nom:    k === 0 ? (p.nom || '') : '',
+        /* Le nom du PORTEUR, garde meme sur les badges d'accompagnant.
+           Il ne s'imprime pas — on ne connait pas la personne qui
+           accompagne, et l'inventer serait pire que blanc — il sert
+           uniquement a trier. Sans lui, un tri par nom de famille voit
+           une chaine vide, et les badges d'accompagnant s'empilent
+           tous EN TETE, detaches de leur titulaire : on les retrouve
+           au massicot, cinq cartons anonymes avant la lettre A. */
+        triNom: p.nom || '',
+        triPrenom: p.prenom || '',
         commune: p.commune || '',
         code: (p.code || '').toUpperCase(),
         /* Inscrit a la reunion d'agents du matin. Porte par la personne,
@@ -418,19 +427,43 @@ function pageAutonome(lot, titre) {
     '</body></html>';
 }
 
-/* LES AGENTS SORTENT EN TETE. La reunion d'agents a lieu le matin,
-   avant le Forum : cette pile-la se distribue en premier, et on veut
-   pouvoir la separer d'un geste au massicot plutot que de piocher 51
-   badges dans 145. Demande de Bastien le 16 septembre : « Agents de A
-   a Z puis reste des garages de A a Z ».
+/* DEUX TRIS, ET PAS UN SEUL, PARCE QUE LES DEUX PILES NE SE CHERCHENT
+   PAS PAREIL.
 
-   LE DRAPEAU VIENT DE LA BASE, PAS DE LA LETTRE DE PROFIL. `profil`
+   GARAGE — les agents en tete, puis le reste, chaque moitie de A a Z
+   sur la raison sociale. La reunion d'agents a lieu le matin, avant le
+   Forum : cette pile-la se distribue en premier et doit pouvoir se
+   separer d'un geste au massicot plutot que de piocher 51 badges dans
+   145. « Agents de A a Z puis reste des garages de A a Z », 16/09.
+
+   Le drapeau vient de la base, pas de la lettre de profil : `profil`
    dit qui a ete INVITE a la reunion, `reunion_agents` dit qui s'y est
    INSCRIT — voir sql/28_reunion_agents.sql, le premier se trompait sur
-   20 lignes des 145. Ici on ne fait que trier ce que la base affirme. */
+   20 lignes des 145.
+
+   EQUIPE BONY — nom de famille de A a Z, un seul bloc. « Pour l'export
+   il faut que ce soit par ordre alphabetique des NOMS DE FAMILLE »,
+   17/09. On NE coupe PAS cette pile en deux : un badge Bony se cherche
+   par le nom de la personne, jamais par sa presence a la reunion du
+   matin, et scinder la liste obligerait a regarder deux fois. La
+   raison sociale ne departage plus rien non plus — elles sont toutes
+   identiques depuis sql/29_equipe_bony.sql.
+
+   LES AUTRES — inchangees : exposants, animateurs, hotesses et
+   constructeurs n'ont ni nom de personne ni drapeau d'agent utile, le
+   tri tombe naturellement sur la raison sociale. */
+const TRI_PAR_NOM = ['EQUIPE_BONY'];
+
 function selection() {
   let l = BADGES.filter(b => b.cat === CAT);
   if ($('f-neufs').checked) l = l.filter(b => !MARQUES[b.id]);
+  if (TRI_PAR_NOM.includes(CAT)) {
+    return l.sort((a, b) =>
+      comparer(a.triNom || '', b.triNom || '') ||
+      comparer(a.triPrenom || '', b.triPrenom || '') ||
+      comparer(a.raison, b.raison) ||
+      (a.rang - b.rang));
+  }
   return l.sort((a, b) =>
     (b.agent === a.agent ? 0 : a.agent ? -1 : 1) ||
     comparer(a.raison, b.raison) ||
@@ -455,17 +488,26 @@ function selection() {
    pour les exposants, les animateurs et les hotesses. */
 function decouper(sel) {
   if (!$('f-decouper').checked) return [{ cle: '', badges: sel }];
-  const melange = sel.some(b => b.agent) && sel.some(b => !b.agent);
+  // Le decoupage suit le critere de tri : decouper l'equipe Bony sur
+  // l'initiale de « Bony auto-mobile » ferait un seul fichier « B » de
+  // 124 badges, ce qui n'est pas un decoupage.
+  const parNom = TRI_PAR_NOM.includes(CAT);
+  const melange = !parNom && sel.some(b => b.agent) && sel.some(b => !b.agent);
   const m = new Map();
   for (const b of sel) {
-    const l = (norm(b.raison)[0] || '#').toUpperCase();
+    const l = (norm(parNom ? (b.triNom || b.raison) : b.raison)[0] || '#').toUpperCase();
     const cle = (melange ? (b.agent ? 'agents-' : 'reste-') : '') + l;
     if (!m.has(cle)) m.set(cle, []);
     m.get(cle).push(b);
   }
   return Array.from(m.entries())
     .sort((a, b) =>
-      (a[1][0].agent === b[1][0].agent ? 0 : a[1][0].agent ? -1 : 1) ||
+      // Les agents passent devant UNIQUEMENT quand les deux piles
+      // coexistent. Sans cette garde, l'equipe Bony sortait « f, h, v,
+      // z, a, b, c… » : les groupes dont le premier badge portait le
+      // drapeau reunion remontaient en tete, et l'alphabet partait en
+      // morceaux.
+      (melange ? (a[1][0].agent === b[1][0].agent ? 0 : a[1][0].agent ? -1 : 1) : 0) ||
       comparer(a[0], b[0]))
     .map(e => ({ cle: e[0], badges: e[1] }));
 }
@@ -615,7 +657,9 @@ function dessinerListe() {
   /* On annonce où s'arrête la pile du matin. Sans ce chiffre, il faut
      compter les badges un par un pour savoir où couper le tas — et 77
      badges se recomptent mal, debout, à l'imprimante. */
-  const nAg = s.filter(b => b.agent).length;
+  // « en tete » ne veut rien dire quand la pile est triee par nom :
+  // l'equipe Bony sort dans l'ordre alphabetique, pas agents devant.
+  const nAg = TRI_PAR_NOM.includes(CAT) ? 0 : s.filter(b => b.agent).length;
   $('chiffre-export').textContent = s.length
     ? s.length + ' badges · ' + Math.ceil(s.length / 2) + ' feuilles A4 · ' +
       lots.length + ' fichier' + (lots.length > 1 ? 's' : '') + ' PDF' +

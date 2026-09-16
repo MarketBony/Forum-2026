@@ -77,6 +77,7 @@ Fichiers numérotés et rejouables. `.\scripts\push-sql.ps1 -File sql\01_schema.
 | `26_quotas.sql` | **5 cases par garage**, quota de points par animation et par stand |
 | `27_collaborateurs.sql` | les 55 collaborateurs Bony du listing du 16 et les 21 constructeurs |
 | `28_reunion_agents.sql` | qui est **inscrit à la réunion d'agents** — ces badges sortent en tête |
+| `29_equipe_bony.sql` | une seule raison sociale pour l'équipe Bony, et un prénom/nom remis à l'endroit |
 | `07_acces.sql` | codes garage, profils, table des tentatives |
 | `08_frein.sql` | un code refusé devient un résultat, pour que le frein compte |
 | `09_accueil.sql` | le poste d'accueil : recherche et lecture des codes |
