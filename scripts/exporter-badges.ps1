@@ -69,10 +69,14 @@ Write-Output ''
 
 # --- ce que le générateur affiche ------------------------------------
 $badges = Sql @"
+-- reunion_agents sort en tete du PDF garage : la reunion d'agents a
+-- lieu le matin, avant le Forum, et cette pile-la se distribue en
+-- premier. Le tri est refait dans badges.js — celui-ci ne fait que
+-- rendre le JSON lisible a l'oeil quand on l'ouvre.
 select id::text as id, categorie, raison_sociale, prenom, nom, commune,
-       nb_badges, coalesce(code, '') as code
+       nb_badges, coalesce(code, '') as code, reunion_agents
 from public.v_badges
-order by categorie, raison_sociale, nom, prenom
+order by categorie, reunion_agents desc, raison_sociale, nom, prenom
 "@
 EcrireJson (Join-Path $Dossier 'participants.json') $badges
 

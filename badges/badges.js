@@ -229,6 +229,11 @@ function deplier(participants) {
         nom:    k === 0 ? (p.nom || '') : '',
         commune: p.commune || '',
         code: (p.code || '').toUpperCase(),
+        /* Inscrit a la reunion d'agents du matin. Porte par la personne,
+           donc recopie sur CHACUN de ses badges : l'accompagnant d'un
+           agent va a la meme reunion que lui, et separer les deux a
+           l'impression obligerait a les rechercher un par un. */
+        agent: !!p.reunion_agents,
         accompagne: k > 0
       });
     }
@@ -413,26 +418,55 @@ function pageAutonome(lot, titre) {
     '</body></html>';
 }
 
+/* LES AGENTS SORTENT EN TETE. La reunion d'agents a lieu le matin,
+   avant le Forum : cette pile-la se distribue en premier, et on veut
+   pouvoir la separer d'un geste au massicot plutot que de piocher 51
+   badges dans 145. Demande de Bastien le 16 septembre : « Agents de A
+   a Z puis reste des garages de A a Z ».
+
+   LE DRAPEAU VIENT DE LA BASE, PAS DE LA LETTRE DE PROFIL. `profil`
+   dit qui a ete INVITE a la reunion, `reunion_agents` dit qui s'y est
+   INSCRIT — voir sql/28_reunion_agents.sql, le premier se trompait sur
+   20 lignes des 145. Ici on ne fait que trier ce que la base affirme. */
 function selection() {
   let l = BADGES.filter(b => b.cat === CAT);
   if ($('f-neufs').checked) l = l.filter(b => !MARQUES[b.id]);
   return l.sort((a, b) =>
+    (b.agent === a.agent ? 0 : a.agent ? -1 : 1) ||
     comparer(a.raison, b.raison) ||
     comparer(a.nom || '', b.nom || '') ||
     comparer(a.prenom || '', b.prenom || '') ||
     (a.rang - b.rang));
 }
 
+/* Le decoupage par lettre ne doit pas melanger les deux piles : un PDF
+   « agents-M » et un PDF « reste-M » restent deux tas distincts, alors
+   qu'un seul « M » contenant les deux obligerait a retrier a la main ce
+   que le tri venait de separer.
+
+   POURQUOI « reste- » ET PAS LA LETTRE SEULE. Les deux series doivent
+   aussi se ranger dans le bon ordre DANS L'EXPLORATEUR, parce que c'est
+   la qu'on les selectionne pour les envoyer a l'imprimante. Avec la
+   lettre nue, « badges-garage-a » tombait AVANT « badges-garage-agents-a »
+   — le tiret vaut moins que le g — et les deux piles s'entrelacaient.
+   Le prefixe met tous les agents devant tout le reste, partout.
+
+   Une categorie sans aucun agent garde la lettre nue : rien ne bouge
+   pour les exposants, les animateurs et les hotesses. */
 function decouper(sel) {
   if (!$('f-decouper').checked) return [{ cle: '', badges: sel }];
+  const melange = sel.some(b => b.agent) && sel.some(b => !b.agent);
   const m = new Map();
   for (const b of sel) {
     const l = (norm(b.raison)[0] || '#').toUpperCase();
-    if (!m.has(l)) m.set(l, []);
-    m.get(l).push(b);
+    const cle = (melange ? (b.agent ? 'agents-' : 'reste-') : '') + l;
+    if (!m.has(cle)) m.set(cle, []);
+    m.get(cle).push(b);
   }
   return Array.from(m.entries())
-    .sort((a, b) => comparer(a[0], b[0]))
+    .sort((a, b) =>
+      (a[1][0].agent === b[1][0].agent ? 0 : a[1][0].agent ? -1 : 1) ||
+      comparer(a[0], b[0]))
     .map(e => ({ cle: e[0], badges: e[1] }));
 }
 
@@ -578,9 +612,15 @@ function dessinerListe() {
 
   const s = selection();
   const lots = decouper(s);
+  /* On annonce où s'arrête la pile du matin. Sans ce chiffre, il faut
+     compter les badges un par un pour savoir où couper le tas — et 77
+     badges se recomptent mal, debout, à l'imprimante. */
+  const nAg = s.filter(b => b.agent).length;
   $('chiffre-export').textContent = s.length
     ? s.length + ' badges · ' + Math.ceil(s.length / 2) + ' feuilles A4 · ' +
-      lots.length + ' fichier' + (lots.length > 1 ? 's' : '') + ' PDF'
+      lots.length + ' fichier' + (lots.length > 1 ? 's' : '') + ' PDF' +
+      (nAg ? ' · dont ' + nAg + ' agent' + (nAg > 1 ? 's' : '') + ' en tête, soit les ' +
+             Math.ceil(nAg / 2) + ' premières feuilles' : '')
     : 'rien à exporter';
 
   const MAX = 300;
@@ -594,7 +634,8 @@ function dessinerListe() {
     h += '<tr class="' + (b.code ? '' : 'orange') + '">' +
       '<td>' + echap(b.raison) + '</td>' +
       '<td>' + echap([b.prenom, b.nom].filter(Boolean).join(' ')) +
-        (b.accompagne ? ' <span class="accomp">accompagnant</span>' : '') + '</td>' +
+        (b.accompagne ? ' <span class="accomp">accompagnant</span>' : '') +
+        (b.agent ? ' <span class="agent">réunion</span>' : '') + '</td>' +
       '<td>' + echap(b.commune) + '</td>' +
       '<td class="code">' + echap(b.code || '—') + '</td>' +
       '<td>' + (MARQUES[b.id]
