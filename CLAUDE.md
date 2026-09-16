@@ -135,7 +135,7 @@ front ne protège rien.
 |---|---|
 | `garages.solde` = somme du journal | `verifier_soldes()`, affiché en supervision |
 | Aucun double crédit | `cle_idem` unique, générée par le client, jamais régénérée |
-| Une case = un seul gagnant | `select ... for update` dans `api_jouer_case` |
+| Une case = un seul gagnant | un **UPDATE conditionnel atomique** dans `api_jouer_case` : `where numero = ? and garage_id is null ... returning`, et `CASE_DEJA_PRISE` si zéro ligne. *(Cette ligne annonçait un `select ... for update` : il n'y en a pas, et il n'en faut pas — relevé le 17/09 en lisant la fonction déployée.)* |
 | Aucun solde négatif | contrôle dans `_ecrire` |
 | Aucun code garage = un PIN personnel | `verifier_portes()`, à relancer après tout changement de PIN |
 | Le journal ne se modifie pas | trigger `journal_pas_de_modif` |

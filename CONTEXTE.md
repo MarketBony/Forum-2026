@@ -2643,3 +2643,136 @@ trois usages, et le premier n'est pas comptable :
 
 **C'est un aller simple.** Aucune fonction ne décoche : une coche posée par
 erreur ne se retire qu'en SQL. À dire au brief.
+
+### 18.9 L'audit de la nuit du 17 — une porte de service restée ouverte
+
+Audit complet demandé par Bastien à minuit, dernière fenêtre avant le Forum.
+Tout ce qui suit a été mesuré sur la base de production et sur les fichiers
+réellement servis, jamais lu dans la documentation.
+
+#### 🔴 La faille : `revoke ... from anon` ne ferme rien
+
+Les fichiers `02_fonctions.sql` et `30_vitrine.sql` portaient des lignes
+`revoke all on function public._xxx(...) from anon, authenticated;`.
+**Elles n'ont jamais rien fermé.**
+
+> **PostgreSQL accorde `EXECUTE` à `PUBLIC` par défaut sur toute fonction
+> créée.** Retirer la concession explicite à `anon` ne retire pas celle de
+> `PUBLIC`, et `anon` en est membre. Dans `pg_proc.proacl`, ça se lit à la
+> première entrée : `=X/postgres` — rien devant le `=`, c'est PUBLIC.
+
+Mesuré le 17 septembre à 00 h 11, par la vraie porte HTTPS, avec la seule clé
+publique du front :
+
+```
+POST /rest/v1/rpc/_ecrire    ->  HTTP 400  {"message":"GARAGE_INCONNU"}
+POST /rest/v1/rpc/_appareil  ->  HTTP 400  {"message":"APPAREIL_INCONNU"}
+```
+
+**Ce sont des refus MÉTIER : les fonctions se sont exécutées.** Le `p_delta = 0`
+et l'uuid tiré au hasard avaient été choisis pour qu'elles ne *puissent* rien
+écrire. Avec un identifiant de garage valide — **que chaque téléphone reçoit
+dans la réponse de `api_etat`** — et un delta non nul, `_ecrire` aurait écrit.
+Elle ne contrôle aucun rôle : le contrôle vit dans les `api_*`, pas en elle.
+
+| Fonction ouverte | Ce qu'elle permettait |
+|---|---|
+| **`_ecrire`** | se créditer des points sans limite, sans passer par aucun rôle |
+| **`_personnel`** | la porte des 31 PIN, **sans le frein anti-devinette** de `api_ouvrir` |
+| `_appareil` · `_exige_role` | lire un appareil et son rôle depuis un jeton |
+| `_code_vitrine` | fabriquer un code de vitrine depuis une clé source |
+
+Et le plus vicieux : **la console de santé n'aurait rien vu.** `_ecrire`
+maintient l'invariant `solde = somme(journal)` — `verifier_soldes()` serait
+resté à zéro écart pendant que les points se fabriquaient.
+
+**Ce qui a sauvé le reste** : `verifier_soldes`, `verifier_portes`,
+`verifier_badges`, `_quota_*`, `_recu_*` ne sont **pas** `security definer`.
+Elles s'exécutent avec les droits de l'appelant, et la RLS sans policy les
+arrête — mesuré : `42501 permission denied for table garages`. **C'est la
+conception du projet qui les protégeait, pas les `revoke`.**
+
+#### Le correctif, et sa vérification
+
+`sql/32_verrou_fonctions_internes.sql` — cinq `revoke ... from public, anon,
+authenticated`. Il ne touche **ni `norm()`** (colonne générée
+`garages.recherche` : lui retirer EXECUTE casserait tout insert sur `garages`)
+**ni les fonctions de trigger**. Appliqué à 00 h 18, contrôle en sortie :
+`internes_encore_ouvertes = 0`, `api_ouvertes_a_anon = 24 / 24`.
+
+Vérifié ensuite par la même sonde HTTPS — et surtout, le point qui n'était
+qu'un raisonnement a été mesuré : **les `api_*` appellent toujours ces
+fonctions depuis l'intérieur.**
+
+| Appel | Résultat | Lecture |
+|---|---|---|
+| `api_etat` → `_appareil` | erreur métier | imbrication intacte |
+| `api_ouvrir` → `_personnel` | `porte: refus` | la porte marche, et un code refusé reste un **résultat** |
+| `api_vitrine` → `_exige_role` + `verifier_soldes` | erreur métier | imbrication intacte |
+| `_ecrire` · `_appareil` · `_exige_role` · `_personnel` · `_code_vitrine` en direct | `permission denied` | **fermées** |
+
+Un appel imbriqué sous `security definer` s'exécute sous l'identité du
+propriétaire, qui garde son EXECUTE explicite. Le retour arrière tient en une
+ligne, il est dans l'en-tête du fichier 32.
+
+#### 🟠 Deux faiblesses connues, volontairement non corrigées
+
+**Le frein anti-devinette est contournable.** Il compte
+`where jeton = p_jeton` — et **le jeton est choisi par le client**. Un script
+qui en change à chaque essai n'est jamais freiné. Ordres de grandeur :
+32⁴ = 1 048 576 combinaisons pour 1 456 codes garage valides, soit ~1 chance
+sur 720 par essai ; pour les PIN, 31 valides sur 10 000, soit 1 sur 322.
+Postgres ne voit pas l'IP de l'appelant et un frein global bloquerait des
+garagistes légitimes : **à connaître, pas à corriger dans l'urgence.**
+
+**Le plafond de 5 cases se contrôle puis s'applique en deux temps.** Deux
+téléphones du même garage qui achètent à la même seconde peuvent monter à 6.
+Bénin, et cohérent avec l'arbitrage déjà rendu sur les quotas d'animation
+(« la dernière partie a le droit de dépasser »).
+
+#### 🟡 Un invariant dont la raison affichée était fausse
+
+`CLAUDE.md` garantissait « une case = un seul gagnant » par un
+`select ... for update` dans `api_jouer_case`. **Il n'y en a pas.** La fonction
+déployée fait un **UPDATE conditionnel atomique** —
+`where numero = ? and garage_id is null ... returning`, puis `CASE_DEJA_PRISE`
+si zéro ligne. C'est correct, et meilleur qu'un verrou tenu entre deux
+instructions. L'invariant tient ; la ligne de `CLAUDE.md` est corrigée.
+
+Le chemin d'achat est propre par ailleurs : le débit précède la réservation, et
+si la case vient d'être prise l'exception annule toute la transaction — **le
+garage n'est pas débité**. Et le rejeu par `cle_idem` est testé *avant* le
+plafond, pour qu'un réseau qui bégaye sur la dernière case ne réponde pas
+« plafond atteint » à quelqu'un qui a déjà payé.
+
+#### 🟢 Le reste, vérifié et sain
+
+| Domaine | Résultat |
+|---|---|
+| Grille | 200 cases · 100/85/15 · numéros 1→200 · **0 libellé manquant, 0 marque-place** · 0 case prise |
+| Grand tirage | 15 tickets, 15 gros lots renseignés, **15 ordres distincts de 1 à 15** |
+| Codes garage | 1 456 actifs · 0 absent · 0 doublon · 0 mauvaise longueur · **0 hors alphabet** |
+| Portes | **0 collision** entre 1 456 codes, 32 PIN et 140 codes vitrine |
+| Badges | 316 participants · 140 codes vitrine distincts · **0 badge sans code** |
+| Config | les 12 clés présentes · `revelation=immediate` · `tirage_revele=non` |
+| Animations / stands | 6 et 23, **tous avec PIN et barème** |
+| RLS | 11 tables, **active partout, 0 policy, `anon` sans SELECT** · `v_badges` fermée |
+| Fonctions `api_*` | 24, toutes `security definer` avec `search_path` figé |
+| Contrôles de rôle | corrects sur 23 ; les 9 sensibles réservées à `admin`. `api_sante` est la seule sans contrôle — c'est la sonde de vie, par conception |
+| Déploiement | **les 8 fichiers servis sont identiques au dépôt** (aux fins de ligne près) · `gbp-v27` |
+| Reliquats | colonne `joue_le` absente, aucune fonction ne la cite · aucune trace de la grille à 100 cases |
+| Base | 22,4 Mo sur 500 |
+
+Deux détails sans conséquence : **49 garages actifs n'ont pas de commune** — la
+recherche de l'accueil porte sur le nom, et la commune a été retirée des badges
+le 14 — et les **gros lots en double** (5 avions, 5 circuits, 2 montres) sont
+**voulus** : le commentaire du moteur d'animation dit que le crescendo porte sur
+les trois pièces uniques placées en 13, 14 et 15.
+
+#### Ce qui n'a pas pu être fait, et qu'il faut dire
+
+- **Les flux d'écriture n'ont pas été rejoués de bout en bout** (entrée,
+  participation, résultat, achat, case) : il aurait fallu écrire dans le
+  journal, et la base devait rester à zéro. Les appels imbriqués ont été
+  éprouvés indirectement, par des erreurs métier.
+- **Les 114 tests n'ont pas été lancés** : ils effacent la base (§18.4).
