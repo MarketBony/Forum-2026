@@ -627,7 +627,7 @@ function reglesDe(role) {
       ['ecran', 'L\'état de la base', `La console en haut de l\'écran. Tant que la santé globale est verte, tout va bien. Le tableau de bord Supabase, lui, comptera chaque refus voulu comme une erreur — ne vous y fiez pas.`],
       ['cadeau', 'La remise des lots', `« Suivi des lots » : le garage présente son code, vous le retrouvez, vous cochez « Remettre ».`],
       ['ticket', 'Les tickets d\'or', `Le détail de qui détient quoi. <b>Cet écran nomme les gros lots avant la révélation</b> — ne le montrez à personne.`],
-      ['scene', 'Le grand tirage', `Un bouton, et la révélation se déroule seule, 4 secondes par lot. Un clic sur l'écran fait tomber le nom tout de suite, un second passe au lot suivant.`],
+      ['scene', 'Le grand tirage', `Un bouton, et la révélation se déroule seule, 6,5 secondes par lot. Un clic sur l'écran fait tomber le nom tout de suite, un second passe au lot suivant.`],
       ['horloge', 'Toutes les heures', `Exportez le journal en CSV. C'est la seule vraie sauvegarde de la soirée.`],
     ],
     note: `Le code supervision n'est sur aucun badge. Ne le donnez pas.`,
@@ -1144,11 +1144,14 @@ function vueProjection() {
 //
 //  LA DURÉE SE COMPTE PAR LOT, PLUS EN BUDGET TOTAL. Le réglage s'est
 //  fait en quatre passes, sur scène et jamais au jugé :
-//    57 s au total → « un poil trop rapide »
-//    95 s au total → « un poil trop long »
-//    80 s au total → 4,4 s par lot, mais 8,9 s pour les trois derniers
-//    4 s PAR LOT   → « 5 secondes par tirage d'un garage grand max, et
-//                     que ça enchaîne vite d'un tirage à l'autre »
+//    57 s au total   → « un poil trop rapide »
+//    95 s au total   → « un poil trop long »
+//    80 s au total   → 4,4 s par lot, mais 8,9 s pour les trois derniers
+//    4 s PAR LOT     → « 5 secondes par tirage grand max, et que ça
+//                       enchaîne vite d'un tirage à l'autre »
+//    6,5 s PAR LOT   → le réglage retenu. 4 s était trop sec une fois
+//                       vu sur scène : le temps de lire le nom du
+//                       gagnant manquait.
 //
 //  Le budget global a disparu avec cette dernière passe, et c'est le
 //  bon modèle : ce que la salle ressent, c'est le temps d'UNE annonce,
@@ -1167,19 +1170,22 @@ function vueProjection() {
 //  ne tombe qu'aux deux tiers du temps imparti. Ce silence-là est tout
 //  le spectacle ; sans lui on affiche un tableau, on ne révèle rien.
 // ---------------------------------------------------------------------
-// Durée d'UN lot, hors carton de fin. Plafond posé par Bastien le
-// 17 septembre : 5 s, jamais plus. On se tient à 4 s, ce qui laisse de
-// la marge si quelqu'un veut respirer un peu sur scène.
-// 15 tickets = 60 s. NE PAS descendre sous 3 s sans rejouer le
-// spectacle en entier : la roulette n'aurait plus la place de ralentir
-// et le nom tomberait avant que le lot soit lu.
-const REVEL_PAR_LOT = 4000;
+// Durée d'UN lot, hors carton de fin. 15 tickets = 97 s.
+//
+// LA ROULETTE DOIT AVOIR LE TEMPS DE FINIR SA DÉCÉLÉRATION. Elle se
+// coupe net au temps imparti (garde-fou de scène, voir revelRouler), et
+// une roulette coupée en plein élan s'arrête sans ralentir : on dirait
+// une panne, pas un verdict. À 6,5 s, la part de suspense vaut 4,03 s
+// et les 32 sauts en prennent 3,93 — ça passe, de 100 ms. Toucher à
+// REVEL_PAR_LOT ou à REVEL_SUSPENSE sans rejouer un passage complet,
+// c'est risquer de repasser sous cette marge sans que rien ne le dise.
+const REVEL_PAR_LOT = 6500;
 // Part du temps d'un ticket consacrée au SUSPENSE (roulette des noms).
 // Le reste laisse le nom du gagnant affiché, en clair, avant de passer.
 // Montée de 0,50 à 0,62 pour « enchaîner vite » : c'est le temps mort
 // APRÈS la chute du nom qui donnait l'impression de traîner, pas la
-// roulette. À 4 s, ça fait 2,5 s de roulette et 1,5 s de nom en clair —
-// la roulette a donc plus de temps qu'avant, et l'attente moins.
+// roulette. À 6,5 s, ça fait 4,0 s de roulette et 2,5 s de nom en
+// clair — de quoi lire « Carrosserie Desmartin » au fond de la salle.
 const REVEL_SUSPENSE = 0.62;
 let revelMinuteur = null;
 

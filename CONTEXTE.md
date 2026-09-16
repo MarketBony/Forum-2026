@@ -93,7 +93,7 @@ qu'une chose ne va pas sur le terrain, c'est son terrain : il a raison.
 ### Le soir
 
 1. Supervision → **Grand tirage au sort** → *Lancer la révélation*.
-2. 4 s par lot, soit ~61 s pour 15 tickets. Un clic sur la scène fait tomber le nom tout de suite, un second
+2. 6,5 s par lot, soit ~100 s pour 15 tickets. Un clic sur la scène fait tomber le nom tout de suite, un second
    passe au lot suivant.
 3. Le récapitulatif reste affiché, et sert au stand des lots.
    **Si l'écran est rouvert plus tard**, il ne réaffiche rien de lui-même :
@@ -928,26 +928,28 @@ case 182 valait 379 €.
 #### L'écran de projection
 
 **LA DURÉE SE COMPTE PAR LOT, PLUS EN BUDGET TOTAL.** `REVEL_PAR_LOT` vaut
-**4 000 ms**, sous le plafond de 5 s posé par Bastien le 17 septembre :
-*« 5 secondes par tirage d'un garage grand max, et que ça enchaîne vite d'un
-tirage à l'autre »*.
+**6 500 ms**. Le plafond de 5 s posé le matin du 17 a été relevé le jour même,
+après passage sur scène : à 4 s, le temps de lire le nom du gagnant manquait.
 
 Le budget global a disparu avec cette passe, et c'est le bon modèle : ce que la
 salle ressent, c'est le temps d'UNE annonce, pas la somme. Un budget total
 faisait dépendre le rythme du nombre de tickets décrochés — à 8 tickets au lieu
 de 15, chaque annonce durait presque le double sans que personne l'ait demandé.
 
-**Mesuré sur un passage complet de 15 tickets : 61,1 secondes.**
+**Mesuré à 6,5 s : écarts de 6,65 à 6,68 s entre deux annonces**, premier nom
+à 4,2 s. Les ~2,5 % au-dessus de la consigne sont l'empilement des `setTimeout`
+de la roulette ; c'est constant et sans effet visible.
 
-```
-noms tombés à : 2,6 · 6,6 · 10,7 · 14,7 · 18,8 · 22,9 · 27,0 · 31,1 · 35,1
-                39,2 · 43,3 · 47,4 · 51,5 · 55,5 · 59,6 s   → fin à 61,1 s
-écarts        : 4,05 à 4,10 s, sans exception — plafond de 5 s tenu
-```
+> ⚠️ **Pour 15 tickets, ça fait ~100 secondes** — soit PLUS que les 80 s jugées
+> « un poil trop long » le 16. Le réglage porte sur le temps d'UNE annonce, pas
+> sur le total, et c'est assumé : une annonce trop brève rate sa cible même si
+> le spectacle est court. Si c'est le total qui coince un jour, c'est
+> `REVEL_PAR_LOT` qu'on baisse, pas le nombre de lots.
 
-> **Quatre passes, toutes sur retour de scène.** 57 s au total : « un poil trop
+> **Cinq passes, toutes sur retour de scène.** 57 s au total : « un poil trop
 > rapide ». 95 s : « un poil trop long ». 80 s : le compromis du 16, mais 8,9 s
-> sur les trois derniers lots. **4 s par lot** : le réglage du 17.
+> sur les trois derniers lots. 4 s par lot : le réglage du matin du 17, trop sec
+> une fois projeté. **6,5 s par lot** : le réglage retenu.
 >
 > ⚠️ **Le temps double des trois derniers a sauté.** Il portait le crescendo sur
 > les trois pièces uniques — sac à dos Alpine, weekender, sac cuir jaune — et il
@@ -955,11 +957,19 @@ noms tombés à : 2,6 · 6,6 · 10,7 · 14,7 · 18,8 · 22,9 · 27,0 · 31,1 · 
 > 8 s. Le spectacle finit toujours sur le plus beau lot, mais au même rythme que
 > le reste. C'est un arbitrage de scène, pas un oubli.
 >
-> `REVEL_SUSPENSE` monte de 0,50 à **0,62** : c'est le temps mort APRÈS la chute
-> du nom qui donnait l'impression de traîner, pas la roulette. À 4 s, ça fait
-> 2,5 s de roulette et 1,5 s de nom en clair — la roulette a donc plus de temps
-> qu'avant, et l'attente moins. Ne pas descendre sous 3 s par lot sans rejouer
-> le spectacle : la roulette n'aurait plus la place de ralentir.
+> `REVEL_SUSPENSE` vaut **0,62** : c'est le temps mort APRÈS la chute du nom qui
+> donnait l'impression de traîner, pas la roulette. À 6,5 s, ça fait 4,0 s de
+> roulette et 2,5 s de nom en clair — de quoi lire « Carrosserie Desmartin » au
+> fond de la salle.
+>
+> ⚠️ **LA ROULETTE DOIT AVOIR LE TEMPS DE FINIR SA DÉCÉLÉRATION.** Elle se coupe
+> net au temps imparti — c'est le garde-fou de scène — et une roulette coupée en
+> plein élan s'arrête sans ralentir : on dirait une panne, pas un verdict. À
+> 6,5 s, les 32 sauts prennent 3,93 s pour 4,03 s disponibles : **100 ms de
+> marge**. Vérifié en horodatant chaque saut — le dernier dure 277 ms contre
+> 52 ms pour le premier, la décélération va donc bien à son terme. Toucher à
+> `REVEL_PAR_LOT` ou à `REVEL_SUSPENSE` sans rejouer un passage complet, c'est
+> risquer de repasser sous cette marge sans que rien ne le dise.
 
 **Le titre de scène est détaché du lot.** « Le grand tirage » et le nom du lot
 partageaient le gap commun de la scène — 12 px — et se lisaient de loin comme une

@@ -235,10 +235,10 @@ au sort**, pensé pour un vidéoprojecteur en paysage et une lecture à dix mèt
    en rayon — ceux-là sont passés en silence
 2. `api_tirage_lancer` bascule la soirée **en un seul appel** : il pose les codes
    de retrait et rend les 15 tickets d'un coup
-3. **4 secondes par lot**, entièrement dans le navigateur : le lot apparaît
+3. **6,5 secondes par lot**, entièrement dans le navigateur : le lot apparaît
    seul, le nom du garage tombe aux deux tiers du temps — ce silence est tout le
-   spectacle. Plafond posé par Bastien : 5 s par tirage, jamais plus. Mesuré à
-   61 s pour 15 tickets
+   spectacle. Mesuré à 6,65 s d'écart entre deux annonces, soit ~100 s pour
+   15 tickets
 4. le récapitulatif reste à l'écran, et sert ensuite au stand des lots
 
 **Rouvrir l'écran après coup n'affiche plus les gagnants** : c'est ce même écran
