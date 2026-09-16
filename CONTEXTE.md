@@ -93,6 +93,74 @@ qu'une chose ne va pas sur le terrain, c'est son terrain : il a raison.
 #    pas parti.
 ```
 
+### Le test du prestataire audiovisuel sur écran géant
+
+> Le presta veut éprouver le grand tirage en vraie grandeur avant l'ouverture.
+> Il faut donc une base **pleine** pendant quelques minutes, puis vide.
+> **Tout repose sur une seule condition : que personne n'ait encore ouvert
+> l'application.**
+
+**LE VERROU, à lire avant tout le reste.** La remise à zéro est tout-ou-rien :
+elle vide le journal entier, efface `inscrit_le`, remet les soldes à zéro et
+**supprime tous les appareils**. Si des agents sont déjà entrés, ils sont tous
+**déconnectés d'un coup** — leur téléphone garde son jeton, la ligne
+`appareils` a disparu, `api_etat` répond `APPAREIL_INCONNU` et l'application
+retombe sur l'écran de code. Ils devront retaper leur code au moment précis où
+le Forum ouvre. Et pendant le test, `api_etat` renvoyant l'état complet de la
+grille, **chaque agent connecté verrait la grille déjà prise**.
+
+```powershell
+# ---- 0. LE FEU VERT. Sans lui, on ne lance RIEN. --------------------
+.\scripts\push-sql.ps1 -Quiet -Query "select (select count(*) from journal) as journal, (select count(*) from appareils) as appareils"
+#    attendu : journal=0
+#    journal > 0  =>  quelqu'un est deja arrive. ON ANNULE LE TEST.
+#    Il n'y a pas de demi-mesure : a partir de la, remplir puis vider
+#    detruirait l'arrivee de ces gens-la.
+
+# ---- 1. Remplir (quelques minutes) ---------------------------------
+.\scripts\simuler-forum.ps1 -Appliquer
+#    Elle remet a zero PUIS joue une journee : 200 cases prises,
+#    15 tickets d'or decroches. C'est exactement ce qu'il faut a l'ecran.
+
+# ---- 2. La tablette de projection a ete deconnectee par l'etape 1 ---
+#    (tous les appareils ont ete supprimes). Ressaisir le PIN direction.
+
+# ---- 3. Le presta fait son test -------------------------------------
+#    Supervision -> Grand tirage au sort -> Lancer la revelation.
+#    6,5 s par lot, ~100 s pour les 15. Le bouton Repetition rabaisse le
+#    drapeau si on veut le rejouer : les codes de retrait ne bougent pas,
+#    sans importance ici puisque l'etape 4 les efface.
+
+# ---- 4. Vider, et LIRE CE QU'ELLE REPOND ----------------------------
+.\scripts\push-sql.ps1 -File sql\99_remise_a_zero.sql
+#    Elle finit par un controle. TOUT doit etre a zero :
+#      lignes_journal 0 · appareils 0 · tentatives 0 · tirage_revele non
+#      garages_avec_solde 0 · cases_jouees 0 · ecarts 0
+#    et la composition doit avoir SURVECU :
+#      cases_lot 85 · tickets_or 15 · cases_perdantes 100
+#    Si une seule de ces valeurs n'y est pas : NE PAS OUVRIR, relancer.
+
+# ---- 5. Le controle d'etat habituel, puis on ouvre ------------------
+#    (celui du debut de ce paragraphe, plus verifier_portes/badges)
+```
+
+**Trois choses à savoir :**
+
+- **La fenêtre se referme au premier agent connecté.** Le seul juge est le
+  compteur `journal` : il passe à 1 dès la première arrivée, parce que le bonus
+  d'accueil s'y écrit. C'est le feu vert de l'étape 0, et il ne se discute pas.
+- **Aucun `Ctrl + Maj + R` n'est nécessaire** : rien n'est déployé, seule la
+  base bouge. En revanche **tous les postes de service** — projection,
+  supervision, accueil — devront ressaisir leur PIN après l'étape 4.
+- **`simuler-forum.ps1 -Appliquer` commence elle-même par une remise à zéro.**
+  Elle est donc aussi destructrice que `99_remise_a_zero.sql`, et soumise au
+  même interdit une fois le Forum commencé.
+
+> Si le test devait avoir lieu **après** la distribution des codes, cette
+> procédure ne convient pas : il faudrait une injection marquée et un nettoyage
+> chirurgical qui préserve les agents déjà entrés. Ça n'a pas été écrit, et ça
+> ne s'improvise pas le matin même.
+
 ### Pendant la journée
 
 - **La console de santé** est en haut de l'écran de supervision. Tant que la
