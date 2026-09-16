@@ -182,7 +182,16 @@ grille, **chaque agent connecté verrait la grille déjà prise**.
 3. Le récapitulatif reste affiché, et sert au stand des lots.
    **Si l'écran est rouvert plus tard**, il ne réaffiche rien de lui-même :
    un bouton *Afficher le récapitulatif* le rappelle.
-4. **Un dernier export du journal** avant de fermer.
+4. **La remise des lots** — « Suivi des lots », le garage présente son code, on
+   coche « Remettre ». Après la révélation, les 15 gros lots arrivent **en
+   tête** de cette liste. Rien n'en dépend : ni les points, ni le journal, ni
+   un invariant. Mais c'est **la seule mémoire contre une double remise**, le
+   garagiste voit « Retiré » basculer sur son téléphone, et le compteur
+   « Lots à remettre » dit combien de personnes n'ont pas encore récupéré.
+   **C'est un aller simple : rien ne décoche dans l'application.** Ne jamais
+   bloquer la file pour ça — la liste garde les non-remis en tête et on
+   rattrape plus tard.
+5. **Un dernier export du journal** avant de fermer.
 
 ### Les réglages, tous en direct dans `config`
 
@@ -2561,3 +2570,76 @@ heures**.
   serveur est de 0,6 ms (`api_etat`) et 13 ms (`api_vitrine`). **Ce banc mesure
   Supabase, pas le wifi de la Grande Halle**, qui reste le risque le plus
   probable de la soirée et qu'aucun abonnement n'achète.
+
+### 18.8 Un défaut trouvé en briefant la remise des lots
+
+Bastien, la veille au soir : *« dans Suivi des lots, il va falloir valider que
+l'on a bien remis le lot au gagnant ? est-ce que c'est vraiment essentiel, ou
+c'est juste un élément comptable ? »* La question a mis au jour un défaut que
+personne n'avait vu, et qui serait tombé au pire moment.
+
+**`api_remettre_lot` refusait les tickets d'or.** `sql/23_grand_tirage.sql`
+avait élargi aux billets deux choses sur trois — la contrainte
+`grille_remise_coherente` (`nature in ('lot','billet')`) et `api_lots`, qui
+renvoie désormais les gros lots **en tête** des non-remis — mais pas
+`api_remettre_lot`, restée sur `nature = 'lot'`. **La base autorisait donc ce
+que la seule fonction capable de le faire refusait.**
+
+Ce que ça donnait le soir : après la révélation, les 15 gros lots arrivent en
+tête de l'écran « Suivi des lots », chacun avec son bouton **Remettre**, et
+chacun de ces boutons échouait — bandeau rouge « Impossible — Case inconnue,
+sans lot, non révélée, ou lot déjà remis », au stand des lots, juste après le
+spectacle, sur les quinze lots les plus importants de la soirée. Et
+l'indicateur **« Gros lots déjà remis »** de l'écran des tickets d'or serait
+resté à 0 toute la nuit.
+
+Mesuré sur la base de production, en transaction annulée, **avant** :
+
+```
+api_remettre_lot sur un LOT ordinaire ... OK, coche posee
+api_remettre_lot sur un TICKET D'OR ..... ECHEC : LOT_NON_REMISABLE
+```
+
+**Après** `sql/31_remise_gros_lots.sql` — deux mots changés, le reste du corps
+recopié à l'identique :
+
+```
+api_remettre_lot sur un LOT ordinaire ... OK, coche posee
+api_remettre_lot sur un TICKET D'OR ..... OK, coche posee
+```
+
+Et la non-régression, parce qu'**une porte qui s'ouvre plus large doit refuser
+exactement ce qu'elle refusait** :
+
+```
+1. case perdante ................. refusee (LOT_NON_REMISABLE)  OK
+2. lot non revele ................ refusee (LOT_NON_REMISABLE)  OK
+3. lot sans garage ............... refusee (LOT_NON_REMISABLE)  OK
+4. ticket d'or coche deux fois ... refusee (LOT_NON_REMISABLE)  OK
+5. jeton de garage ............... refusee (ROLE_INSUFFISANT)   OK
+6. numero inexistant ............. refusee (LOT_NON_REMISABLE)  OK
+```
+
+> **Les 114 tests n'ont pas été rejoués** — voir §18.4, ils auraient effacé la
+> base la veille du Forum. La vérification ci-dessus est plus ciblée qu'eux
+> pour ce changement : elle éprouve les deux sens sur la fonction modifiée,
+> sur la vraie base, sans rien y laisser. `sql/31_remise_gros_lots.sql` porte
+> d'ailleurs son propre contrôle, qui fait **échouer le fichier** si le
+> correctif n'a pas pris.
+
+**Ce que vaut vraiment la coche « Remettre », puisque la question était là.**
+Elle ne commande rien : ni les points, ni le journal, ni un invariant. Si
+personne ne coche de la soirée, tout fonctionne à l'identique. Mais elle a
+trois usages, et le premier n'est pas comptable :
+
+1. **la seule mémoire contre une double remise** — avec une centaine de lots
+   et plusieurs personnes qui tournent au stand, rien d'autre ne dit « celui-là
+   est déjà parti » ;
+2. **le garagiste le voit sur son téléphone** — « à retirer au stand des lots »
+   bascule sur « Retiré » ;
+3. **le compteur « Lots à remettre »** de la supervision, et le « N déjà
+   remis » que lisent les 140 vitrines : c'est le chiffre qui dit à 19 h s'il
+   faut faire une annonce au micro.
+
+**C'est un aller simple.** Aucune fonction ne décoche : une coche posée par
+erreur ne se retire qu'en SQL. À dire au brief.
