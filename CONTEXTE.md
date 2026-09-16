@@ -2268,7 +2268,15 @@ FORUM   12 req/s x ~5 ms = 0,06 connexion sur 11, soit 0,5 % du pool
 
 Le seul coût **non constant** de l'application, donc le seul analogue de la
 cause n° 2 de GRID. Mesuré sur la base de production, dans une transaction
-annulée par une exception : aucune ligne n'a survécu.
+annulée par une exception : aucune ligne n'a survécu. Le banc est
+`scripts/mesurer-vitrine.ps1`, rejouable tant que le journal est vide.
+
+> ⚠️ **Ces temps varient d'une exécution à l'autre** — instance partagée,
+> caches froids ou chauds. Deux passages au même volume de 3 000 lignes ont
+> donné **13,14 ms puis 20,89 ms** le 16 au soir. C'est **l'ordre de grandeur**
+> qui compte, pas la décimale : à 20 ms, les 140 vitrines occupent 0,09
+> connexion sur 11. On reste à deux ordres de grandeur du moment où le pool
+> commencerait à souffrir.
 
 | journal | `api_vitrine` p50 | p95 | `api_etat` p50 | `api_supervision` p50 |
 |---|---|---|---|---|

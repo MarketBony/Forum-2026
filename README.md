@@ -146,7 +146,14 @@ l'application si elle a été ajoutée à l'écran d'accueil, repartir de la bon
 ```powershell
 .\scripts\banc-jour-j.ps1              # les six profils EN MEME TEMPS + la meute
 .\scripts\banc-jour-j.ps1 -Facteur 10  # dix fois le rythme reel
+.\scripts\mesurer-vitrine.ps1          # le cout des lectures sur un journal simule
 ```
+
+`mesurer-vitrine.ps1` remplit un journal de plusieurs milliers de lignes pour
+chronométrer `api_vitrine`, `api_etat` et `api_supervision` comme le jour J —
+puis **annule tout par une exception**, qui est son fonctionnement normal : il
+s'affiche en échec, et c'est le signe que rien n'a été écrit. Il vérifie
+ensuite lui-même que la base est revenue à zéro.
 
 Les quatre bancs précédents mesuraient chacun un profil ; celui-ci les joue
 tous ensemble, puis fait appeler les 344 appareils dans la même milliseconde.

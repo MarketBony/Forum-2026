@@ -87,6 +87,7 @@ n'a pas été testé.
 | `sms-listes.ps1` | les deux listes de diffusion, numéros en E.164 |
 | `charge-vitrine.ps1` | ce que coûtent 140 vitrines ouvertes |
 | `banc-jour-j.ps1` | **les six profils en même temps, plus la meute** — §18 |
+| `mesurer-vitrine.ps1` | le coût des lectures sur un journal simulé — **s'annule tout seul** |
 | `simuler-forum.ps1` | une journée entière par l'API réelle |
 | `diagnostic.ps1` | « est-ce la base, ou la couche devant ? » |
 
